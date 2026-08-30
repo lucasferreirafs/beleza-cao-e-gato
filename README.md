@@ -1,3 +1,3 @@
-## Sistema de Gerenciamento de PetShop - Beleza Cão&Gato
+# Beleza Cão&Gato — Sistema de Gerenciamento
 
-Projeto Academico, Desenvolvido para gerenciamento geral do PetShop.
+Aplicação web MVC em PHP puro para clientes, colaboradores e administradores de um pet shop. A interface foi implementada a partir do arquivo Figma “Sistema de Gerenciamento”.
