@@ -1,0 +1,72 @@
+/* =========================================
+    LANDING PAGE
+============================================ */
+
+.landing-page {
+	overflow: hidden;
+	background: var(--surface);
+}
+
+.landing-header,
+.landing-hero,
+.landing-section,
+.landing-footer {
+	width: min(1180px, calc(100% - 48px));
+	margin-inline: auto;
+}
+
+.landing-header {
+	min-height: 82px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 28px;
+}
+
+.landing-brand {
+	display: flex;
+	align-items: center;
+}
+
+.landing-brand .brand-img {
+	height: 65px;
+	width: auto;
+	max-width: 100%;
+	object-fit: contain;
+}
+
+.landing-nav {
+	display: flex;
+	align-items: center;
+	gap: 32px;
+}
+
+.landing-nav a {
+	color: var(--gray-700);
+	font-size: 16px;
+	font-weight: 600;
+	transition: all .3s ease-in-out;
+}
+
+.landing-nav a:hover {
+	transform: translateY(-2px);
+	color: var(--orange-500);
+}
+
+.landing-login {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	color: var(--teal-500);
+	border: 1px solid var(--teal-100);
+	border-radius: 8px;
+	padding: 10px 16px;
+	font-size: 13px;
+	font-weight: 700;
+	transition: all .3s ease-in-out;
+}
+
+.landing-login:hover {
+	transform: translateY(-2px);
+	background: var(--teal-50);
+}

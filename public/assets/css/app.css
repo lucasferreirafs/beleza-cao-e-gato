@@ -1,0 +1,59 @@
+@import url('./landing-page.css');
+
+:root {
+	--orange-50: #fff5f1;
+	--orange-100: #ffe6dc;
+	--orange-300: #ffa685;
+	--orange-500: #e8612d;
+	--orange-700: #b83f11;
+	--teal-50: #ebf2f4;
+	--teal-100: #d2e2e6;
+	--teal-300: #8ab2bd;
+	--teal-500: #1a4350;
+	--teal-700: #0f2c35;
+	--ink: #18221f;
+	--gray-50: #f9fafb;
+	--gray-100: #f3f4f6;
+	--gray-300: #d1d5db;
+	--gray-500: #6b7280;
+	--gray-700: #374151;
+	--success: #10b981;
+	--success-light: #d1fae5;
+	--error: #ef4444;
+	--warning: #f59e0b;
+	--info: #3b82f6;
+	--surface: #fff;
+	--canvas: #f3f6f4;
+	--shadow-sm: 0 2px 4px rgba(24, 34, 31, 0.03);
+	--shadow-md: 0 6px 8px rgba(24, 34, 31, 0.05);
+	--shadow-lg: 0 12px 22px rgba(24, 34, 31, 0.1);
+	--r-sm: 4px;
+	--r-md: 8px;
+	--r-lg: 12px;
+	--r-xl: 16px;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html {
+	font-family: "Inter", system-ui, sans-serif;
+	color: var(--ink);
+	background: var(--canvas);
+	font-size: 14px;
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+}
+
+a {
+	color: var(--orange-700);
+	text-decoration: none;
+}
+
+/* =========================================
+    
+============================================ */
