@@ -4,4 +4,9 @@ services:
     ports:
       - "8080:80"
     env_file: .env
+    volumes:
+      - ./app:/var/www/html/app
+      - ./public:/var/www/html/public
+      - ./resources:/var/www/html/resources
+      - ./routes:/var/www/html/routes
     restart: unless-stopped
