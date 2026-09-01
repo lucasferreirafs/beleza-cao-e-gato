@@ -54,6 +54,105 @@ a {
 	text-decoration: none;
 }
 
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+
+button,
+a {
+	transition:
+		background-color 0.18s,
+		color 0.18s,
+		border-color 0.18s,
+		transform 0.18s;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+	outline: 3px solid rgba(59, 130, 246, 0.28);
+	outline-offset: 2px;
+}
+
+h1 {
+	font-size: 28px;
+	line-height: 1.2;
+	margin: 0 0 6px;
+	font-weight: 700;
+}
+
+h2 {
+	font-size: 18px;
+	margin: 0 0 18px;
+}
+
+h3 {
+	font-size: 12px;
+	color: var(--gray-500);
+	margin: 18px 0 8px;
+}
+
+p {
+	color: var(--gray-500);
+	line-height: 1.5;
+}
+
+.button {
+	min-height: 40px;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	padding: 10px 18px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	font-weight: 600;
+	cursor: pointer;
+	background: #fff;
+}
+
+.button:hover {
+	transform: translateY(-1px);
+}
+
+.primary {
+	background: var(--orange-500);
+	color: white;
+}
+
+.primary:hover {
+	background: var(--orange-700);
+}
+
+.secondary {
+	border-color: var(--gray-300);
+	color: var(--gray-700);
+}
+
+.teal {
+	background: var(--teal-500);
+	color: white;
+}
+
+.muted {
+	background: #e2eae8;
+	color: var(--teal-500);
+}
+
+.ghost {
+	background: transparent;
+}
+
+.danger {
+	color: #dc3c2d;
+}
+
 /* =========================================
     
 ============================================ */
