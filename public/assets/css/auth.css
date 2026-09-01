@@ -1,0 +1,167 @@
+.auth-body {
+    background: var(--canvas);
+}
+
+/* =========================================
+    AUTENTICAÇÃO - LOGIN BRAND
+============================================ */
+.login-page {
+    display: grid;
+    grid-template-columns: 560px 1fr;
+    min-height: 100vh;
+}
+
+@keyframes pan-right-to-left {
+    from { background-position: 100% center; }
+    to   { background-position: 0% center; }
+}
+
+.brand-panel {
+    background:
+        linear-gradient(rgba(15, 44, 53, 0.89),
+            rgba(15, 44, 53, 0.82)),
+        url("/assets/images/login-background.png") 100% center / cover;
+    background-size: cover;
+    animation: pan-right-to-left 14s ease-in-out infinite alternate;
+    color: #fff;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background-color: var(--orange-500);
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    color: #fff;
+}
+
+.auth-brand span {
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-brand small {
+    font-size: 10px;
+}
+
+.brand-copy {
+    max-width: 470px;
+}
+
+.brand-badge {
+    background-color: rgba(255, 255, 255, 0.10);
+    border-radius: 99px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.brand-copy h1 {
+    font-size: 34px;
+    margin-top: 16px;
+}
+
+.brand-copy p {
+    font-size: 16px;
+    color: #E2EAE7;
+}
+
+.brand-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.brand-metrics span {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-metrics small {
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.brand-metrics b {
+    font-size: 20px;
+    margin-top: 4px;
+}
+
+/* =========================================
+    AUTENTICAÇÃO - LOGIN
+============================================ */
+.login-form-panel {
+    display: grid;
+    place-items: center;
+    padding: 40px;
+}
+
+.auth-card {
+    width: min(480px, 100%);
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    padding: 40px;
+    display: grid;
+    gap: 20px;
+}
+
+.auth-card h2 {
+    font-size: 26px;
+    margin: 0;
+}
+
+.auth-card > p {
+    margin: -14px 0 2px;
+}
+
+.auth-card label {
+  font-weight: 500;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field button {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  height: 36px;
+  width: 36px;
+  border: 0;
+  background: none;
+}
+
+.form-inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-foot {
+  text-align: center !important;
+  margin: 0 !important;
+}
