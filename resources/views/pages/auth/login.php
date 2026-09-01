@@ -1,5 +1,4 @@
 <main class="login-page">
-
     <section class="brand-panel">
         <div class="auth-brand">
             <b class="brand-mark">
@@ -7,19 +6,13 @@
             </b>
 
             <span>
-                <strong>
-                    Beleza Cão&amp;Gato
-                </strong>
-                <small>
-                    SISTEMA DE GESTÃO
-                </small>
+                <strong>Beleza Cão&amp;Gato</strong>
+                <small>SISTEMA DE GESTÃO</small>
             </span>
         </div>
 
         <div class="brand-copy">
-            <span class="brand-badge">
-                ✨ GESTÃO INTELIGENTE E MODERNA
-            </span>
+            <span class="brand-badge">✨ GESTÃO INTELIGENTE E MODERNA</span>
 
             <h1>
                 Controle total do seu pet shop em um só lugar.
@@ -57,7 +50,8 @@
             <label>
                 Senha de acesso
                 <span class="password-field">
-                    <input type="password" name="password" placeholder="••••••••••••" autocomplete="current-password" required>
+                    <input type="password" name="password" placeholder="••••••••••••" autocomplete="current-password"
+                        required>
                     <button type="button" data-password-toggle aria-label="Mostra senha">
                         <i class="fa-solid fa-eye"></i>
                     </button>
@@ -69,7 +63,7 @@
                     <input type="checkbox" name="remember">
                     Lembrar de mim
                 </label>
-                
+
                 <a href="/recuperar-senha">Esqueci minha senha</a>
             </div>
 

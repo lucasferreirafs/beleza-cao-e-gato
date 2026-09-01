@@ -32,6 +32,11 @@ final class AuthController
             'auth'
         );
     }
+    
+    public function registerForm(Request $r): void
+    {
+        View::render('pages/auth/register', ['title' => 'Criar conta'], 'auth');
+    }
 
     public function login(Request $request): void
     {
