@@ -35,7 +35,13 @@ final class AuthController
     
     public function registerForm(Request $r): void
     {
-        View::render('pages/auth/register', ['title' => 'Criar conta'], 'auth');
+        View::render(
+            'pages/auth/register',
+            [
+                'title' => 'Criar conta'
+            ], 
+            'auth'
+        );
     }
 
     public function login(Request $request): void
@@ -59,4 +65,31 @@ final class AuthController
         Response::redirect('/dashboard');
     }
 
+    public function logout(Request $request): void 
+    {
+        session::logout();
+        Response::redirect('/login');
+    }
+
+    public function recovery(Request $request): void 
+    {
+        View::render(
+            'pages/auth/recovery',
+            [
+                'title' => 'Recuperar senha'
+            ], 
+            'auth'
+        );
+    }
+
+    public function verification(Request $r): void
+    {
+        View::render(
+            'pages/auth/verification',
+            [
+                'title' => 'Verificar e-mail'
+            ], 
+            'auth'
+        );
+    }
 }

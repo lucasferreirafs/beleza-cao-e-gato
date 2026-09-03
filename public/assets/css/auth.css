@@ -418,7 +418,7 @@
     box-shadow: 0 0 0 3px rgba(217, 78, 26, 0.12);
 }
 
-.register-input > img {
+.register-input>img {
     width: 18px;
     height: 18px;
     flex: 0 0 18px;
@@ -465,7 +465,7 @@
     background: #f3f6f4;
 }
 
-.register-strength > div {
+.register-strength>div {
     display: flex;
     justify-content: space-between;
     color: #52605c;
@@ -544,6 +544,110 @@
 .register-actions a {
     color: #d94e1a;
     font-weight: 700;
+}
+
+/* =========================================
+    RECUPERAR SENHA — FORM PANEL
+============================================ */
+.center-auth {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 40px;
+}
+
+.recovery-icon {
+    background: var(--orange-50);
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100%;
+    margin-inline: auto;
+}
+
+.recovery-icon img {
+    width: 30px;
+}
+
+.auth-brand.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.auth-brand.logo .brand-text strong {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--ink);
+}
+
+
+.recovery-text h2,
+.verification-text h2 {
+    text-align: center;
+    font-size: 26px;
+    margin: 0;
+    margin-top: 10px;
+}
+
+.recovery-text p,
+.verification-text p {
+    margin-top: 5px;
+    text-align: center;
+}
+
+.recovery-field {
+    display: grid;
+    gap: 8px;
+}
+
+.recovery-field label {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--gray-500);
+}
+
+.recovery-field input {
+    outline: 0;
+}
+
+.back-link {
+    text-align: center;
+    font-weight: 700;
+    color: var(--gray-500);
+}
+
+/* =========================================
+    RESPONSIVIDADE — TABLET (≤ 1024px)
+============================================ */
+.verification-icon {
+    background: var(--gray-100);
+    margin-inline: auto;
+    padding: 25px;
+    border-radius: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.verification-icon i {
+    color: var(--gray-500);
+    font-size: 30px;
+}
+
+.otp {
+    display: flex;
+    gap: 8px;
+}
+
+.otp input {
+    text-align: center;
+    font-size: 24px;
+    padding: 6px;
+    outline: 0;
 }
 
 /* =========================================
