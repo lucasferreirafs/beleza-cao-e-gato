@@ -16,7 +16,8 @@
 </head>
 
 <body class="auth-body">
-    <?= $content ?>    
+    <?= $content ?>
+    <script src="/assets/js/app.js" defer></script>
 </body>
 
 </html>

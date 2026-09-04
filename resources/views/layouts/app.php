@@ -5,7 +5,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $e($title ?? 'Painel') ?> . Beleza Cão&Gato</title>
+    <title><?= $e($title ?? 'Painel') ?> • Beleza Cão&Gato</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,26 +17,42 @@
     <div>
         <?php require dirname(__DIR__) . '/partials/sidebar.php'; ?>
 
-        <div>
+        <div class="workspace">
             
-            <header>
-                <button>
-                    <svg width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
-                    </svg>
+            <header class="topbar">
+                <button class="mobile-menu">
+                    ☰
                 </button>
+
+                <div class="breadcrumb">
+                    <?= $e(($user['role'] ?? 'client') === 'admin' ? 'Admin' : 'Home') ?>
+                    <span>/</span>
+                    <strong><?= $e($title ?? 'Dashboard') ?></strong>
+                </div>
+                <div class="top-user">
+                    <span class="notification" aria-label="Notificações">♧<i></i></span>
+                    <span class="avatar">
+                        <?= $e(mb_substr($user['name'] ?? 'U', 0, 1)) ?>
+                    </span>
+                    <span>
+                        <strong><?= $e($user['name'] ?? 'Usuário') ?></strong>
+                        <small><?= $e(match ($user['role'] ?? 'client') { 'admin' => 'Unidade Matriz', 'staff' => 'Esteticista Sênior', default => 'Cliente Premium'}) ?></small>
+                    </span>
+                </div>
             </header>
 
-            <main>
+            <main class="main">
                 <?php if ($m = \App\Core\Session::flash('success')): ?>
-                    <div>
+                    <div class="alert success">
                         <?= $e($m) ?>     
                     </div>
                 <?php endif; ?>
+
+                <?= $content ?>
             </main>
         </div>
     </div>
+
+    <script src="/assets/js/app.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,199 @@
+.page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.metric-grid {
+    display: grid;
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.metric-grid.three {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.metric-grid.four {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.panel,
+.metric-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.metric-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    min-height: 120px;
+}
+
+.metric-card span {
+    background: rgba(138, 178, 189, 0.3);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.metric-card.clear span {
+    background: rgba(138, 178, 189, 1);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.metric-card span>i {
+    color: #fff;
+    font-size: 20px;
+}
+
+.metric-card small {
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+.metric-card strong {
+    display: block;
+    font-size: 24px;
+    margin: 10px 0 4px;
+}
+
+.metric-card p {
+    font-size: 12px;
+    margin: 0;
+}
+
+.metric-card.featured {
+    background: var(--teal-500);
+    color: white;
+}
+
+.metric-card.featured small,
+.metric-card.featured p {
+    color: #d2e2e6;
+}
+
+.content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.content-grid>section {
+    display: grid;
+    gap: 24px;
+}
+
+.appointment-info {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    padding: 22px 0;
+}
+
+.appointment-info img,
+.pet-row img,
+.pet-card header img,
+.selection-card img {
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.appointment-info img {
+    width: 86px;
+    height: 86px;
+}
+
+.appointment-info dl {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    flex: 1;
+}
+
+.appointment-info dl div {
+    display: grid;
+    gap: 5px;
+}
+
+.appointment-info dt,
+.pet-details dt,
+.summary-list dt {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.appointment-info dd,
+.pet-details dd,
+.summary-list dd {
+    margin: 0;
+    font-weight: 700;
+}
+
+.pet-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 12px;
+}
+
+.pet-row img {
+    width: 54px;
+    height: 54px;
+}
+
+.pet-row span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.pet-row small {
+    color: var(--gray-500);
+    line-height: 1.45;
+}
+
+@media (max-width: 1000px) {
+    .metric-grid.four {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .content-grid,
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 680px) {
+
+    .metric-grid.three,
+    .metric-grid.four,
+    .form-grid,
+    .selection-grid,
+    .bottom-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metric-grid {
+        gap: 12px;
+    }
+
+    .content-grid {
+        display: block;
+    }
+
+    .content-grid>* {
+        margin-bottom: 18px;
+    }
+}

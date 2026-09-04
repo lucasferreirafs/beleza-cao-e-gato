@@ -1,5 +1,7 @@
 @import url('./landing-page.css');
 @import url('./auth.css');
+@import url('./sidebar.css');
+@import url('./dashboard.css');
 
 :root {
 	--orange-50: #fff5f1;
@@ -40,6 +42,8 @@
     STYLES - GLOBAL
 ============================================ */
 * {
+	padding: 0;
+	margin: 0;
 	box-sizing: border-box;
 }
 
@@ -109,74 +113,74 @@ p {
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
+	width: 100%;
+	border-collapse: collapse;
+	white-space: nowrap;
 }
 
 th {
-  background: var(--canvas);
-  color: #56645f;
-  text-transform: uppercase;
-  font-size: 11px;
-  text-align: left;
-  padding: 13px;
+	background: var(--canvas);
+	color: #56645f;
+	text-transform: uppercase;
+	font-size: 11px;
+	text-align: left;
+	padding: 13px;
 }
 
 th:first-child {
-  border-radius: 8px 0 0 8px;
+	border-radius: 8px 0 0 8px;
 }
 
 th:last-child {
-  border-radius: 0 8px 8px 0;
+	border-radius: 0 8px 8px 0;
 }
 
 td {
-  padding: 15px 13px;
-  border-bottom: 1px solid #e5e7eb;
-  color: #5d6864;
+	padding: 15px 13px;
+	border-bottom: 1px solid #e5e7eb;
+	color: #5d6864;
 }
 
 td strong {
-  color: var(--ink);
+	color: var(--ink);
 }
 
 label,
 fieldset {
-  font-size: 12px;
-  font-weight: 500;
-  display: grid;
-  gap: 8px;
-  border: 0;
-  padding: 0;
-  margin: 0;
+	font-size: 12px;
+	font-weight: 500;
+	display: grid;
+	gap: 8px;
+	border: 0;
+	padding: 0;
+	margin: 0;
 }
 
 input,
 select,
 textarea {
-  border: 1px solid var(--gray-300);
-  border-radius: 8px;
-  background: white;
-  padding: 12px 14px;
-  min-height: 46px;
-  width: 100%;
+	border: 1px solid var(--gray-300);
+	border-radius: 8px;
+	background: white;
+	padding: 12px 14px;
+	min-height: 46px;
+	width: 100%;
 }
 
 textarea {
-  min-height: 90px;
-  resize: vertical;
+	min-height: 90px;
+	resize: vertical;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--orange-500);
+	border-color: var(--orange-500);
 }
 
 input:disabled {
-  background: var(--gray-100);
-  color: #9ca3af;
+	background: var(--gray-100);
+	color: #9ca3af;
 }
 
 
@@ -235,7 +239,136 @@ input:disabled {
 
 .radio input,
 .check input {
-  width: 18px;
-  min-height: 18px;
-  accent-color: var(--orange-500);
+	width: 18px;
+	min-height: 18px;
+	accent-color: var(--orange-500);
+}
+
+.panel {
+	padding: 24px;
+}
+
+.badge {
+	display: inline-flex;
+	border-radius: 99px;
+	padding: 5px 10px;
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.badge.success {
+	background: #e3f5ee;
+	color: #187653;
+}
+
+.badge.warning {
+	background: #fff3cc;
+	color: #a45b00;
+}
+
+.badge.info {
+	background: #e2efff;
+	color: #1767b0;
+}
+
+.badge.muted {
+	background: #e2eae8;
+	color: var(--teal-500);
+}
+
+.table-wrap {
+	overflow-x: auto;
+}
+
+
+.appointment-info img,
+.pet-row img,
+.pet-card header img,
+.selection-card img {
+	object-fit: cover;
+	border-radius: 50%;
+}
+
+/* =========================================
+    LAYOUT - APP
+============================================ */
+
+.workspace {
+	margin-left: 260px;
+	width: calc(100% - 260px);
+	min-width: 0;
+}
+
+.topbar {
+	height: 70px;
+	background: white;
+	border-bottom: 1px solid #e5e7eb;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 40px;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.mobile-menu {
+	display: none;
+	border: 0;
+	background: none;
+	font-size: 24px;
+}
+
+.main {
+	padding: 40px;
+	max-width: 1400px;
+	margin: auto;
+}
+
+.breadcrumb {
+	color: #9ca3af;
+}
+
+.breadcrumb span {
+	margin: 0 10px;
+}
+
+.breadcrumb strong {
+	color: var(--ink);
+}
+
+@media (max-width: 1000px) {
+	.workspace {
+		margin-left: 0;
+		width: 100%;
+	}
+
+	.topbar {
+		padding: 0 20px;
+	}
+
+	.mobile-menu {
+		display: block;
+	}
+
+	.top-user>span:last-child {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.main {
+		padding: 25px;
+	}
+}
+
+@media (max-width: 680px) {
+
+	.top-user>span:last-child,
+	.breadcrumb {
+		display: none;
+	}
+
+	.main {
+		padding: 20px 14px;
+	}
 }
