@@ -1,52 +1,51 @@
 <main class="landing-page">
     <header class="landing-header">
-        <!-- LOGO -->
-        <a href="/" class="landing-brand" aria-label="Beleza Cão e Gato, página inicial">
-            <img class="brand-img" src="/assets/images/logo.png" alt="Logotipo do site Beleza Cão e Gato">
+        <a class="landing-brand" href="/" aria-label="Beleza Cão e Gato, página inicial">
+            <span class="brand-mark">
+                <i class="fa-solid fa-paw"></i>
+            </span>
+            <span>
+                <strong>Beleza Cão&amp;Gato</strong>
+                <small>SISTEMA DE GESTÃO</small>
+            </span>
         </a>
 
-        <!-- NAVEGAÇÃO -->
         <nav class="landing-nav" aria-label="Navegação principal">
             <a href="#recursos">Recursos</a>
-            <a href="#como_funciona">Como funciona</a>
+            <a href="#como-funciona">Como funciona</a>
             <a href="#perfis">Para sua equipe</a>
         </nav>
 
-        <!-- BOTÃO LOGIN -->
-        <a href="/login" class="landing-login">
-            Entrar
+        <a class="landing-login" href="/login">
+            Entrar 
             <span aria-hidden="true">
-                <i class="fa-solid fa-right-to-bracket"></i>
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
             </span>
         </a>
     </header>
 
-    <!-- DESTAQUE -->
     <section class="landing-hero" aria-labelledby="landing-title">
-        <div>
-
-            <span class="landing-kicker">
-                GESTÃO INTELIGENTE PARA PET SHOPS
-            </span>
+        <div class="landing-hero-copy">
+            <span class="landing-kicker">GESTÃO INTELIGENTE PARA PET SHOPS</span>
 
             <h1 id="landing-title">
                 Mais cuidado para os pets. Mais controle para o seu negócio.
             </h1>
 
             <p>
-                Centralize agendamentos, clientes, serviços e a rotina da sua equipe em uma experiência simples,
-                organizada e humana.
+                Centralize agendamentos, clientes, serviços e a rotina da sua equipe
+                em uma experiência simples, organizada e humana.
             </p>
 
             <div class="landing-actions">
                 <a class="button primary landing-cta" href="/login">
-                    Acessar o sistema
+                    Acessar o sistema 
                     <span aria-hidden="true">
-                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <i class="fa-solid fa-arrow-right-long"></i>
                     </span>
                 </a>
                 <a class="landing-text-link" href="#recursos">
-                    Conhecer recursos
+                    Conhecer recursos 
                     <span aria-hidden="true">
                         <i class="fa-solid fa-arrow-down"></i>
                     </span>
@@ -54,12 +53,8 @@
             </div>
 
             <div class="landing-trust" aria-label="Benefícios principais">
-                <span>
-                    <b>✓</b> Dados protegidos
-                </span>
-                <span>
-                    <b>✓</b> Gestão em um só lugar
-                </span>
+                <span><b>✓</b> Dados protegidos</span>
+                <span><b>✓</b> Gestão em um só lugar</span>
             </div>
         </div>
 
@@ -70,8 +65,7 @@
             <article class="landing-dashboard-card">
                 <header>
                     <span class="landing-mini-brand">
-                        <i class="fa-solid fa-paw"></i>
-                        Beleza Cão&amp;Gato
+                        <b>♧</b> Beleza Cão&amp;Gato
                     </span>
                     <i>•••</i>
                 </header>
@@ -88,9 +82,8 @@
                     <span>
                         <small>Agendamentos hoje</small>
                         <b>12</b>
-                        <em>↗18%</em>
+                        <em>↗ 18%</em>
                     </span>
-
                     <span>
                         <small>Pets atendidos</small>
                         <b>48</b>
@@ -105,7 +98,6 @@
                         <i></i>
                         <small>Mel · Banho e tosa</small>
                     </span>
-
                     <span>
                         <b>10:15</b>
                         <i></i>
@@ -129,7 +121,6 @@
         </div>
     </section>
 
-    <!-- RECURSOS -->
     <section class="landing-section landing-features" id="recursos" aria-labelledby="features-title">
         <div class="section-intro">
             <span>RECURSOS</span>
@@ -140,7 +131,7 @@
         <div class="feature-grid">
             <article>
                 <span class="feature-icon">
-                    <i class="fa-regular fa-calendar-days"></i>
+                    <i class="fa-regular fa-calendar"></i>
                 </span>
                 <h3>Agenda inteligente</h3>
                 <p>Organize horários, serviços e atendimentos em poucos cliques.</p>
@@ -164,7 +155,6 @@
         </div>
     </section>
 
-    <!-- COMO FUNCIONA -->
     <section class="landing-section landing-steps" id="como-funciona" aria-labelledby="steps-title">
         <div class="section-intro">
             <span>COMO FUNCIONA</span>
@@ -179,7 +169,6 @@
                     <small>Cadastre serviços, clientes e pets.</small>
                 </span>
             </li>
-
             <li>
                 <b>02</b>
                 <span>
@@ -187,7 +176,6 @@
                     <small>Visualize horários e acompanhe cada atendimento.</small>
                 </span>
             </li>
-
             <li>
                 <b>03</b>
                 <span>
@@ -204,40 +192,43 @@
             <h2 id="profiles-title">Cliente, equipe e gestão falando a mesma língua.</h2>
             <p>Cada pessoa acessa apenas o que precisa, com uma navegação pensada para sua rotina.</p>
             <a class="landing-text-link" href="/login">
-                Entrar no sistema
+                Entrar no sistema 
                 <span aria-hidden="true">
-                    <i class="fa-solid fa-arrow-right"></i>
+                    <i class="fa-solid fa-arrow-right-long"></i>
                 </span>
             </a>
         </div>
+
         <div class="profile-preview">
             <span class="profile-item active">
                 <b>Cliente</b>
                 <small>Pets e agendamentos</small>
-                <i class="fa-solid fa-arrow-right"></i>
+                <i class="fa-solid fa-arrow-right-long"></i>
             </span>
-
             <span class="profile-item">
                 <b>Funcionário</b>
                 <small>Agenda e atendimentos</small>
-                <i class="fa-solid fa-arrow-right"></i>
+                <i class="fa-solid fa-arrow-right-long"></i>
             </span>
-
             <span class="profile-item">
                 <b>Administrador</b>
                 <small>Indicadores e configurações</small>
-                <i class="fa-solid fa-arrow-right"></i>
+                <i class="fa-solid fa-arrow-right-long"></i>
             </span>
         </div>
     </section>
 
     <footer class="landing-footer">
-        <a href="/" class="landing-brand" aria-label="Beleza Cão e Gato, página inicial">
-            <img class="brand-img" src="/assets/images/logo.png" alt="Logotipo do site Beleza Cão e Gato">
+        <a class="landing-brand" href="/">
+            <span class="brand-mark" aria-hidden="true">
+                <i class="fa-solid fa-paw"></i>
+            </span>
+            <span>
+                <strong>Beleza Cão&amp;Gato</strong>
+                <small>SISTEMA DE GESTÃO</small>
+            </span>
         </a>
-
         <p>Gestão feita para quem cuida.</p>
-
-        <a href="/login">Acessar plataforma </a>
+        <a href="/login">Acessar plataforma <i class="fa-solid fa-arrow-right-long"></i></a>
     </footer>
 </main>
