@@ -5,7 +5,6 @@ namespace App\Core;
 final class Request
 {
     private array $routeParams = [];
-
     public function method(): string
     {
         return strtoupper($_POST['_method'] ?? $_SERVER['REQUEST_METHOD'] ?? 'GET');
