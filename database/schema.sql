@@ -1,471 +1,77 @@
--- ============================================================
--- BANCO DE DADOS - SISTEMA DE AGENDAMENTO PET
--- PostgreSQL / Supabase
--- ============================================================
+CREATE TABLE IF NOT EXISTS users (
+ id BIGSERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL, role VARCHAR(20) NOT NULL CHECK (role IN ('client','staff','admin')),
+ status VARCHAR(30) NOT NULL DEFAULT 'active', phone VARCHAR(30), cpf VARCHAR(14), birth_date DATE,
+ email_verified_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS cpf VARCHAR(14);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date DATE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE TABLE IF NOT EXISTS pets (
+ id BIGSERIAL PRIMARY KEY, owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ name VARCHAR(80) NOT NULL, species VARCHAR(40) NOT NULL, breed VARCHAR(100) NOT NULL,
+ sex VARCHAR(10) NOT NULL, birth_date DATE, weight NUMERIC(6,2), allergies TEXT,
+ neutered BOOLEAN NOT NULL DEFAULT false, behavior VARCHAR(100), special_needs TEXT, notes TEXT,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE TABLE IF NOT EXISTS services (
+ id BIGSERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, description TEXT NOT NULL,
+ duration_minutes INTEGER NOT NULL CHECK(duration_minutes > 0), price NUMERIC(10,2) NOT NULL CHECK(price >= 0),
+ active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE services ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE services ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+CREATE TABLE IF NOT EXISTS appointments (
+ id BIGSERIAL PRIMARY KEY, pet_id BIGINT NOT NULL REFERENCES pets(id), service_id BIGINT NOT NULL REFERENCES services(id),
+ staff_id BIGINT REFERENCES users(id), scheduled_at TIMESTAMPTZ NOT NULL, status VARCHAR(30) NOT NULL,
+ price NUMERIC(10,2) NOT NULL, notes TEXT, completed_at TIMESTAMPTZ,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-
--- ============================================================
--- TIPOS
--- ============================================================
-
-DO $$
-BEGIN
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_type
-        WHERE typname = 'tipo_usuario'
-    ) THEN
-
-        CREATE TYPE tipo_usuario AS ENUM (
-            'cliente',
-            'funcionario',
-            'administrador'
-        );
-
-    END IF;
-
-
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_type
-        WHERE typname = 'status_agendamento'
-    ) THEN
-
-        CREATE TYPE status_agendamento AS ENUM (
-            'pendente',
-            'confirmado',
-            'concluido',
-            'cancelado'
-        );
-
-    END IF;
-
-END
-$$;
-
-
--- ============================================================
--- TABELA: USUARIOS
--- ============================================================
-
-CREATE TABLE usuarios (
-
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    nome VARCHAR(120) NOT NULL,
-
-    email VARCHAR(255) NOT NULL UNIQUE,
-
-    senha VARCHAR(255) NOT NULL,
-
-    tipo tipo_usuario NOT NULL DEFAULT 'cliente',
-
-    ativo BOOLEAN NOT NULL DEFAULT TRUE,
-
-    email_verificado BOOLEAN NOT NULL DEFAULT FALSE,
-
-    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT usuario_nome_valido
-        CHECK (length(trim(nome)) >= 2),
-
-    CONSTRAINT usuario_email_valido
-        CHECK (length(trim(email)) > 5)
-
+CREATE TABLE IF NOT EXISTS account_tokens (
+ id BIGSERIAL PRIMARY KEY,
+ user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ purpose VARCHAR(30) NOT NULL CHECK (purpose IN ('verify_email','reset_password')),
+ token_hash VARCHAR(255) NOT NULL,
+ expires_at TIMESTAMPTZ NOT NULL,
+ consumed_at TIMESTAMPTZ,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-
--- ============================================================
--- TABELA: ANIMAIS
--- ============================================================
-
-CREATE TABLE animais (
-
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    usuario_id UUID NOT NULL,
-
-    nome VARCHAR(100) NOT NULL,
-
-    especie VARCHAR(50) NOT NULL,
-
-    raca VARCHAR(100),
-
-    data_nascimento DATE,
-
-    imagem TEXT,
-
-    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT animal_usuario_fk
-        FOREIGN KEY (usuario_id)
-        REFERENCES usuarios(id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT animal_nome_valido
-        CHECK (length(trim(nome)) >= 1),
-
-    CONSTRAINT animal_data_nascimento_valida
-        CHECK (
-            data_nascimento IS NULL
-            OR data_nascimento <= CURRENT_DATE
-        )
-
-);
-
-
--- ============================================================
--- TABELA: SERVICOS
--- ============================================================
-
-CREATE TABLE servicos (
-
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    nome VARCHAR(120) NOT NULL UNIQUE,
-
-    descricao TEXT,
-
-    duracao_minutos INTEGER NOT NULL,
-
-    preco NUMERIC(10,2) NOT NULL,
-
-    ativo BOOLEAN NOT NULL DEFAULT TRUE,
-
-    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT servico_duracao_valida
-        CHECK (duracao_minutos > 0),
-
-    CONSTRAINT servico_preco_valido
-        CHECK (preco >= 0)
-
-);
-
-
--- ============================================================
--- TABELA: HORARIOS_FUNCIONAMENTO
--- ============================================================
-
-CREATE TABLE horarios_funcionamento (
-
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    dia_semana SMALLINT NOT NULL,
-
-    horario_abertura TIME,
-
-    horario_fechamento TIME,
-
-    ativo BOOLEAN NOT NULL DEFAULT TRUE,
-
-    CONSTRAINT dia_semana_valido
-        CHECK (dia_semana BETWEEN 0 AND 6),
-
-    CONSTRAINT horario_valido
-        CHECK (
-            (
-                horario_abertura IS NULL
-                AND horario_fechamento IS NULL
-            )
-            OR
-            (
-                horario_abertura IS NOT NULL
-                AND horario_fechamento IS NOT NULL
-                AND horario_fechamento > horario_abertura
-            )
-        ),
-
-    CONSTRAINT dia_semana_unico
-        UNIQUE (dia_semana)
-
-);
-
-
--- ============================================================
--- TABELA: AGENDAMENTOS
--- ============================================================
-
-CREATE TABLE agendamentos (
-
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    usuario_id UUID NOT NULL,
-
-    animal_id UUID NOT NULL,
-
-    servico_id UUID NOT NULL,
-
-    funcionario_id UUID,
-
-    data_agendamento DATE NOT NULL,
-
-    horario_agendamento TIME NOT NULL,
-
-    status status_agendamento NOT NULL DEFAULT 'pendente',
-
-    valor_agendamento NUMERIC(10,2) NOT NULL,
-
-    observacoes TEXT,
-
-    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-
-    CONSTRAINT agendamento_usuario_fk
-        FOREIGN KEY (usuario_id)
-        REFERENCES usuarios(id)
-        ON DELETE RESTRICT,
-
-
-    CONSTRAINT agendamento_animal_fk
-        FOREIGN KEY (animal_id)
-        REFERENCES animais(id)
-        ON DELETE RESTRICT,
-
-
-    CONSTRAINT agendamento_servico_fk
-        FOREIGN KEY (servico_id)
-        REFERENCES servicos(id)
-        ON DELETE RESTRICT,
-
-
-    CONSTRAINT agendamento_funcionario_fk
-        FOREIGN KEY (funcionario_id)
-        REFERENCES usuarios(id)
-        ON DELETE SET NULL,
-
-
-    CONSTRAINT agendamento_valor_valido
-        CHECK (valor_agendamento >= 0)
-
-);
-
-
--- ============================================================
--- TABELA: VERIFICACOES_EMAIL
--- ============================================================
-
-CREATE TABLE verificacoes_email (
-usuarios(id)
-        ON DELETE CASCADE
-
-);
-
-
--- ============================================================
--- INDICES
--- ============================================================
-
-CREATE INDEX indice_usuarios_email
-    ON usuarios(email);
-
-CREATE INDEX indice_usuarios_tipo
-    ON usuarios(tipo);
-
-CREATE INDEX indice_usuarios_ativo
-    ON usuarios(ativo);
-
-
-CREATE INDEX indice_animais_usuario
-    ON animais(usuario_id);
-
-
-CREATE INDEX indice_animais_especie
-    ON animais(especie);
-
-
-CREATE INDEX indice_servicos_ativo
-    ON servicos(ativo);
-
-
-CREATE INDEX indice_agendamentos_usuario
-    ON agendamentos(usuario_id);
-
-CREATE INDEX indice_agendamentos_animal
-    ON agendamentos(animal_id);
-
-CREATE INDEX indice_agendamentos_servico
-    ON agendamentos(servico_id);
-
-CREATE INDEX indice_agendamentos_funcionario
-    ON agendamentos(funcionario_id);
-
-CREATE INDEX indice_agendamentos_data
-    ON agendamentos(data_agendamento);
-
-CREATE INDEX indice_agendamentos_status
-    ON agendamentos(status);
-
-
--- ============================================================
--- FUNÇÃO PARA ATUALIZAR "ATUALIZADO_EM"
--- ============================================================
-
-CREATE OR REPLACE FUNCTION atualizar_data_modificacao()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-
-    NEW.atualizado_em = NOW();
-
-    RETURN NEW;
-
-END;
-$$;
-
-
--- ============================================================
--- TRIGGERS
--- ============================================================
-
-CREATE TRIGGER atualizar_usuario
-BEFORE UPDATE ON usuarios
-FOR EACH ROW
-EXECUTE FUNCTION atualizar_data_modificacao();
-
-
-CREATE TRIGGER atualizar_animal
-BEFORE UPDATE ON animais
-FOR EACH ROW
-EXECUTE FUNCTION atualizar_data_modificacao();
-
-
-CREATE TRIGGER atualizar_servico
-BEFORE UPDATE ON servicos
-FOR EACH ROW
-EXECUTE FUNCTION atualizar_data_modificacao();
-
-
-CREATE TRIGGER atualizar_agendamento
-BEFORE UPDATE ON agendamentos
-FOR EACH ROW
-EXECUTE FUNCTION atualizar_data_modificacao();
-
-
--- ============================================================
--- HORARIOS DE FUNCIONAMENTO INICIAIS
--- ============================================================
-
-INSERT INTO horarios_funcionamento
-(
-    dia_semana,
-    horario_abertura,
-    horario_fechamento,
-    ativo
-)
-
-VALUES
-
--- Domingo
-(0, NULL, NULL, FALSE),
-
--- Segunda
-(1, '08:00', '18:00', TRUE),
-
--- Terça
-(2, '08:00', '18:00', TRUE),
-
--- Quarta
-(3, '08:00', '18:00', TRUE),
-
--- Quinta
-(4, '08:00', '18:00', TRUE),
-
--- Sexta
-(5, '08:00', '18:00', TRUE),
-
--- Sábado
-(6, '08:00', '14:00', TRUE);
-
-
--- ============================================================
--- SERVICOS INICIAIS
--- ============================================================
-
-INSERT INTO servicos
-(
-    nome,
-    descricao,
-    duracao_minutos,
-    preco,
-    ativo
-)
-
-VALUES
-
-(
-    'Banho',
-    'Banho completo para o animal.',
-    60,
-    50.00,
-    TRUE
-),
-
-(
-    'Tosa',
-    'Tosa completa para o animal.',
-    90,
-    70.00,
-    TRUE
-),
-
-(
-    'Banho e Tosa',
-    'Serviço completo de banho e tosa.',
-    120,
-    100.00,
-    TRUE
-);
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    usuario_id UUID NOT NULL,
-
-    token VARCHAR(255) NOT NULL UNIQUE,
-
-    expira_em TIMESTAMPTZ NOT NULL,
-
-    utilizado_em TIMESTAMPTZ,
-
-    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT verificacao_email_usuario_fk
-        FOREIGN KEY (usuario_id)
-        REFERENCES usuarios(id)
-        ON DELETE CASCADE
-
-);
-
-
--- ============================================================
--- TABELA: RECUPERACOES_SENHA
--- ============================================================
-
-CREATE TABLE recuperacoes_senha (
-
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    usuario_id UUID NOT NULL,
-
-    token VARCHAR(255) NOT NULL UNIQUE,
-
-    expira_em TIMESTAMPTZ NOT NULL,
-
-    utilizado_em TIMESTAMPTZ,
-
-    criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT recuperacao_senha_usuario_fk
-        FOREIGN KEY (usuario_id)
-        REFERENCES 
+CREATE INDEX IF NOT EXISTS idx_pets_owner ON pets(owner_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_pet_date ON appointments(pet_id, scheduled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_appointments_staff_date ON appointments(staff_id, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_appointments_status_date ON appointments(status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_account_tokens_lookup ON account_tokens(user_id, purpose, expires_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email_lower ON users(lower(email));
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_cpf ON users(cpf) WHERE cpf IS NOT NULL;
+
+INSERT INTO users(name,email,password_hash,role) VALUES
+ ('Maria Eduarda Silva','cliente@demo.local','$2y$10$ubzpD6lTOIUyhtlufX5eBOAe8svE5edIY1Jo/a4RjZQpRVKuDym.2','client'),
+ ('João Silva','staff@demo.local','$2y$10$SoWWh.1FdA9g5zMwqygaWuqMtzs9cO4VLmS4XHdvra9bxTK6LyujK','staff'),
+ ('Administrador Geral','admin@demo.local','$2y$10$9cGIc4m3jK8Nay9//E6ioO/tNUVfhq3/bov5ZsDDysxT..vTDgprO','admin')
+ON CONFLICT(email) DO NOTHING;
+UPDATE users SET email_verified_at = COALESCE(email_verified_at, now())
+WHERE email IN ('cliente@demo.local','staff@demo.local','admin@demo.local');
+INSERT INTO services(name,description,duration_minutes,price)
+SELECT v.name,v.description,v.duration_minutes,v.price
+FROM (VALUES
+ ('Banho Simples','Higienização completa, corte de unhas, limpeza de ouvidos e secagem profissional.',45,45::numeric),
+ ('Tosa Estética','Tosa higiênica e padrão da raça com equipamentos premium.',60,55::numeric),
+ ('Banho + Tosa Completa','Pacote completo de bem-estar com hidratação de pelos.',90,80::numeric),
+ ('Corte de Unhas','Aparamento seguro e lixamento das patinhas.',15,25::numeric),
+ ('Limpeza de Ouvidos','Prevenção de otite com produtos suaves.',15,30::numeric),
+ ('Escovação de Dentes','Prevenção de tártaro e mau hálito.',20,20::numeric)
+) v(name,description,duration_minutes,price)
+WHERE NOT EXISTS (SELECT 1 FROM services s WHERE lower(s.name)=lower(v.name));
+INSERT INTO pets(owner_id,name,species,breed,sex,birth_date,weight,behavior)
+SELECT u.id,v.name,v.species,v.breed,v.sex,v.birth_date::date,v.weight,v.behavior FROM users u CROSS JOIN (VALUES
+ ('Luna','Cachorro','Golden Retriever','Fêmea','2023-08-15',28.0,'Dócil e Brincalhão'),
+ ('Mel','Gato','Siamês','Fêmea','2025-02-01',4.2,'Curiosa'),
+ ('Toddy','Cachorro','Shih Tzu','Macho','2024-05-20',6.1,'Tranquilo')) v(name,species,breed,sex,birth_date,weight,behavior)
+WHERE u.email='cliente@demo.local' AND NOT EXISTS(SELECT 1 FROM pets p WHERE p.owner_id=u.id);
