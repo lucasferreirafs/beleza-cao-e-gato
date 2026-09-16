@@ -1,39 +1,52 @@
 <main class="center-auth">
-    <form class="auth-card">
+    <form class="auth-card" method="post" action="/recuperar-senha">
+        <?= \App\Security\Csrf::field() ?>
 
-        <div class="recovery-icon">
-            <img src="/assets/icons/lock-recovery.svg" alt="" aria-hidden="true">
+        <div class="auth-icon">
+            <img src="/assets/icons/lock-recovery.svg">
         </div>
-        <div class="auth-brand logo">
-            <div class="brand-mark" aria-hidden="true">
-                <i class="fa-solid fa-dog"></i>
-                <span class="brand-mark-sep"></span>
-                <i class="fa-solid fa-cat"></i>
-            </div>
-            <span class="brand-text">
-                <strong>Beleza <span class="brand-name-accent">Cão&amp;Gato</span></strong>
+
+        <div class="mini-brand">
+            <span class="brand-mark" aria-hidden="true">
+                <i class="fa-solid fa-paw"></i>
+            </span>
+            <span>
+                <strong>Beleza Cão&amp;Gato</strong>
                 <small>SISTEMA DE GESTÃO</small>
             </span>
         </div>
 
-        <div class="recovery-text">
-            <h2>Esqueceu sua senha?</h2>
-            <p>
-                Não se preocupe! Insira o e-mail cadastrado associado à sua conta e enviaremos um link com instruções para redefinição.
+        <h2 class="text-center">Esqueceu sua senha?</h2>
+        <p class="text-center">Insira o e-mail cadastrado e enviaremos um link com instruções para redefinição.</p>
+
+        <?php if (!empty($success)): ?>
+            <div class="alert success" role="status">
+                <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($error)): ?>
+            <div class="alert error" role="alert">
+                <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!empty($devUrl)): ?>
+            <p class="dev-hint">
+                Ambiente de desenvolvimento:
+                <a href="<?= htmlspecialchars($devUrl, ENT_QUOTES, 'UTF-8') ?>">abrir link de redefinição</a>.
             </p>
-        </div>
+        <?php endif; ?>
 
+        <label>
+            Endereço de e-mail cadastrado
+            <input type="email" name="email" autocomplete="email" placeholder="exemplo@beleza.com" required>
+        </label>
 
-        <div class="recovery-field">
-            <label for="recovery-email">Endereço de e-mail cadastrado</label>
-            <input id="recovery-email" type="email" placeholder="exemplo@beleza.com">
-        </div>
-
-
-        <button class="button primary wide" type="button">Enviar instruções</button>
+        <button class="button primary wide" type="submit">Enviar instruções</button>
 
         <a class="back-link" href="/login">
-            <i class="fa-solid fa-arrow-left"></i>
+            <i class="fa-solid fa-arrow-left-long"></i> 
             Voltar para o login
         </a>
     </form>

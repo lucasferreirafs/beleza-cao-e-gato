@@ -1,99 +1,91 @@
 <?php
-$pets = [
-    ['Luna', 'Golden Retriever', '3 anos', 'pet-luna.png'],
-    ['Mel', 'Siamês', '1 ano', 'pet-mel.png'],
-    ['Toddy', 'Shih Tzu', '2 anos', 'pet-toddy.png']
-];
-
+$e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+$photos = ['Luna' => 'pet-luna.png', 'Mel' => 'pet-mel.png', 'Toddy' => 'pet-toddy.png'];
+$firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
 ?>
 
 <header class="page-heading">
     <div>
-        <h1>Olá, Maria 👋</h1>
+        <h1>Olá, <?= $e($firstName) ?> 👋</h1>
         <p>Veja o que está acontecendo com seus pets hoje.</p>
     </div>
 </header>
 
 <section class="metric-grid three">
     <article class="metric-card featured">
-        <div>
-            <small>PRÓXIMO AGENDAMENTO</small>
-            <strong>25/08 às 14:00</strong>
-            <p>Luna • Banho + Tosa</p>
-        </div>
-
-        <span>
-            <i class="fa-regular fa-calendar"></i>
-        </span>
+        <small>PRÓXIMO AGENDAMENTO</small>
+        <strong><?= $upcoming ? date('d/m \à\s H:i', strtotime($upcoming['scheduled_at'])) : 'Nenhum agendado' ?></strong>
+        <p><?= $upcoming ? $e($upcoming['pet_name'] . ' • ' . $upcoming['service_name']) : 'Escolha um serviço e reserve um horário' ?></p>
     </article>
 
-    <article class="metric-card clear">
-        <div>
-            <small>TOTAL DE PETS</small>
-            <strong>3 Pets</strong>
-            <p>Luna, Mel e Toddy</p>
-        </div>
-
-        <span>
-            <i class="fa-solid fa-paw"></i>
-        </span>
+    <article class="metric-card">
+        <small>TOTAL DE PETS</small>
+        <strong><?= count($pets) ?> <?= count($pets) === 1 ? 'Pet' : 'Pets' ?></strong>
+        <p><?= $pets ? $e(implode(', ', array_column($pets, 'name'))) : 'Cadastre seu primeiro pet' ?></p>
     </article>
 
-    <article class="metric-card clear">
-        <div>
-            <small>ATENDIMENTOS REALIZADOS</small>
-            <strong>12 Atendimentos</strong>
-            <p>Último em 10/07/2026</p>
-        </div>
-
-        <span>
-            <i class="fa-solid fa-arrow-trend-up"></i>
-        </span>
+    <article class="metric-card">
+        <small>ATENDIMENTOS REALIZADOS</small>
+        <strong><?= count($history) ?> Atendimentos</strong>
+        <p><?= $history ? 'Último em ' . date('d/m/Y', strtotime($history[0]['scheduled_at'])) : 'Sem histórico concluído' ?></p>
     </article>
 </section>
 
 <div class="content-grid">
     <section>
         <article class="panel appointment-highlight">
-
             <header>
                 <h2>Destaque: Próximo Agendamento</h2>
-                <span class="badge success">✓ Confirmado</span>
+                <?php if ($upcoming): ?>
+                    <span class="badge info"><?= $e($upcoming['status']) ?></span>
+                <?php endif; ?>
             </header>
 
-            <div class="appointment-info"><img src="/assets/images/pet-luna.png" alt="Luna">
-                <dl>
-                    <div>
-                        <dt>Pet</dt>
-                        <dd>Luna</dd>
-                    </div>
+            <?php if ($upcoming): ?>
+                <div class="appointment-info">
+                    <img src="/assets/images/<?= $e($photos[$upcoming['pet_name']] ?? 'pet-luna.png') ?>"
+                         alt="<?= $e($upcoming['pet_name']) ?>">
 
-                    <div>
-                        <dt>Serviço</dt>
-                        <dd>Banho + Tosa Premium</dd>
-                    </div>
+                    <dl>
+                        <div>
+                            <dt>Pet</dt>
+                            <dd><?= $e($upcoming['pet_name']) ?></dd>
+                        </div>
+                        <div>
+                            <dt>Serviço</dt>
+                            <dd><?= $e($upcoming['service_name']) ?></dd>
+                        </div>
+                        <div>
+                            <dt>Data e Horário</dt>
+                            <dd><?= date('d/m/Y \à\s H:i', strtotime($upcoming['scheduled_at'])) ?></dd>
+                        </div>
+                        <div>
+                            <dt>Profissional</dt>
+                            <dd><?= $e($upcoming['staff_name'] ?? 'A definir') ?></dd>
+                        </div>
+                    </dl>
+                </div>
 
-                    <div>
-                        <dt>Data e Horário</dt>
-                        <dd>25/08/2026 às 14:00</dd>
-                    </div>
-
-                    <div>
-                        <dt>Profissional</dt>
-                        <dd>João Silva</dd>
-                    </div>
-                </dl>
-            </div>
-
-            <footer>
-                <button class="button primary">Ver Detalhes</button>
-                <button class="button secondary">Reagendar</button>
-                <button class="button ghost danger">Cancelar</button>
-            </footer>
+                <footer>
+                    <a class="button primary" href="/cliente/agendamentos">Ver Detalhes</a>
+                    <form method="post"
+                          action="/cliente/agendamentos/<?= (int) $upcoming['id'] ?>/cancelar"
+                          data-confirm="Cancelar este agendamento?">
+                        <?= \App\Security\Csrf::field() ?>
+                        <button class="button ghost danger">Cancelar</button>
+                    </form>
+                </footer>
+            <?php else: ?>
+                <div class="empty-state">
+                    <p>Nenhum agendamento futuro.</p>
+                    <a class="button primary" href="/cliente/agendamento/1">Agendar agora</a>
+                </div>
+            <?php endif; ?>
         </article>
 
         <article class="panel">
             <h2>Histórico Recente de Agendamentos</h2>
+
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -106,43 +98,49 @@ $pets = [
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Mel</td>
-                            <td>Consulta Veterinária</td>
-                            <td>10/07/2026</td>
-                            <td>10:30</td>
-                            <td><span class="badge success">Realizado</span></td>
-                        </tr>
-                        <tr>
-                            <td>Luna</td>
-                            <td>Banho Higiênico</td>
-                            <td>28/06/2026</td>
-                            <td>16:00</td>
-                            <td><span class="badge success">Realizado</span></td>
-                        </tr>
+                        <?php foreach (array_slice($history, 0, 5) as $item): ?>
+                            <tr>
+                                <td><?= $e($item['pet_name']) ?></td>
+                                <td><?= $e($item['service_name']) ?></td>
+                                <td><?= date('d/m/Y', strtotime($item['scheduled_at'])) ?></td>
+                                <td><?= date('H:i', strtotime($item['scheduled_at'])) ?></td>
+                                <td><span class="badge success"><?= $e($item['status']) ?></span></td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+
+            <?php if (!$history): ?>
+                <div class="empty-state">
+                    <p>O histórico aparecerá após o primeiro atendimento concluído.</p>
+                </div>
+            <?php endif; ?>
         </article>
     </section>
 
-    <aside class="panel">
+    <aside class="panel pets-mini">
         <header>
             <h2>Meus Pets</h2>
             <a href="/cliente/pets">Ver Todos</a>
         </header>
 
-        <?php foreach ($pets as $pet): ?>
+        <?php foreach (array_slice($pets, 0, 4) as $pet): ?>
             <div class="pet-row">
-                <img src="/assets/images/<?= $pet[3] ?>" alt="<?= $pet[0] ?>">
-
+                <img src="/assets/images/<?= $e($photos[$pet['name']] ?? 'pet-luna.png') ?>"
+                     alt="<?= $e($pet['name']) ?>">
                 <span>
-                    <strong><?= $pet[0] ?></strong>
-                    <small>Cachorro • <?= $pet[1] ?><br><?= $pet[2] ?></small>
+                    <strong><?= $e($pet['name']) ?></strong>
+                    <small><?= $e($pet['species']) ?> • <?= $e($pet['breed']) ?></small>
                 </span>
-
-                <a href="/cliente/pets" aria-label="Ver <?= $pet[0] ?>">◉</a>
+                <a href="/cliente/pets/<?= (int) $pet['id'] ?>" aria-label="Ver <?= $e($pet['name']) ?>">◉</a>
             </div>
         <?php endforeach; ?>
+
+        <?php if (!$pets): ?>
+            <div class="empty-state">
+                <a class="button primary" href="/cliente/pets/novo">Cadastrar pet</a>
+            </div>
+        <?php endif; ?>
     </aside>
 </div>

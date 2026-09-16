@@ -28,20 +28,25 @@
                 </div>
 
                 <div class="top-user">
-                    <span class="notification" aria-label="Notificações">♧
-                        <i></i>
-                    </span>
-                    
-                    <span class="avatar">
-                        <?= $e(mb_substr($user['name'] ?? 'U', 0, 1)) ?>
-                    </span>
-                    
-                    <span>
-                        <strong><?= $e($user['name'] ?? 'Usuário') ?></strong>
-                        <small>
-                            <?= $e(match ($user['role'] ?? 'client') { 'admin' => 'Unidade Matriz', 'staff' => 'Esteticista Sênior', default => 'Cliente Premium'}) ?>
-                        </small>
-                    </span>
+                    <button class="notification-btn" aria-label="Notificações">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+
+                    <div class="header-separator"></div>
+
+                    <div class="user-info">
+                        <span class="user-text">
+                            <strong><?= $e($user['name'] ?? 'Usuário') ?></strong>
+                            <small><?= $e(match ($user['role'] ?? 'client') { 'admin' => 'Administrador', 'staff' => 'Funcionário', default => 'Cliente'}) ?></small>
+                        </span>
+
+                        <span class="avatar">
+                            <?= $e(mb_substr($user['name'] ?? 'U', 0, 1)) ?>
+                        </span>
+
+                        <i class="fa-solid fa-chevron-down user-chevron"></i>
+                    </div>
                 </div>
             </header>
 
@@ -51,7 +56,7 @@
                         <?= $e($m) ?>
                     </div>
                 <?php endif; ?>
-                
+
                 <?php if ($m = \App\Core\Session::flash('error')): ?>
                     <div class="alert error" role="alert">
                         <?= $e($m) ?>
