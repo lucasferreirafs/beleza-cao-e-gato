@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Core\Database;
+use DateTimeImmutable;
 use DomainException;
 
 final class AppointmentRepository
@@ -28,18 +29,22 @@ final class AppointmentRepository
 
     public function availableSlots(string $date, int $serviceId, ?int $staffId = null): array
     {
+        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+        if (!$day || $day->format('Y-m-d') !== $date)
+            return [];
+
         $sql = "
-            WITH settings AS (SELECT CAST(:booking_date AS date) day), 
+            WITH settings AS (SELECT CAST(:booking_date AS date) AS booking_day, CAST(:staff AS bigint) AS staff_id),
             selected_service AS (SELECT duration_minutes 
             FROM services 
             WHERE id=:service 
             AND active=true), 
-            slots AS (SELECT generate_series(settings.day+time '08:00',settings.day+time '17:30',interval '30 minutes') AS slot 
+            slots AS (SELECT generate_series(settings.booking_day+time '08:00',settings.booking_day+time '17:30',interval '30 minutes') AS slot
             FROM settings) 
             SELECT to_char(slot,'HH24:MI') label 
-            FROM slots,selected_service ss 
+            FROM slots,selected_service ss,settings
             WHERE slot>now() 
-            AND EXISTS (SELECT 1 FROM users u WHERE u.role='staff' AND u.status='active' AND (CAST(:staff_is_null AS boolean) OR u.id=:staff) 
+            AND EXISTS (SELECT 1 FROM users u WHERE u.role='staff' AND u.status='active' AND (settings.staff_id IS NULL OR u.id=settings.staff_id)
             AND NOT EXISTS (SELECT 1 FROM appointments a JOIN services booked ON booked.id=a.service_id WHERE a.staff_id=u.id AND a.status 
             NOT IN ('cancelled','canceled') 
             AND a.scheduled_at < slot + make_interval(mins=>ss.duration_minutes) 
@@ -51,22 +56,47 @@ final class AppointmentRepository
         $s->execute([
             'service' => $serviceId,
             'booking_date' => $date,
-            'staff_is_null' => $staffId === null,
             'staff' => $staffId
         ]);
         return array_column($s->fetchAll(), 'label');
     }
 
+    public function availableStaff(string $scheduledAt, int $serviceId): array
+    {
+        $s = Database::connection()->prepare("
+            WITH requested AS (
+                SELECT CAST(:scheduled_at AS timestamptz) AS start_at, duration_minutes
+                FROM services WHERE id=:service AND active=true
+            )
+            SELECT u.id,u.name
+            FROM users u CROSS JOIN requested r
+            WHERE u.role='staff' AND u.status='active' AND r.start_at>now()
+            AND NOT EXISTS (
+                SELECT 1 FROM appointments a JOIN services booked ON booked.id=a.service_id
+                WHERE a.staff_id=u.id AND a.status NOT IN ('cancelled','canceled')
+                AND a.scheduled_at < r.start_at + make_interval(mins=>r.duration_minutes)
+                AND a.scheduled_at + make_interval(mins=>booked.duration_minutes) > r.start_at
+            )
+            ORDER BY u.name,u.id
+        ");
+        $s->execute(['scheduled_at' => $scheduledAt, 'service' => $serviceId]);
+        return $s->fetchAll();
+    }
+
     public function create(int $ownerId, array $data): int
     {
+        $scheduledAt = (string) ($data['scheduled_at'] ?? '');
+        $scheduled = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $scheduledAt);
+
+        if (!$scheduled || $scheduled->format('Y-m-d H:i') !== $scheduledAt
+            || $scheduled <= new DateTimeImmutable()
+            || !preg_match('/^(0[89]|1[0-7]):(00|30)$/', $scheduled->format('H:i')))
+            throw new DomainException('Escolha uma data e um horário futuro disponível.');
+
         $pdo = Database::connection();
         $pdo->beginTransaction();
 
         try {
-            $pdo->prepare('
-                SELECT pg_advisory_xact_lock(hashtext(:slot_key))
-            ')->execute(['slot_key' => (string) $data['scheduled_at']]);
-
             $pet = $pdo->prepare('SELECT id FROM pets WHERE id=:pet AND owner_id=:owner');
             $pet->execute(['pet' => $data['pet_id'], 'owner' => $ownerId]);
 
@@ -81,29 +111,20 @@ final class AppointmentRepository
                 throw new DomainException('O serviço selecionado não está disponível.');
 
             $staffId = !empty($data['staff_id']) ? (int) $data['staff_id'] : null;
-            $availability = $pdo->prepare("
-                WITH requested AS (SELECT CAST(:scheduled_at AS timestamptz) start_at,CAST(:duration AS integer) duration) 
-                SELECT u.id 
-                FROM users u 
-                CROSS JOIN requested r 
-                WHERE u.role='staff' 
-                AND u.status='active' 
-                AND (CAST(:staff_is_null AS boolean) 
-                OR u.id=:staff) 
-                AND NOT EXISTS (SELECT 1 FROM appointments a 
-                JOIN services booked 
-                ON booked.id=a.service_id 
-                WHERE a.staff_id=u.id 
-                AND a.status 
-                NOT IN ('cancelled','canceled') 
-                AND a.scheduled_at < r.start_at+make_interval(mins=>r.duration) 
-                AND a.scheduled_at+make_interval(mins=>booked.duration_minutes)>r.start_at) 
-                ORDER BY u.name 
-                LIMIT 1
-            ");
+        
+            $lock = $pdo->prepare("SELECT id FROM users WHERE role='staff' AND status='active'"
+                . ($staffId !== null ? ' AND id=:staff' : '') . ' ORDER BY id FOR UPDATE');
+                
+            $lock->execute($staffId !== null ? ['staff' => $staffId] : []);
+            $lock->fetchAll();
 
-            $availability->execute(['staff_is_null' => $staffId === null, 'staff' => $staffId, 'scheduled_at' => $data['scheduled_at'], 'duration' => $serviceData['duration_minutes']]);
-            $availableStaff = $availability->fetchColumn();
+            $availableStaff = null;
+            foreach ($this->availableStaff($scheduledAt, (int) $data['service_id']) as $member) {
+                if ($staffId === null || (int) $member['id'] === $staffId) {
+                    $availableStaff = (int) $member['id'];
+                    break;
+                }
+            }
 
             if (!$availableStaff)
                 throw new DomainException('Este horário acabou de ficar indisponível. Escolha outro.');
