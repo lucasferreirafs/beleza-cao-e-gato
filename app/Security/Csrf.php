@@ -8,12 +8,18 @@ final class Csrf
     {
         return $_SESSION['_csrf'] ??= bin2hex(random_bytes(32));
     }
+    
+    public static function regenerate(): string
+    {
+        return $_SESSION['_csrf'] = bin2hex(random_bytes(32));
+    }
 
     public static function validate(?string $token): bool
     {
-        return is_string($token) && hash_equals($_SESSION['_csrf'] ?? '', $token);
+        $stored = $_SESSION['_csrf'] ?? null;
+        return is_string($stored) && $stored !== '' && is_string($token) && $token !== '' && hash_equals($stored, $token);
     }
-    
+
     public static function field(): string
     {
         return '<input type="hidden" name="_token" value="' . htmlspecialchars(self::token(), ENT_QUOTES, 'UTF-8') . '">';
