@@ -578,6 +578,25 @@ p {
     line-height: 1.45;
 }
 
+.pet-row a {
+    background: rgba(107, 114, 128, 0.082);
+    padding: 6px;
+    border-radius: 4px;
+    color: var(--gray-500);
+}
+
+.pet-row a:hover {
+    color: var(--orange-500);
+    transition: all .3s ease-in-out;
+}
+
+.pet-femea {
+    color: #DB538B;
+}
+.pet-macho {
+    color: #3B55EB;
+}
+
 .badge {
     display: inline-flex;
     border-radius: 99px;
@@ -657,14 +676,10 @@ td strong {
     height: 48px;
 }
 
-.pet-card header>span:nth-child(2) {
+.pet-card header>span {
     display: flex;
     flex-direction: column;
     gap: 4px;
-}
-
-.pet-card header>span:last-child {
-    margin-left: auto;
 }
 
 .pet-details {

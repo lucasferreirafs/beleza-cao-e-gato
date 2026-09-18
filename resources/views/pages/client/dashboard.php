@@ -128,12 +128,24 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
         <?php foreach (array_slice($pets, 0, 4) as $pet): ?>
             <div class="pet-row">
                 <img src="/assets/images/<?= $e($photos[$pet['name']] ?? 'pet-luna.png') ?>"
-                     alt="<?= $e($pet['name']) ?>">
+                    alt="<?= $e($pet['name']) ?>">
+
                 <span>
-                    <strong><?= $e($pet['name']) ?></strong>
+                    <strong>
+                        <?= $e($pet['name']) ?>
+                        <?php if($e($pet['sex']) === 'Macho'):  ?>
+                            <i class="fa-solid fa-venus pet-macho"></i>
+                        <?php else: ?>
+                            <i class="fa-solid fa-mars pet-femea"></i>
+                        <?php endif; ?>
+                    </strong>
+                    
                     <small><?= $e($pet['species']) ?> • <?= $e($pet['breed']) ?></small>
                 </span>
-                <a href="/cliente/pets/<?= (int) $pet['id'] ?>" aria-label="Ver <?= $e($pet['name']) ?>">◉</a>
+
+                <a href="/cliente/pets/<?= (int) $pet['id'] ?>" aria-label="Ver <?= $e($pet['name']) ?>">
+                    <i class="fa-solid fa-eye"></i>
+                </a>
             </div>
         <?php endforeach; ?>
 
