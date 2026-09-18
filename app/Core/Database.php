@@ -32,6 +32,8 @@ final class Database
                 PDO::ATTR_EMULATE_PREPARES => false,
                 PDO::ATTR_PERSISTENT => false,
             ]);
+            $timezone = self::$connection->prepare("SELECT set_config('TimeZone', :timezone, false)");
+            $timezone->execute(['timezone' => (string) Env::get('APP_TIMEZONE', 'America/Sao_Paulo')]);
         } catch (PDOException $exception) {
             error_log('Database connection failed: ' . $exception->getCode());
             throw new RuntimeException('Não foi possível acessar o banco de dados.', 0, $exception);

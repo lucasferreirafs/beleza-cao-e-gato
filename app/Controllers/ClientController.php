@@ -129,17 +129,29 @@ final class ClientController
         $booking = new BookingService();
         $state = $booking->state();
 
-        if ($step > 1 && empty($state['pet_id']))
-            Response::redirect('/cliente/agendamento/1');
-
-        if ($step > 2 && empty($state['service_id']))
-            Response::redirect('/cliente/agendamento/2');
+        if ($step > $booking->nextIncompleteStep())
+            Response::redirect('/cliente/agendamento/' . $booking->nextIncompleteStep());
 
         $pets = (new PetRepository())->allForUser((int) Session::user()['id']);
         $services = (new ServiceRepository())->active();
         $staff = (new UserRepository())->allStaff();
         $date = (string) ($r->input('date', $state['date'] ?? (new \DateTimeImmutable('tomorrow'))->format('Y-m-d')));
+        $parsedDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        if (!$parsedDate || $parsedDate->format('Y-m-d') !== $date) {
+            Session::flash('error', 'Escolha uma data válida para consultar os horários.');
+            $date = (new \DateTimeImmutable('tomorrow'))->format('Y-m-d');
+        }
+        
         $slots = ($step === 3 && !empty($state['service_id'])) ? (new AppointmentRepository())->availableSlots($date, (int) $state['service_id']) : [];
+
+        if ($step === 4) {
+            $staff = (new AppointmentRepository())->availableStaff($state['date'] . ' ' . $state['time'], (int) $state['service_id']);
+            if (!$staff) {
+                Session::flash('error', 'Este horário acabou de ficar indisponível. Escolha outro.');
+                Response::redirect('/cliente/agendamento/3');
+            }
+        }
 
         View::render(
             'pages/client/booking',
@@ -162,7 +174,7 @@ final class ClientController
             Response::redirect('/cliente/agendamento/' . $next);
         } catch (DomainException $e) {
             Session::flash('error', $e->getMessage());
-            Response::redirect('/cliente/agendamento/' . $step);
+            Response::redirect('/cliente/agendamento/' . min($step, (new BookingService())->nextIncompleteStep()));
         }
     }
 
