@@ -43,16 +43,15 @@
                             <td><?= $e($row['client_name'] ?? '-') ?></td>
                             <td><?= $e($row['service_name'] ?? '-') ?></td>
                             <td>
-                                <span class="badge info"><?= $e($row['status'] ?? '-') ?></span>
+                                <span class="badge <?= \App\Support\StatusBadge::class($row['status'] ?? null) ?>"><?= $e(isset($row['status']) ? \App\Support\AppointmentStatus::label($row['status']) : '-') ?></span>
 
                                 <?php if (isset($row['id']) && in_array($section, ['agenda', 'atendimentos'], true)): ?>
                                     <form method="post" action="/staff/agendamentos/<?= (int) $row['id'] ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
                                         <select name="status" aria-label="Novo status">
-                                            <option>confirmed</option>
-                                            <option>in_progress</option>
-                                            <option>completed</option>
-                                            <option>cancelled</option>
+                                            <?php foreach (array_diff_key(\App\Support\AppointmentStatus::editable(), ['pending' => true]) as $value => $label): ?>
+                                                <option value="<?= $e($value) ?>" <?= ($row['status'] ?? null) === $value ? 'selected' : '' ?>><?= $e($label) ?></option>
+                                            <?php endforeach; ?>
                                         </select>
                                         <button class="button ghost">Salvar</button>
                                     </form>

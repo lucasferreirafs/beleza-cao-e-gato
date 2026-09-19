@@ -40,7 +40,7 @@
         <?php
         $max = max(1, ...array_map(static fn(array $row): int => (int) $row['total'], $serviceStats));
         foreach ($serviceStats as $i => $row):
-        ?>
+            ?>
             <div class="progress">
                 <span>
                     <b><?= $i + 1 ?>. <?= $e($row['name']) ?></b>
@@ -93,7 +93,7 @@
                         <td><?= $e($row['service_name']) ?></td>
                         <td><?= $e($row['staff_name'] ?? 'A definir') ?></td>
                         <td><?= date('d/m/Y H:i', strtotime($row['scheduled_at'])) ?></td>
-                        <td><span class="badge info"><?= $e($row['status']) ?></span></td>
+                        <td><span class="badge <?= \App\Support\StatusBadge::class($row['status']) ?>"><?= $e(\App\Support\AppointmentStatus::label($row['status'])) ?></span></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

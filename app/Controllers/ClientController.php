@@ -253,7 +253,9 @@ final class ClientController
             'breed' => Validator::text($r->input('breed'), 'Raça', 1, 100),
             'species' => $species,
             'sex' => $sex,
-            'birth_date' => Validator::date($r->input('birth_date'))
+            'birth_date' => trim((string) $r->input('birth_date')) !== ''
+                ? Validator::date($r->input('birth_date'), allowFuture: true)
+                : null
         ] + $r->all();
     }
 }

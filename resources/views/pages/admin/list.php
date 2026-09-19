@@ -68,29 +68,32 @@ $singular = match ($section) {
                             <td><?= $e($row['detail']) ?></td>
                             <td><?= $e($row['links']) ?></td>
                             <td>
-                                <span class="badge <?= in_array($row['status'], ['active', 'confirmed', 'completed'], true)
-                                    ? 'success'
-                                    : (in_array($row['status'], ['blocked', 'cancelled', 'inactive'], true)
-                                        ? 'danger'
-                                        : 'warning') ?>">
-                                    <?= $e($row['status']) ?>
+                                <span class="badge <?= \App\Support\StatusBadge::class($row['status']) ?>">
+                                    <?= $e($section === 'agendamentos'
+                                        ? \App\Support\AppointmentStatus::label($row['status'])
+                                        : $row['status']) ?>
                                 </span>
                             </td>
                             <td>
                                 <?php if (in_array($section, ['clientes', 'funcionarios'], true)): ?>
-                                    <a class="button ghost" href="/admin/<?= $e($section) ?>/<?= (int) $row['id'] ?>/editar">Editar</a>
+                                    <a class="button ghost"
+                                        href="/admin/<?= $e($section) ?>/<?= (int) $row['id'] ?>/editar">Editar</a>
                                     <form method="post" action="/admin/<?= $e($section) ?>/<?= (int) $row['id'] ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
-                                        <input type="hidden" name="status" value="<?= $row['status'] === 'active' ? 'blocked' : 'active' ?>">
-                                        <button class="button ghost"><?= $row['status'] === 'active' ? 'Bloquear' : 'Ativar' ?></button>
+                                        <input type="hidden" name="status"
+                                            value="<?= $row['status'] === 'active' ? 'blocked' : 'active' ?>">
+                                        <button
+                                            class="button ghost"><?= $row['status'] === 'active' ? 'Bloquear' : 'Ativar' ?></button>
                                     </form>
 
                                 <?php elseif ($section === 'servicos'): ?>
                                     <a class="button ghost" href="/admin/servicos/<?= (int) $row['id'] ?>/editar">Editar</a>
                                     <form method="post" action="/admin/servicos/<?= (int) $row['id'] ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
-                                        <input type="hidden" name="status" value="<?= $row['status'] === 'active' ? 'inactive' : 'active' ?>">
-                                        <button class="button ghost"><?= $row['status'] === 'active' ? 'Desativar' : 'Ativar' ?></button>
+                                        <input type="hidden" name="status"
+                                            value="<?= $row['status'] === 'active' ? 'inactive' : 'active' ?>">
+                                        <button
+                                            class="button ghost"><?= $row['status'] === 'active' ? 'Desativar' : 'Ativar' ?></button>
                                     </form>
 
                                 <?php elseif ($section === 'pets'): ?>
@@ -100,11 +103,9 @@ $singular = match ($section) {
                                     <form method="post" action="/admin/agendamentos/<?= (int) $row['id'] ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
                                         <select name="status" aria-label="Novo status">
-                                            <option>pending</option>
-                                            <option>confirmed</option>
-                                            <option>in_progress</option>
-                                            <option>completed</option>
-                                            <option>cancelled</option>
+                                            <?php foreach (\App\Support\AppointmentStatus::editable() as $value => $label): ?>
+                                                <option value="<?= $e($value) ?>" <?= $row['status'] === $value ? 'selected' : '' ?>><?= $e($label) ?></option>
+                                            <?php endforeach; ?>
                                         </select>
                                         <button class="button ghost">Salvar</button>
                                     </form>

@@ -16,9 +16,10 @@ $value = static fn(string $key, mixed $default = ''): string => $e($pet[$key] ??
     <h2>1. Informações Básicas</h2>
 
     <div class="upload-row">
-        <div class="photo-placeholder">▣</div>
-        <span class="button teal" aria-hidden="true">Foto ilustrativa</span>
-        <small>O upload de imagem será disponibilizado quando houver armazenamento configurado.</small>
+        <div class="photo-placeholder">
+            <i class="fa-solid fa-camera"></i>
+        </div>
+        <span class="button teal" aria-hidden="true">Alterar imagem</span>
     </div>
 
     <div class="form-grid">
@@ -53,7 +54,7 @@ $value = static fn(string $key, mixed $default = ''): string => $e($pet[$key] ??
 
         <label>
             Data de Nascimento
-            <input name="birth_date" type="date" value="<?= $value('birth_date') ?>" max="<?= date('Y-m-d') ?>">
+            <input type="text" name="birth_date" inputmode="numeric" placeholder="dd/mm/aaaa" value="<?= $value('birth_date') ? date('d/m/Y', strtotime($value('birth_date'))) : '' ?>">
         </label>
 
         <label>
@@ -99,6 +100,9 @@ $value = static fn(string $key, mixed $default = ''): string => $e($pet[$key] ??
 
     <footer class="form-actions">
         <a class="button ghost" href="/cliente/pets">Cancelar</a>
-        <button class="button primary">Salvar Pet</button>
+        <button class="button primary">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Salvar Pet
+        </button>
     </footer>
 </form>

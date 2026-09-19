@@ -26,14 +26,16 @@
                 <p>Crie sua conta e agende os cuidados do seu pet com facilidade.</p>
             </header>
 
-            <?php if (!empty($error)): ?><div class="alert error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+            <?php if (!empty($error)): ?>
+                <div class="alert error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
+            <?php endif; ?>
 
             <div class="register-fields">
                 <label class="register-field register-field-full">
                     <span>Nome completo</span>
                     <span class="register-input">
                         <img src="/assets/icons/user.svg" alt="">
-                        <input type="text" name="name" autocomplete="name" placeholder="Nome sobrenome" minlength="2" maxlength="120" value="<?= htmlspecialchars($old['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                        <input type="text" name="name" autocomplete="name" placeholder="Nome sobrenome" minlength="2" maxlength="120" value="<?= htmlspecialchars($old['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                     </span>
                 </label>
 
@@ -42,14 +44,14 @@
                         <span>E-mail profissional</span>
                         <span class="register-input">
                             <img src="/assets/icons/mail.svg" alt="">
-                            <input type="email" name="email" autocomplete="email" placeholder="example@email.com" maxlength="190" value="<?= htmlspecialchars($old['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                            <input type="email" name="email" autocomplete="email" placeholder="example@email.com" maxlength="190" value="<?= htmlspecialchars($old['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         </span>
                     </label>
                     <label class="register-field">
                         <span>Telefone / WhatsApp</span>
                         <span class="register-input">
                             <img src="/assets/icons/phone.svg" alt="">
-                            <input type="tel" name="phone" autocomplete="tel" placeholder="(xx) xxxxx-xxxx" value="<?= htmlspecialchars($old['phone'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                            <input type="tel" name="phone" autocomplete="tel" placeholder="(xx) xxxxx-xxxx" value="<?= htmlspecialchars($old['phone'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         </span>
                     </label>
                 </div>
@@ -59,14 +61,14 @@
                         <span>CPF</span>
                         <span class="register-input">
                             <img src="/assets/icons/file-badge.svg" alt="">
-                            <input type="text" name="cpf" inputmode="numeric" placeholder="xxx.xxx.xxx-xx" maxlength="14" value="<?= htmlspecialchars($old['cpf'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                            <input type="text" name="cpf" inputmode="numeric" placeholder="xxx.xxx.xxx-xx" maxlength="14" value="<?= htmlspecialchars($old['cpf'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         </span>
                     </label>
                     <label class="register-field">
                         <span>Data de nascimento</span>
                         <span class="register-input">
                             <img src="/assets/icons/calendar.svg" alt="">
-                            <input type="text" name="birth_date" inputmode="numeric" placeholder="dd/mm/aaaa" value="<?= htmlspecialchars($old['birth_date'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                            <input type="text" name="birth_date" inputmode="numeric" placeholder="dd/mm/aaaa" value="<?= htmlspecialchars($old['birth_date'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         </span>
                     </label>
                 </div>
@@ -76,7 +78,7 @@
                         <span>Senha</span>
                         <span class="register-input register-password">
                             <img src="/assets/icons/lock.svg" alt="">
-                            <input type="password" name="password" autocomplete="new-password" placeholder="••••••••••••" minlength="8" required>
+                            <input type="password" name="password" autocomplete="new-password" placeholder="••••••••••••" minlength="8">
                             <button type="button" data-password-toggle aria-label="Mostrar senha">
                                 <i class="fa-solid fa-eye"></i>
                             </button>
@@ -86,7 +88,7 @@
                         <span>Confirmar senha</span>
                         <span class="register-input register-password">
                             <img src="/assets/icons/lock.svg" alt="">
-                            <input type="password" name="password_confirmation" autocomplete="new-password" placeholder="••••••••••••" minlength="8" required>
+                            <input type="password" name="password_confirmation" autocomplete="new-password" placeholder="••••••••••••" minlength="8">
                             <button type="button" data-password-toggle aria-label="Mostrar senha">
                                 <i class="fa-solid fa-eye"></i>
                             </button>

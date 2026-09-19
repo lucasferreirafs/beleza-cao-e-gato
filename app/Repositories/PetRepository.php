@@ -73,7 +73,7 @@ final class PetRepository
             'birth_date' => $nullable('birth_date'),
             'weight' => $nullable('weight'),
             'allergies' => $nullable('allergies'),
-            'neutered' => !empty($data['neutered']),
+            'neutered' => !empty($data['neutered']) ? 1 : 0,
             'behavior' => $nullable('behavior'),
             'special_needs' => $nullable('special_needs'),
             'notes' => $nullable('notes')

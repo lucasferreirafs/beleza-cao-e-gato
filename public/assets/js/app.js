@@ -44,10 +44,14 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.assign(url.toString());
   });
 
-  document.querySelectorAll(".selection-card input").forEach((input) =>
+  document.querySelectorAll(".selection-card input, .service-card input").forEach((input) =>
     input.addEventListener("change", () => {
-      input.closest(".selection-grid")?.querySelectorAll(".selection-card").forEach((card) => card.classList.remove("selected"));
-      input.closest(".selection-card")?.classList.add("selected");
+      const isService = input.closest(".service-card");
+      const listClass = isService ? ".service-list" : ".selection-grid";
+      const cardClass = isService ? ".service-card" : ".selection-card";
+      
+      input.closest(listClass)?.querySelectorAll(cardClass).forEach((card) => card.classList.remove("selected"));
+      input.closest(cardClass)?.classList.add("selected");
     }),
   );
 
@@ -111,13 +115,17 @@ document.addEventListener("DOMContentLoaded", () => {
   // ── Helpers ──────────────────────────────────────────────────────────────
   function setFieldError(input, message) {
     input.setCustomValidity(message);
-    const existing = input.parentElement?.querySelector(".field-error");
-    if (existing) existing.remove();
+    const wrapper = input.parentElement.classList.contains("register-input") ? input.parentElement : input;
+    
+    if (wrapper.nextElementSibling && wrapper.nextElementSibling.classList.contains("field-error")) {
+      wrapper.nextElementSibling.remove();
+    }
+    
     if (message) {
       const span = document.createElement("span");
       span.className = "field-error";
       span.textContent = message;
-      input.parentElement?.after(span);
+      wrapper.after(span);
     }
   }
 
@@ -202,19 +210,22 @@ document.addEventListener("DOMContentLoaded", () => {
       const [day, month, year] = v.split("/").map(Number);
       const date = new Date(year, month - 1, day);
       const today = new Date();
-      const isValid =
+      today.setHours(0, 0, 0, 0); // Normalize today to start of day for comparison
+      
+      const isValidFormat =
         date.getDate() === day &&
         date.getMonth() === month - 1 &&
         date.getFullYear() === year &&
-        year >= 1900 &&
-        date <= today;
+        year >= 1900;
 
-      if (!isValid) {
+      if (!isValidFormat) {
         setFieldError(birthInput, "Informe uma data de nascimento válida.");
+      } else if (date > today) {
+        setFieldError(birthInput, "A data informada não pode ser no futuro.");
       } else {
         const age = today.getFullYear() - year -
           (today < new Date(today.getFullYear(), month - 1, day) ? 1 : 0);
-        if (age < 18) {
+        if (age < 18 && !birthInput.closest(".pet-form")) {
           setFieldError(birthInput, "É necessário ter pelo menos 18 anos.");
         } else {
           setFieldError(birthInput, "");

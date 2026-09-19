@@ -15,7 +15,7 @@ $icons = ['◌', '✂', '☆', '♢', '◉', '◇'];
         <article class="panel service-card">
             <header>
                 <span class="service-icon"><?= $icons[$index % count($icons)] ?></span>
-                <span class="badge success">Disponível</span>
+                <span class="badge status-success">Disponível</span>
             </header>
 
             <h2><?= $e($service['name']) ?></h2>
