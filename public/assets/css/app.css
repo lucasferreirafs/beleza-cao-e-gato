@@ -3073,3 +3073,131 @@ td form select {
         justify-content: center;
     }
 }
+
+/* ── Table Advanced Filters ───────────────────────── */
+.filters-container {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-input, .filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: var(--surface);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.filter-input:focus, .filter-select:focus {
+    border-color: var(--info);
+}
+
+.filter-input {
+    flex: 1;
+    min-width: 250px;
+}
+
+.btn-pagination.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ── Custom Confirm Modal ────────────────────────── */
+.custom-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(24, 34, 31, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s, visibility 0.25s;
+}
+
+.custom-modal-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.custom-modal-box {
+    background: var(--surface);
+    width: 90%;
+    max-width: 400px;
+    border-radius: var(--r-xl);
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+    transform: translateY(0) scale(1);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.custom-modal-overlay.hidden .custom-modal-box {
+    transform: translateY(20px) scale(0.95);
+}
+
+.custom-modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    background: var(--error-light, #fde8e7);
+    color: var(--error);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+.custom-modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 10px;
+}
+
+.custom-modal-message {
+    color: var(--gray-500);
+    font-size: 15px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+}
+
+.custom-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.custom-modal-actions .button {
+    flex: 1;
+    justify-content: center;
+}
+
+.custom-modal-actions .button.custom-danger-btn {
+    background: var(--error);
+    border-color: var(--error);
+    color: white;
+}
+
+.custom-modal-actions .button.custom-danger-btn:hover {
+    background: #b82a1d;
+    border-color: #b82a1d;
+}
+
+/* ── Table No Results ────────────────────────────── */
+.table-no-results td {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-500);
+}
