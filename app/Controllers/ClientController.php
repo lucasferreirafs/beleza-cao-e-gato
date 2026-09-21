@@ -65,9 +65,10 @@ final class ClientController
     public function petProfile(Request $r): void
     {
         $pet = $this->ownedPet((int) $r->param('id'));
+        $appointments = (new AppointmentRepository())->allForPet((int) $pet['id'], (int) Session::user()['id']);
         View::render(
             'pages/client/pet-profile',
-            $this->base($pet['name'], 'pets', compact('pet'))
+            $this->base($pet['name'], 'pets', compact('pet', 'appointments'))
         );
     }
 
@@ -253,7 +254,9 @@ final class ClientController
             'breed' => Validator::text($r->input('breed'), 'Raça', 1, 100),
             'species' => $species,
             'sex' => $sex,
-            'birth_date' => Validator::date($r->input('birth_date'))
+            'birth_date' => trim((string) $r->input('birth_date')) !== ''
+                ? Validator::date($r->input('birth_date'), allowFuture: true)
+                : null
         ] + $r->all();
     }
 }

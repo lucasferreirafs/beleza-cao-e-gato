@@ -60,7 +60,7 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Profissional')))[0];
                         <td><strong><?= $e($row['pet_name']) ?></strong></td>
                         <td><?= $e($row['client_name']) ?></td>
                         <td><?= $e($row['service_name']) ?></td>
-                        <td><span class="badge info"><?= $e($row['status']) ?></span></td>
+                        <td><span class="badge <?= \App\Support\StatusBadge::class($row['status']) ?>"><?= $e(\App\Support\AppointmentStatus::label($row['status'])) ?></span></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
