@@ -17,8 +17,8 @@ final class PetRepository
     public function create(int $ownerId, array $data): int
     {
         $sql = '
-            INSERT INTO pets (owner_id,name,species,breed,sex,birth_date,weight,allergies,neutered,behavior,special_needs,notes) 
-            VALUES (:owner,:name,:species,:breed,:sex,:birth_date,:weight,:allergies,:neutered,:behavior,:special_needs,:notes) 
+            INSERT INTO pets (owner_id,name,species,breed,sex,birth_date,weight,allergies,neutered,behavior,special_needs,notes,coat_color) 
+            VALUES (:owner,:name,:species,:breed,:sex,:birth_date,:weight,:allergies,:neutered,:behavior,:special_needs,:notes,:coat_color) 
             RETURNING id
         ';
         $s = Database::connection()->prepare($sql);
@@ -37,7 +37,7 @@ final class PetRepository
     {
         $sql = '
             UPDATE pets 
-            SET name=:name,species=:species,breed=:breed,sex=:sex,birth_date=:birth_date,weight=:weight,allergies=:allergies,neutered=:neutered,behavior=:behavior,special_needs=:special_needs,notes=:notes,updated_at=now() 
+            SET name=:name,species=:species,breed=:breed,sex=:sex,birth_date=:birth_date,weight=:weight,allergies=:allergies,neutered=:neutered,behavior=:behavior,special_needs=:special_needs,notes=:notes,coat_color=:coat_color,updated_at=now() 
             WHERE id=:id 
             AND owner_id=:owner';
         $s = Database::connection()->prepare($sql);
@@ -76,7 +76,8 @@ final class PetRepository
             'neutered' => !empty($data['neutered']) ? 1 : 0,
             'behavior' => $nullable('behavior'),
             'special_needs' => $nullable('special_needs'),
-            'notes' => $nullable('notes')
+            'notes' => $nullable('notes'),
+            'coat_color' => $nullable('coat_color')
         ];
     }
 }

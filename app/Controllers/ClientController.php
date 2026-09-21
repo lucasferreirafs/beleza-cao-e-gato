@@ -65,9 +65,10 @@ final class ClientController
     public function petProfile(Request $r): void
     {
         $pet = $this->ownedPet((int) $r->param('id'));
+        $appointments = (new AppointmentRepository())->allForPet((int) $pet['id'], (int) Session::user()['id']);
         View::render(
             'pages/client/pet-profile',
-            $this->base($pet['name'], 'pets', compact('pet'))
+            $this->base($pet['name'], 'pets', compact('pet', 'appointments'))
         );
     }
 

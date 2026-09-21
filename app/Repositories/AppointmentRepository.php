@@ -27,6 +27,25 @@ final class AppointmentRepository
         return $s->fetchAll();
     }
 
+    public function allForPet(int $petId, int $ownerId): array
+    {
+        $s = Database::connection()->prepare('
+            SELECT a.*,p.name pet_name,sv.name service_name,sv.duration_minutes,u.name staff_name 
+            FROM appointments a 
+            JOIN pets p 
+            ON p.id=a.pet_id 
+            JOIN services sv 
+            ON sv.id=a.service_id 
+            LEFT JOIN users u 
+            ON u.id=a.staff_id 
+            WHERE a.pet_id=:pet AND p.owner_id=:owner 
+            ORDER BY a.scheduled_at DESC
+        ');
+
+        $s->execute(['pet' => $petId, 'owner' => $ownerId]);
+        return $s->fetchAll();
+    }
+
     public function availableSlots(string $date, int $serviceId, ?int $staffId = null): array
     {
         $day = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
