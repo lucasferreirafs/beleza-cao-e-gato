@@ -4748,6 +4748,10 @@ td form select {
     width: 100%;
 }
 
+.lp-vid-copy .lp-vid-btn>a {
+    margin-inline: auto;
+}
+
 .lp-vid-stat {
     display: flex;
     flex-direction: column;
@@ -5265,7 +5269,7 @@ td form select {
     }
 
     .lp-vid-copy {
-        grid-column: 1 / 3;
+        grid-column: 1 / -1;
     }
 
     .lp-trust-content {
@@ -5333,15 +5337,26 @@ td form select {
     }
 
     .lp-video-gallery {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
+        gap: 16px;
     }
 
     .lp-vid-copy {
-        grid-column: 1;
+        grid-column: 1 / -1;
+        width: 100%;
+        padding: 28px 24px;
+        align-items: flex-start;
+    }
+
+    .lp-vid-copy .lp-btn-primary {
+        width: 100%;
+        justify-content: center;
+        white-space: nowrap;
     }
 
     .lp-vid-main,
     .lp-vid-secondary {
+        grid-column: 1 / -1;
         min-height: 260px;
     }
 

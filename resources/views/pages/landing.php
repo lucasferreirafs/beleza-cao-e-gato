@@ -1,8 +1,5 @@
 <main class="landing-page" id="landing-root">
 
-    <!-- ══════════════════════════════════════════
-         HEADER — Glassmorphism Navbar
-    ══════════════════════════════════════════ -->
     <header class="lp-header" id="lp-header">
         <a class="lp-brand" href="/" aria-label="Beleza Cão e Gato, página inicial">
             <span class="lp-brand-mark" aria-hidden="true">
@@ -27,9 +24,6 @@
         </a>
     </header>
 
-    <!-- ══════════════════════════════════════════
-         HERO — Vídeo de Fundo Full-Screen
-    ══════════════════════════════════════════ -->
     <section class="lp-hero lp-hero-video" aria-labelledby="lp-hero-title">
 
         <!-- Vídeo de fundo -->
@@ -89,9 +83,6 @@
         </div>
     </section>
 
-    <!-- ══════════════════════════════════════════
-         SERVIÇOS — Bento Grid
-    ══════════════════════════════════════════ -->
     <section class="lp-section lp-features" id="servicos" aria-labelledby="lp-features-title">
         <div class="lp-section-intro">
             <span class="lp-section-tag">NOSSOS SERVIÇOS</span>
@@ -179,7 +170,7 @@
                         <h3>Agendamento Inteligente</h3>
                         <p>Nosso sistema próprio para você marcar serviços com facilidade. Acesse de qualquer lugar,
                             escolha o horário ideal e acompanhe o atendimento do seu pet em tempo real.</p>
-                        <a class="lp-btn-primary lp-btn-sm-white" href="/login">
+                        <a class="lp-btn-primary center lp-btn-sm-white" href="/login">
                             Agendar online <i class="fa-solid fa-arrow-right-long"></i>
                         </a>
                     </div>
@@ -209,9 +200,6 @@
         </div>
     </section>
 
-    <!-- ══════════════════════════════════════════
-         TOUR — Galeria de Vídeos Bastidores
-    ══════════════════════════════════════════ -->
     <section class="lp-section lp-tour" id="tour" aria-labelledby="lp-tour-title">
         <div class="lp-section-intro lp-tour-intro">
             <span class="lp-section-tag">NOSSA CASA</span>
@@ -278,18 +266,18 @@
                         <p>Profissionais capacitados, equipamentos modernos e um ambiente pensado para o bem-estar de
                             cada pet.</p>
                     </div>
-                    <a class="lp-btn-primary" href="#localizacao">
-                        Visitar o espaço <i class="fa-solid fa-arrow-right-long"></i>
-                    </a>
+                    <div class="lp-vid-btn">
+                        <a class="lp-btn-primary" href="#localizacao">
+                            Visitar o espaço <i class="fa-solid fa-arrow-right-long"></i>
+                        </a>
+                    </div>
+
                 </div>
             </div>
 
         </div>
     </section>
 
-    <!-- ══════════════════════════════════════════
-         CONFIANÇA — Contadores + Localização
-    ══════════════════════════════════════════ -->
     <section class="lp-section lp-trust" id="confianca" aria-labelledby="lp-trust-title">
         <div class="lp-trust-bg-shapes" aria-hidden="true">
             <div class="lp-trust-shape lp-ts-1"></div>
@@ -359,9 +347,6 @@
         </div>
     </section>
 
-    <!-- ══════════════════════════════════════════
-         LOCALIZAÇÃO E HORÁRIOS
-    ══════════════════════════════════════════ -->
     <section class="lp-section lp-location" id="localizacao" aria-labelledby="lp-location-title">
         <div class="lp-section-intro">
             <span class="lp-section-tag">ONDE ESTAMOS</span>
@@ -433,9 +418,6 @@
         </div>
     </section>
 
-    <!-- ══════════════════════════════════════════
-         CTA FINAL + FOOTER
-    ══════════════════════════════════════════ -->
     <section class="lp-cta-final" id="lp-cta-final" aria-labelledby="lp-cta-title">
         <div class="lp-cta-orb" aria-hidden="true"></div>
         <div class="lp-cta-content">
@@ -487,7 +469,6 @@
         </div>
     </footer>
 
-    <!-- CDN LIBS — apenas na landing page -->
     <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/bundled/lenis.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
