@@ -14,6 +14,8 @@ final class View
         if (!is_file($viewFile))
             throw new RuntimeException("View não encontrada: {$template}");
 
+        $pageClass = 'page-' . str_replace(['pages/', '/'], ['', '-'], $template);
+
         extract($data, EXTR_SKIP);
         ob_start();
         

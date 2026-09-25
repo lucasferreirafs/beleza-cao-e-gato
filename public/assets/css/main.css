@@ -1,0 +1,16 @@
+@import url('./admin/dashboard.css');
+@import url('./admin/form.css');
+@import url('./admin/list.css');
+@import url('./client/appointments.css');
+@import url('./client/booking.css');
+@import url('./client/dashboard.css');
+@import url('./client/pet-form.css');
+@import url('./client/pet-profile.css');
+@import url('./client/pets.css');
+@import url('./client/profile.css');
+@import url('./client/services.css');
+@import url('./staff/dashboard.css');
+@import url('./staff/page.css');
+@import url('./legal/terms.css');
+@import url('./landing.css');
+@import url('./errors/errors.css');

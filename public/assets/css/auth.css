@@ -1,0 +1,7 @@
+@import url('./landing.css');
+@import url('./auth/login.css');
+@import url('./auth/recovery.css');
+@import url('./auth/register.css');
+@import url('./auth/reset.css');
+@import url('./auth/verification.css');
+@import url('./errors/errors.css');

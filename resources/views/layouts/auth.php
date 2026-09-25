@@ -11,10 +11,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/auth.css">
 </head>
 
-<body class="auth-body"><?= $content ?>
+<body class="auth-body <?= $pageClass ?? '' ?>"><?= $content ?>
     <script src="/assets/js/app.js?v=<?= time() ?>" defer></script>
     <!-- GSAP via CDN — se falhar, auth-animations.js detecta e não executa (graceful degradation) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
