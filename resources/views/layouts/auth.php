@@ -16,6 +16,9 @@
 
 <body class="auth-body"><?= $content ?>
     <script src="/assets/js/app.js?v=<?= time() ?>" defer></script>
+    <!-- GSAP via CDN — se falhar, auth-animations.js detecta e não executa (graceful degradation) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+    <script src="/assets/js/auth-animations.js?v=<?= time() ?>" defer></script>
 </body>
 
 </html>
