@@ -460,6 +460,7 @@
                 <a href="#tour">Nossa Casa</a>
                 <a href="#confianca">Sobre nós</a>
                 <a href="#localizacao">Localização</a>
+                <a href="/termos">Termos de Uso</a>
                 <a href="/login">Área do Cliente</a>
             </nav>
 

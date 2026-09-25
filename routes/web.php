@@ -1,5 +1,5 @@
 <?php
-use App\Controllers\{AdminController, AuthController, ClientController, DashboardController, StaffController};
+use App\Controllers\{AdminController, AuthController, ClientController, DashboardController, LegalController, StaffController};
 use App\Middleware\{AuthMiddleware, CsrfMiddleware, RoleMiddleware};
 
 $auth = AuthMiddleware::class;
@@ -7,6 +7,7 @@ $csrf = CsrfMiddleware::class;
 
 // GET - AUTENTICAÇÃO
 $router->get('/', [AuthController::class, 'landing']);
+$router->get('/termos', [LegalController::class, 'terms']);
 $router->get('/login', [AuthController::class, 'loginForm']);
 $router->get('/cadastro', [AuthController::class, 'registerForm']);
 $router->get('/recuperar-senha', [AuthController::class, 'recovery']);
