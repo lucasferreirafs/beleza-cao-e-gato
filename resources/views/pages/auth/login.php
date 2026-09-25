@@ -162,7 +162,7 @@
             <div class="auth-actions" id="auth-actions">
                 <button class="button primary wide auth-submit-btn" type="submit" id="login-submit">
                     <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
-                    Entrar no Sistema
+                    Acessar Conta
                 </button>
                 <p class="auth-foot">
                     Não tem uma conta? <a href="/cadastro">Criar conta</a>
