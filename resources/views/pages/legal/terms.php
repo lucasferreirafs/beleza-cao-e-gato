@@ -9,7 +9,7 @@
 
     <section class="legal-hero" aria-labelledby="terms-title">
         <div class="legal-hero-inner">
-            <span class="legal-eyebrow"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> BCG-JUR-001 · VERSÃO 1.0</span>
+            <span class="legal-eyebrow"><i class="fa-solid fa-scale-balanced" aria-hidden="true"></i> BCG-JUR-001 · VERSÃO <?= \App\Services\TermsService::VERSION ?></span>
             <h1 id="terms-title">Termos de Uso</h1>
             <p>Regras para utilizar o sistema Beleza Cão&amp;Gato com segurança, transparência e respeito.</p>
             <div class="legal-meta"><span><i class="fa-regular fa-calendar" aria-hidden="true"></i> Vigentes desde 24 de setembro de 2026</span><span><i class="fa-regular fa-clock" aria-hidden="true"></i> Leitura aproximada: 5 minutos</span></div>

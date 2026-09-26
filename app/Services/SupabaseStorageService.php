@@ -124,6 +124,18 @@ final class SupabaseStorageService
         return $this->baseUrl . $signed;
     }
 
+    /** Remove somente objetos com nomes gerados por este serviço. */
+    public function remove(string $bucket, string $path): void
+    {
+        $this->request('DELETE', '/object/' . $this->objectPath($bucket, $path), '', []);
+    }
+
+    /** Recupera bytes no servidor sem expor as credenciais ao navegador. */
+    public function download(string $bucket, string $path): string
+    {
+        return $this->request('GET', '/object/authenticated/' . $this->objectPath($bucket, $path), '', []);
+    }
+
     private function readUpload(array $file): string
     {
         if (!isset($file['error']) || !is_int($file['error'])) {

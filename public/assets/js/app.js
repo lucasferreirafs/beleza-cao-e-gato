@@ -1,7 +1,158 @@
 document.addEventListener("DOMContentLoaded", () => {
     const sidebar = document.querySelector("[data-sidebar]");
-    document.querySelector("[data-sidebar-toggle]")
-        ?.addEventListener("click", () => sidebar?.classList.toggle("open"));
+    const sidebarToggle = document.querySelector('[data-sidebar-toggle]');
+    const sidebarBackdrop = document.querySelector('[data-sidebar-backdrop]');
+    const mobileQuery = window.matchMedia('(max-width: 1000px)');
+    const syncOverlayLock = () => document.body.classList.toggle('overlay-open',
+        !!document.querySelector('dialog[open], [data-sidebar].open'));
+    const setSidebar = (open, restoreFocus = true) => {
+        if (!sidebar) return;
+        const visible = open && mobileQuery.matches;
+        sidebar.classList.toggle('open', visible);
+        sidebar.inert = mobileQuery.matches && !visible;
+        sidebarToggle?.setAttribute('aria-expanded', String(visible));
+        if (sidebarBackdrop) sidebarBackdrop.hidden = !visible;
+        const workspace = document.querySelector('.workspace');
+        if (workspace) workspace.inert = visible;
+        if (visible) {
+            sidebar.setAttribute('role', 'dialog');
+            sidebar.setAttribute('aria-modal', 'true');
+            sidebar.querySelector('button, a')?.focus();
+        } else {
+            sidebar.removeAttribute('role');
+            sidebar.removeAttribute('aria-modal');
+            if (restoreFocus) sidebarToggle?.focus();
+        }
+        syncOverlayLock();
+    };
+    sidebarToggle?.addEventListener('click', () => setSidebar(!sidebar.classList.contains('open')));
+    sidebarBackdrop?.addEventListener('click', () => setSidebar(false));
+    document.querySelector('[data-sidebar-close]')?.addEventListener('click', () => setSidebar(false));
+    mobileQuery.addEventListener('change', () => setSidebar(false, false));
+    setSidebar(false, false);
+    sidebar?.addEventListener('keydown', (event) => {
+        if (!sidebar.classList.contains('open')) return;
+        if (event.key === 'Escape') { event.preventDefault(); setSidebar(false); }
+        if (event.key === 'Tab') {
+            const items = [...sidebar.querySelectorAll('a[href], button:not([disabled])')].filter(el => el.getClientRects().length);
+            const first = items[0], last = items.at(-1);
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+            if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }
+    });
+
+    const profileMenu = document.querySelector('#profile-menu');
+    const profileToggle = document.querySelector('[data-profile-toggle]');
+    const positionProfileMenu = () => {
+        if (!profileMenu?.open || !profileToggle) return;
+        const rect = profileToggle.getBoundingClientRect();
+        profileMenu.style.left = Math.max(12, Math.min(rect.right - profileMenu.offsetWidth, innerWidth - profileMenu.offsetWidth - 12)) + 'px';
+        profileMenu.style.top = Math.max(12, Math.min(rect.bottom + 8, innerHeight - profileMenu.offsetHeight - 12)) + 'px';
+    };
+    profileToggle?.addEventListener('click', () => {
+        setSidebar(false, false);
+        profileMenu.showModal();
+        profileToggle.setAttribute('aria-expanded', 'true');
+        positionProfileMenu();
+        syncOverlayLock();
+    });
+    document.querySelector('[data-profile-close]')?.addEventListener('click', () => profileMenu.close());
+    profileMenu?.addEventListener('click', event => {
+        if (event.target !== profileMenu) return;
+        const r = profileMenu.getBoundingClientRect();
+        if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) {
+            event.preventDefault(); profileMenu.close();
+        }
+    });
+    profileMenu?.addEventListener('close', () => {
+        profileToggle?.setAttribute('aria-expanded', 'false');
+        syncOverlayLock();
+        profileToggle?.focus();
+    });
+    window.addEventListener('resize', positionProfileMenu);
+
+    document.querySelectorAll('[data-avatar-image]').forEach(image => {
+        const fallback = () => { image.hidden = true; const initial = image.parentElement.querySelector('[data-avatar-fallback]'); if (initial) initial.hidden = false; };
+        image.addEventListener('error', fallback);
+        if (image.hasAttribute('src') && image.complete && !image.naturalWidth) fallback();
+    });
+    const profileForm = document.querySelector('[data-profile-form]');
+    if (profileForm) {
+        const identityFields = [...profileForm.querySelectorAll('[data-edit-field]')].map(button => ({ button, input: document.getElementById(button.dataset.editField) }));
+        const passwordLabel = profileForm.querySelector('[data-identity-password]');
+        const password = passwordLabel.querySelector('input');
+        const syncPassword = () => {
+            const changed = identityFields.some(({ input }) => input.value !== input.defaultValue);
+            passwordLabel.hidden = !changed;
+            password.disabled = !changed;
+            password.required = changed;
+            if (!changed) password.value = '';
+            profileForm.querySelector('[data-identity-help]').hidden = !identityFields.some(({ input }) => !input.readOnly);
+        };
+        identityFields.forEach(({ button, input }) => {
+            button.addEventListener('click', () => {
+                input.readOnly = !input.readOnly;
+                if (input.readOnly) { input.value = input.defaultValue; setFieldError(input, ''); }
+                button.setAttribute('aria-pressed', String(!input.readOnly));
+                button.setAttribute('aria-label', (input.readOnly ? 'Editar ' : 'Cancelar edição de ') + (input.name === 'cpf' ? 'CPF' : 'e-mail'));
+                syncPassword();
+                if (!input.readOnly) input.focus();
+            });
+            input.addEventListener('input', syncPassword);
+        });
+        const photo = profileForm.querySelector('[data-profile-photo]');
+        const preview = profileForm.querySelector('[data-profile-preview]');
+        const savedSrc = preview.getAttribute('src');
+        const photoError = profileForm.querySelector('#photo-error');
+        let photoRevision = 0;
+        const restorePreview = () => {
+            if (savedSrc) { preview.src = savedSrc; preview.hidden = false; }
+            else { preview.removeAttribute('src'); preview.hidden = true; }
+            preview.parentElement.querySelector('[data-avatar-fallback]').hidden = !!savedSrc;
+        };
+        photo.addEventListener('change', () => {
+            const revision = ++photoRevision;
+            const file = photo.files[0];
+            photoError.hidden = true;
+            photoError.textContent = '';
+            restorePreview();
+            if (!file) return;
+            const rejectPhoto = message => {
+                if (revision !== photoRevision) return;
+                photo.value = ''; photoError.textContent = message; photoError.hidden = false; restorePreview();
+            };
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0 || file.size > 5 * 1024 * 1024) {
+                rejectPhoto('Escolha uma imagem JPG, PNG ou WebP de até 5 MB.'); return;
+            }
+            const reader = new FileReader();
+            reader.onerror = () => rejectPhoto('Não foi possível ler a imagem.');
+            reader.onload = () => {
+                if (revision !== photoRevision) return;
+                const probe = new Image();
+                probe.onerror = () => rejectPhoto('A imagem não pôde ser aberta. Escolha outro arquivo.');
+                probe.onload = () => {
+                    if (revision !== photoRevision) return;
+                    if (probe.width > 8192 || probe.height > 8192 || probe.width * probe.height > 25000000) {
+                        rejectPhoto('A imagem excede o limite de dimensões.'); return;
+                    }
+                    preview.src = reader.result; preview.hidden = false;
+                    preview.parentElement.querySelector('[data-avatar-fallback]').hidden = true;
+                };
+                probe.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        profileForm.addEventListener('submit', event => {
+            if (!profileForm.checkValidity()) { event.preventDefault(); profileForm.reportValidity(); return; }
+            const submit = profileForm.querySelector('button[type="submit"]');
+            submit.disabled = true;
+            submit.textContent = 'Salvando…';
+        });
+        window.addEventListener('pageshow', () => {
+            const submit = profileForm.querySelector('button[type="submit"]');
+            submit.disabled = false; submit.textContent = 'Salvar alterações';
+        });
+    }
 
     document.querySelectorAll("[data-password-toggle]").forEach((button) =>
         button.addEventListener("click", () => {
@@ -22,14 +173,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Custom Confirm Modal
     const createConfirmModal = () => {
-        const modal = document.createElement("div");
+        const modal = document.createElement("dialog");
         modal.className = "custom-modal-overlay hidden";
+        modal.setAttribute('aria-labelledby', 'confirmation-title');
         modal.innerHTML = `
             <div class="custom-modal-box">
                 <div class="custom-modal-icon">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
-                <h3 class="custom-modal-title">Confirmação</h3>
+                <h3 id="confirmation-title" class="custom-modal-title">Confirmação</h3>
                 <p class="custom-modal-message"></p>
                 <div class="custom-modal-actions">
                     <button type="button" class="button secondary custom-modal-cancel">Cancelar</button>
@@ -55,9 +207,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const DANGER_KEYWORDS = ['cancelar', 'excluir', 'remover', 'deletar'];
 
     const closeConfirmModal = () => {
+        confirmModal.close();
         confirmModal.classList.add("hidden");
         currentFormToSubmit = null;
+        syncOverlayLock();
     };
+    confirmModal.addEventListener('cancel', event => { event.preventDefault(); closeConfirmModal(); });
 
     btnCancel.addEventListener("click", closeConfirmModal);
 
@@ -97,6 +252,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             currentFormToSubmit = form;
             confirmModal.classList.remove("hidden");
+            confirmModal.showModal();
+            btnCancel.focus();
+            syncOverlayLock();
         }),
     );
 
@@ -316,6 +474,7 @@ document.addEventListener("DOMContentLoaded", () => {
             debounceTimer = setTimeout(() => {
                 const body = new FormData();
                 body.append("password", value);
+                body.append('_token', passwordInput.form?.querySelector('input[name="_token"]')?.value || '');
 
                 fetch("/api/password-strength", { method: "POST", body })
                     .then((r) => r.json())
@@ -415,7 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ── Birth date mask: dd/mm/aaaa ───────────────────────────────────────────
     const birthInput = document.querySelector('input[name="birth_date"]');
-    if (birthInput) {
+    if (birthInput && birthInput.type !== 'date') {
         birthInput.addEventListener("input", () => {
             let v = birthInput.value.replace(/\D/g, "").slice(0, 8);
             v = v

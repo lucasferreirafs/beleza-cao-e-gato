@@ -8,7 +8,7 @@ use App\Core\Router;
 use App\Middleware\CsrfMiddleware;
 Env::load(dirname(__DIR__) . '/.env');
 $failed = [];
-if (!preg_match('/--orange-500:\s*#e8612d/i', (string) file_get_contents(dirname(__DIR__) . '/public/assets/css/app.css')))
+if (!preg_match('/--orange-500:\s*#e8612d/i', (string) file_get_contents(dirname(__DIR__) . '/public/assets/css/auth/login.css')))
     $failed[] = 'token';
 try {
     $jwt = new JwtService();

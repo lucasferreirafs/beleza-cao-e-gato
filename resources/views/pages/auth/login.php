@@ -151,7 +151,7 @@
 
                 <div class="auth-form-inline">
                     <label class="auth-check-label">
-                        <input type="checkbox" name="remember">
+                        <input type="checkbox" name="remember" value="1">
                         <span>Lembrar de mim</span>
                     </label>
                     <a href="/recuperar-senha" class="auth-forgot-link">Esqueci minha senha</a>

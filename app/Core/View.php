@@ -15,6 +15,9 @@ final class View
             throw new RuntimeException("View não encontrada: {$template}");
 
         $pageClass = 'page-' . str_replace(['pages/', '/'], ['', '-'], $template);
+        if (in_array($template, ['pages/client/settings', 'pages/errors/upload'], true) && $layout === 'app') {
+            $pageClass .= ' page-client-profile';
+        }
 
         extract($data, EXTR_SKIP);
         ob_start();

@@ -49,6 +49,7 @@ BEGIN
       JOIN pg_class table_class ON table_class.oid = i.indrelid
       JOIN pg_namespace n ON n.oid = table_class.relnamespace
       WHERE n.nspname = 'public'
+         AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conindid = i.indexrelid)
    LOOP
       EXECUTE format('DROP INDEX IF EXISTS %I.%I CASCADE', object_record.schema_name, object_record.index_name);
    END LOOP;
@@ -85,6 +86,10 @@ CREATE TABLE users (
    cpf VARCHAR(14),
    birth_date DATE,
    email_verified_at TIMESTAMPTZ,
+   terms_version VARCHAR(30),
+   terms_accepted_at TIMESTAMPTZ,
+   avatar_path VARCHAR(100),
+   auth_version INTEGER NOT NULL DEFAULT 1,
    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -144,6 +149,30 @@ CREATE TABLE account_tokens (
 );
 
 -- 3. Cria índices.
+CREATE TABLE remember_tokens (
+   selector VARCHAR(32) PRIMARY KEY,
+   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   token_hash VARCHAR(64) NOT NULL,
+   previous_hash VARCHAR(64),
+   previous_valid_until TIMESTAMPTZ,
+   expires_at TIMESTAMPTZ NOT NULL,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE remember_tokens ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON remember_tokens FROM PUBLIC;
+DO $$
+BEGIN
+   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+      REVOKE ALL ON remember_tokens FROM anon;
+   END IF;
+   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+      REVOKE ALL ON remember_tokens FROM authenticated;
+   END IF;
+END;
+$$;
+
+CREATE INDEX idx_remember_tokens_user ON remember_tokens (user_id);
+CREATE INDEX idx_remember_tokens_expiry ON remember_tokens (expires_at);
 CREATE INDEX idx_pets_owner ON pets (owner_id);
 CREATE INDEX idx_appointments_pet_date ON appointments (pet_id, scheduled_at DESC);
 CREATE INDEX idx_appointments_staff_date ON appointments (staff_id, scheduled_at);

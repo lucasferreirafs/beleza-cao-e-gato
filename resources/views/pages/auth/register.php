@@ -233,6 +233,7 @@
                     <input type="checkbox" name="terms" value="1" required>
                     <span>Aceito os <a href="/termos">termos de uso</a> e li as informações de <a href="/termos#dados-pessoais">privacidade</a></span>
                 </label>
+                <input type="hidden" name="terms_version" value="<?= \App\Services\TermsService::VERSION ?>">
 
             </div>
 

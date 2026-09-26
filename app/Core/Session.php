@@ -18,7 +18,7 @@ final class Session
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
         ini_set('session.gc_maxlifetime', (string) (60 * 60 * 24 * 30));
-        session_set_cookie_params(['httponly' => true, 'secure' => Env::bool('SESSION_SECURE'), 'samesite' => 'Lax', 'path' => '/']);
+        session_set_cookie_params(['lifetime' => 0, 'httponly' => true, 'secure' => Env::bool('SESSION_SECURE') || Env::get('APP_ENV') === 'production', 'samesite' => 'Lax', 'path' => '/']);
         session_start();
     }
 
@@ -27,17 +27,19 @@ final class Session
         return $_SESSION['user'] ?? null;
     }
 
-    public static function login(array $user, bool $remember = false): void
+    public static function login(array $user, bool $remember = false, ?int $rememberUntil = null): void
     {
         session_regenerate_id(true);
+        $_SESSION = [];
         $_SESSION['user'] = $user;
         $_SESSION['last_activity'] = time();
 
         if ($remember) {
-            $_SESSION['remember_until'] = time() + 60 * 60 * 24 * 30;
-            $params = session_get_cookie_params();
-            setcookie(session_name(), session_id(), ['expires' => $_SESSION['remember_until'], 'path' => $params['path'], 'secure' => $params['secure'], 'httponly' => true, 'samesite' => 'Lax']);
+            $_SESSION['remember_until'] = $rememberUntil ?? time() + \App\Services\RememberMeService::TTL;
         }
+        // Persistência é responsabilidade do token revogável, não do ID de sessão.
+        $params = session_get_cookie_params();
+        setcookie(session_name(), session_id(), ['expires' => 0, 'path' => '/', 'secure' => $params['secure'], 'httponly' => true, 'samesite' => 'Lax']);
     }
 
     public static function refreshUser(array $user): void

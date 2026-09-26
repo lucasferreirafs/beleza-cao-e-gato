@@ -17,8 +17,7 @@ final class AccountService
 {
     public function register(array $input): array
     {
-        if (empty($input['terms']))
-            throw new InvalidArgumentException('Aceite os termos de uso para continuar.');
+        TermsService::validate($input['terms'] ?? null, $input['terms_version'] ?? null);
 
         $data = [
             'name' => Validator::text($input['name'] ?? '', 'Nome completo'),

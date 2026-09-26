@@ -67,6 +67,15 @@ try {
     $signRequest = end($requests);
     $check($signRequest['method'] === 'POST' && json_decode($signRequest['body'], true) === ['expiresIn' => 120], 'Validade não enviada ao Storage.');
 
+    $storage->remove('img-user', $first['path']);
+    $removal = end($requests);
+    $check($removal['method'] === 'DELETE' && str_ends_with($removal['url'], '/object/img-user/' . $first['path']), 'Remoção fora do objeto autorizado.');
+    $responseBody = $png;
+    $check($storage->download('img-user', $first['path']) === $png, 'Download alterou os bytes.');
+    $download = end($requests);
+    $check($download['method'] === 'GET' && str_contains($download['url'], '/object/authenticated/img-user/'), 'Download não autenticado.');
+    $rejects(fn() => $storage->remove('img-user', '../foto.png'), InvalidArgumentException::class);
+    $rejects(fn() => $storage->download('other', $first['path']), InvalidArgumentException::class);
     $requestCount = count($requests);
     foreach (['other', '../img-user', 'img-user?x=y'] as $bucket) {
         $rejects(fn() => $storage->uploadImage($bucket, $png, 'foto.png'), InvalidArgumentException::class);

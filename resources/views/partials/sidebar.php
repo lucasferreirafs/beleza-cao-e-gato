@@ -30,7 +30,8 @@ $items = match ($role) {
 };
 ?>
 
-<aside class="sidebar" data-sidebar>
+<aside class="sidebar" id="app-sidebar" data-sidebar aria-label="Navegação principal">
+    <button type="button" class="sidebar-close" data-sidebar-close aria-label="Fechar menu">×</button>
     <div>
         <a class="brand" href="/dashboard">
             <span class="brand-mark" aria-hidden="true">

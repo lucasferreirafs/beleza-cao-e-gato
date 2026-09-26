@@ -75,13 +75,18 @@ final class AuthController
         }
 
         $limiter->clear($limitKey);
-        Session::login($user, (bool) $r->input('remember'));
+        $remember = $r->input('remember') === '1';
+        $persistence = new \App\Services\RememberMeService();
+        if ($remember) $persistence->issue((int) $user['id']);
+        else $persistence->forget();
+        Session::login($user, $remember);
         Csrf::regenerate();
         Response::redirect('/dashboard');
     }
 
     public function logout(Request $r): void
     {
+        (new \App\Services\RememberMeService())->forget();
         Session::logout();
         Response::redirect('/login');
     }

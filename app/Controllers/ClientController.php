@@ -186,36 +186,6 @@ final class ClientController
         Response::redirect('/cliente/agendamentos');
     }
 
-    public function profile(Request $r): void
-    {
-        $profile = (new UserRepository())->findById((int) Session::user()['id']);
-        View::render(
-            'pages/client/profile',
-            $this->base('Meu Perfil', 'profile', compact('profile'))
-        );
-    }
-
-    public function updateProfile(Request $r): void
-    {
-        try {
-            $data = [
-                'name' => Validator::text($r->input('name'), 'Nome completo'),
-                'phone' => Validator::phone($r->input('phone')),
-                'birth_date' => Validator::date($r->input('birth_date'))
-            ];
-
-            (new UserRepository())->updateProfile((int) Session::user()['id'], $data);
-            $fresh = (new UserRepository())->findById((int) Session::user()['id']);
-
-            if ($fresh)
-                Session::refreshUser($fresh);
-
-            Session::flash('success', 'Perfil atualizado com sucesso.');
-        } catch (InvalidArgumentException $e) {
-            Session::flash('error', $e->getMessage());
-        }
-        Response::redirect('/cliente/perfil');
-    }
 
     private function ownedPet(int $id): array
     {
