@@ -1,58 +1,359 @@
-/* Componentes compartilhados da conta; foco igual ao login/cadastro. */
-.app-body [hidden] { display: none !important; }
-body.overlay-open { overflow: hidden; }
-.app-body .topbar { gap: 12px; }
-.app-body .breadcrumb { display: block; min-width: 0; }
-.app-body .breadcrumb ol { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 0; margin: 0; list-style: none; }
-.app-body .breadcrumb li { display: flex; align-items: center; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
-.app-body .breadcrumb li + li::before { content: '/'; color: #9ca3af; }
-.app-body .breadcrumb a { color: #53656c; }
-.app-body .user-info { border: 0; background: transparent; font: inherit; }
-.app-body .avatar { overflow: hidden; }
-.app-body .avatar img { width: 100%; height: 100%; object-fit: cover; }
-.app-body .user-text strong { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
-.app-body button:focus-visible, .app-body a:focus-visible {
-    outline: 2px solid #e8612d; outline-offset: 3px;
+.app-body [hidden] {
+    display: none !important;
 }
-.profile-menu { position: fixed; inset: 80px 20px auto auto; margin: 0; width: min(310px, calc(100vw - 24px)); box-sizing: border-box; max-height: calc(100dvh - 24px); overflow-y: auto; border: 1px solid #e2e8e5; border-radius: 14px; padding: 12px; color: #18221f; background: white; box-shadow: 0 16px 45px #18221f30; }
-.profile-menu::backdrop { background: #18221f25; }
-.profile-menu-heading { display: flex; justify-content: space-between; align-items: center; padding-left: 12px; }
-.profile-menu-heading button { width: 44px; height: 44px; border: 0; background: transparent; cursor: pointer; font-size: 26px; }
-.profile-menu nav a, .profile-menu form button { display: flex; gap: 12px; align-items: center; box-sizing: border-box; width: 100%; min-height: 46px; padding: 12px; border: 0; border-radius: 8px; background: white; color: #1a4350; text-decoration: none; font: inherit; text-align: left; cursor: pointer; }
-.profile-menu nav a:hover, .profile-menu form button:hover { background: #f3f6f4; }
-.profile-menu form { margin: 8px 0 0; border-top: 1px solid #e5e7eb; padding-top: 8px; }
-.profile-menu form button { color: #b83f11; }
-.sidebar-close { display: none; }
-.sidebar-backdrop { position: fixed; inset: 0; z-index: 29; width: 100%; height: 100dvh; border: 0; background: #18221f80; }
-.app-body .sidebar { z-index: 30; }
-.app-body .account-form input:focus { outline: none; border-color: #e8612d; box-shadow: 0 0 0 3px rgba(232,97,45,.12); }
-.account-form .form-grid { margin-top: 24px; }
-.account-form .editable-field { min-width: 0; }
-.account-form .editable-field > label { display: block; margin-bottom: 8px; }
-.editable-input { display: flex; gap: 8px; align-items: center; }
-.editable-input input { flex: 1; min-width: 0; }
-.editable-input button { flex: 0 0 44px; height: 44px; border: 1px solid #d1d5db; background: #fff5f1; border-radius: 8px; cursor: pointer; color: #b83f11; }
-.account-form input[readonly] { background: #f3f4f6; color: #53656c; }
-.account-form input[type=file] { padding: 10px; width: 100%; max-width: 450px; min-height: 44px; }
-.account-form .photo-picker { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-.account-form .identity-help { color: #53656c; font-size: 13px; }
-.account-form .field-error { color: #b83f11; }
-.account-settings h2:not(:first-child) { margin-top: 30px; }
-.app-body dialog.custom-modal-overlay { border: 0; padding: 0; margin: 0; width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; background: transparent; }
-.app-body dialog.custom-modal-overlay:not([open]) { display: none; }
-.app-body dialog.custom-modal-overlay::backdrop { background: #18221f66; backdrop-filter: blur(4px); }
-.app-body .custom-modal-box { box-sizing: border-box; max-height: calc(100dvh - 32px); overflow: auto; }
+
+body.overlay-open {
+    overflow: hidden;
+}
+
+.app-body .topbar {
+    gap: 12px;
+}
+
+.app-body .breadcrumb {
+    display: block;
+    min-width: 0;
+}
+
+.app-body .breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.app-body .breadcrumb li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.app-body .breadcrumb li+li::before {
+    content: '/';
+    color: #9ca3af;
+}
+
+.app-body .breadcrumb a {
+    color: #53656c;
+}
+
+.app-body .user-info {
+    border: 0;
+    background: transparent;
+    font: inherit;
+}
+
+.app-body .avatar {
+    overflow: hidden;
+}
+
+.app-body .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.app-body .user-text strong {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-body button:focus-visible,
+.app-body a:focus-visible {
+    outline: 2px solid #e8612d;
+    outline-offset: 3px;
+}
+
+.profile-menu {
+    position: fixed;
+    inset: 80px 20px auto auto;
+    margin: 0;
+    width: min(310px, calc(100vw - 24px));
+    box-sizing: border-box;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+    border: 1px solid #e2e8e5;
+    border-radius: 14px;
+    padding: 12px;
+    color: #18221f;
+    background: white;
+    box-shadow: 0 16px 45px #18221f30;
+}
+
+.profile-menu::backdrop {
+    background: #18221f25;
+}
+
+.profile-menu-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 12px;
+}
+
+.profile-menu-heading button {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 26px;
+}
+
+.profile-menu nav a,
+.profile-menu form button {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 46px;
+    padding: 12px;
+    border: 0;
+    border-radius: 8px;
+    background: white;
+    color: #1a4350;
+    text-decoration: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.profile-menu nav a:hover,
+.profile-menu form button:hover {
+    background: #f3f6f4;
+}
+
+.profile-menu form {
+    margin: 8px 0 0;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+}
+
+.profile-menu form button {
+    color: #b83f11;
+}
+
+.app-body .sidebar {
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.app-body .sidebar .sidebar-top {
+    flex: 1 1 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.2) transparent;
+}
+
+.app-body .sidebar .sidebar-top::-webkit-scrollbar {
+    width: 4px;
+}
+
+.app-body .sidebar .sidebar-top::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,.2);
+    border-radius: 4px;
+}
+
+.app-body .sidebar .sidebar-footer {
+    flex: 0 0 auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.sidebar-close {
+    display: none;
+}
+
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    width: 100%;
+    height: 100dvh;
+    border: 0;
+    background: #18221f80;
+    pointer-events: all;
+    cursor: default;
+}
+
+.app-body .account-form input:focus {
+    outline: none;
+    border-color: #e8612d;
+    box-shadow: 0 0 0 3px rgba(232, 97, 45, .12);
+}
+
+.account-form .form-grid {
+    margin-top: 24px;
+}
+
+.account-form .editable-field {
+    min-width: 0;
+}
+
+.account-form .editable-field>label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.editable-input {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.editable-input input {
+    flex: 1;
+    min-width: 0;
+}
+
+.editable-input button {
+    flex: 0 0 44px;
+    height: 44px;
+    border: 1px solid #d1d5db;
+    background: #fff5f1;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #b83f11;
+}
+
+.account-form input[readonly] {
+    background: #f3f4f6;
+    color: #53656c;
+}
+
+.account-form input[type=file] {
+    padding: 10px;
+    width: 100%;
+    max-width: 450px;
+    min-height: 44px;
+}
+
+.account-form .photo-picker {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.account-form .identity-help {
+    color: #53656c;
+    font-size: 13px;
+}
+
+.account-form .field-error {
+    color: #b83f11;
+}
+
+.account-settings h2:not(:first-child) {
+    margin-top: 30px;
+}
+
+.app-body dialog.custom-modal-overlay {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    background: transparent;
+}
+
+.app-body dialog.custom-modal-overlay:not([open]) {
+    display: none;
+}
+
+.app-body dialog.custom-modal-overlay::backdrop {
+    background: #18221f66;
+    backdrop-filter: blur(4px);
+}
+
+.app-body .custom-modal-box {
+    box-sizing: border-box;
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+}
+
 @media (max-width: 1000px) {
-    .app-body .sidebar-close { display: block; position: absolute; right: 8px; top: 6px; border: 0; background: transparent; color: white; width: 44px; height: 44px; font-size: 28px; cursor: pointer; }
-    .app-body .sidebar { max-width: calc(100vw - 44px); overflow-y: auto; }
+    /* Botão X: visível, circular, topo-direita do sidebar */
+    .app-body .sidebar-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(255,255,255,.12);
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        transition: background .2s;
+        z-index: 2;
+    }
+
+    .app-body .sidebar-close:hover,
+    .app-body .sidebar-close:focus-visible {
+        background: rgba(255,255,255,.25);
+    }
+
+    /* O aside em si NÃO deve ter overflow-y; apenas .sidebar-top */
+    .app-body .sidebar {
+        max-width: calc(100vw - 44px);
+        /* overflow já está 'hidden' na regra base — sidebar-top faz o scroll */
+    }
 }
+
 @media (max-width: 680px) {
-    .app-body .topbar { min-height: 78px; height: auto; padding: 12px; flex-wrap: wrap; }
-    .app-body .breadcrumb { order: 3; width: 100%; font-size: 12px; }
-    .app-body .top-user { margin-left: auto; }
-    .app-body .user-info .user-text, .app-body .notification-btn, .app-body .header-separator { display: none; }
-    .app-body .account-form .profile-head { gap: 16px; align-items: center; }
-    .app-body .account-form .profile-head h2 { overflow-wrap: anywhere; }
-    .app-body .account-form .form-grid { grid-template-columns: 1fr; }
-    .profile-menu { width: calc(100vw - 24px); }
+    .app-body .topbar {
+        min-height: 78px;
+        height: auto;
+        padding: 12px;
+        flex-wrap: wrap;
+    }
+
+    .app-body .breadcrumb {
+        order: 3;
+        width: 100%;
+        font-size: 12px;
+    }
+
+    .app-body .top-user {
+        margin-left: auto;
+    }
+
+    .app-body .user-info .user-text,
+    .app-body .notification-btn,
+    .app-body .header-separator {
+        display: none;
+    }
+
+    .app-body .account-form .profile-head {
+        gap: 16px;
+        align-items: center;
+    }
+
+    .app-body .account-form .profile-head h2 {
+        overflow-wrap: anywhere;
+    }
+
+    .app-body .account-form .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-menu {
+        width: calc(100vw - 24px);
+    }
 }
