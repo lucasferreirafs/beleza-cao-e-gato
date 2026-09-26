@@ -1,78 +1,183 @@
-CREATE TABLE IF NOT EXISTS users (
- id BIGSERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE,
- password_hash VARCHAR(255) NOT NULL, role VARCHAR(20) NOT NULL CHECK (role IN ('client','staff','admin')),
- status VARCHAR(30) NOT NULL DEFAULT 'active', phone VARCHAR(30), cpf VARCHAR(14), birth_date DATE,
- email_verified_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS cpf VARCHAR(14);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date DATE;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-CREATE TABLE IF NOT EXISTS pets (
- id BIGSERIAL PRIMARY KEY, owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
- name VARCHAR(80) NOT NULL, species VARCHAR(40) NOT NULL, breed VARCHAR(100) NOT NULL,
- sex VARCHAR(10) NOT NULL, birth_date DATE, weight NUMERIC(6,2), allergies TEXT,
- neutered BOOLEAN NOT NULL DEFAULT false, behavior VARCHAR(100), special_needs TEXT, notes TEXT,
- created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-ALTER TABLE pets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-ALTER TABLE pets ADD COLUMN IF NOT EXISTS coat_color VARCHAR(60);
-CREATE TABLE IF NOT EXISTS services (
- id BIGSERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, description TEXT NOT NULL,
- duration_minutes INTEGER NOT NULL CHECK(duration_minutes > 0), price NUMERIC(10,2) NOT NULL CHECK(price >= 0),
- active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-ALTER TABLE services ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
-ALTER TABLE services ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
-CREATE TABLE IF NOT EXISTS appointments (
- id BIGSERIAL PRIMARY KEY, pet_id BIGINT NOT NULL REFERENCES pets(id), service_id BIGINT NOT NULL REFERENCES services(id),
- staff_id BIGINT REFERENCES users(id), scheduled_at TIMESTAMPTZ NOT NULL, status VARCHAR(30) NOT NULL,
- price NUMERIC(10,2) NOT NULL, notes TEXT, completed_at TIMESTAMPTZ,
- created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-ALTER TABLE appointments ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
-ALTER TABLE appointments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
+-- ATENÇÃO: este script apaga e recria os objetos do schema public.
+-- Execute somente quando for apropriado reinicializar o banco.
 
-CREATE TABLE IF NOT EXISTS account_tokens (
- id BIGSERIAL PRIMARY KEY,
- user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
- purpose VARCHAR(30) NOT NULL CHECK (purpose IN ('verify_email','reset_password')),
- token_hash VARCHAR(255) NOT NULL,
- expires_at TIMESTAMPTZ NOT NULL,
- consumed_at TIMESTAMPTZ,
- created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- 1. Remove views, rotinas, índices, tabelas e tipos existentes.
+DO $$
+DECLARE
+   object_record RECORD;
+BEGIN
+   FOR object_record IN
+      SELECT schemaname, viewname AS object_name
+      FROM pg_views
+      WHERE schemaname = 'public'
+   LOOP
+      EXECUTE format('DROP VIEW IF EXISTS %I.%I CASCADE', object_record.schemaname, object_record.object_name);
+   END LOOP;
+
+   FOR object_record IN
+      SELECT schemaname, matviewname AS object_name
+      FROM pg_matviews
+      WHERE schemaname = 'public'
+   LOOP
+      EXECUTE format('DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE', object_record.schemaname, object_record.object_name);
+   END LOOP;
+
+   FOR object_record IN
+      SELECT
+         n.nspname AS schema_name,
+         p.proname AS routine_name,
+         p.prokind AS routine_kind,
+         pg_get_function_identity_arguments(p.oid) AS identity_arguments
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+         AND p.prokind IN ('f', 'p')
+   LOOP
+      EXECUTE format(
+         'DROP %s IF EXISTS %I.%I(%s) CASCADE',
+         CASE WHEN object_record.routine_kind = 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END,
+         object_record.schema_name,
+         object_record.routine_name,
+         object_record.identity_arguments
+      );
+   END LOOP;
+
+   FOR object_record IN
+      SELECT n.nspname AS schema_name, index_class.relname AS index_name
+      FROM pg_index i
+      JOIN pg_class index_class ON index_class.oid = i.indexrelid
+      JOIN pg_class table_class ON table_class.oid = i.indrelid
+      JOIN pg_namespace n ON n.oid = table_class.relnamespace
+      WHERE n.nspname = 'public'
+   LOOP
+      EXECUTE format('DROP INDEX IF EXISTS %I.%I CASCADE', object_record.schema_name, object_record.index_name);
+   END LOOP;
+
+   FOR object_record IN
+      SELECT tablename AS object_name
+      FROM pg_tables
+      WHERE schemaname = 'public'
+   LOOP
+      EXECUTE format('DROP TABLE IF EXISTS public.%I CASCADE', object_record.object_name);
+   END LOOP;
+
+   FOR object_record IN
+      SELECT t.typname AS object_name
+      FROM pg_type t
+      JOIN pg_namespace n ON n.oid = t.typnamespace
+      WHERE n.nspname = 'public'
+         AND t.typtype IN ('c', 'd', 'e', 'r', 'm')
+   LOOP
+      EXECUTE format('DROP TYPE IF EXISTS public.%I CASCADE', object_record.object_name);
+   END LOOP;
+END;
+$$;
+
+-- 2. Cria tabelas.
+CREATE TABLE users (
+   id BIGSERIAL PRIMARY KEY,
+   name VARCHAR(120) NOT NULL,
+   email VARCHAR(190) NOT NULL UNIQUE,
+   password_hash VARCHAR(255) NOT NULL,
+   role VARCHAR(20) NOT NULL CHECK (role IN ('client', 'staff', 'admin')),
+   status VARCHAR(30) NOT NULL DEFAULT 'active',
+   phone VARCHAR(30),
+   cpf VARCHAR(14),
+   birth_date DATE,
+   email_verified_at TIMESTAMPTZ,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_pets_owner ON pets(owner_id);
-CREATE INDEX IF NOT EXISTS idx_appointments_pet_date ON appointments(pet_id, scheduled_at DESC);
-CREATE INDEX IF NOT EXISTS idx_appointments_staff_date ON appointments(staff_id, scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_appointments_status_date ON appointments(status, scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_account_tokens_lookup ON account_tokens(user_id, purpose, expires_at DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email_lower ON users(lower(email));
-CREATE UNIQUE INDEX IF NOT EXISTS uq_users_cpf ON users(cpf) WHERE cpf IS NOT NULL;
+CREATE TABLE pets (
+   id BIGSERIAL PRIMARY KEY,
+   owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   name VARCHAR(80) NOT NULL,
+   species VARCHAR(40) NOT NULL,
+   breed VARCHAR(100) NOT NULL,
+   sex VARCHAR(10) NOT NULL,
+   birth_date DATE,
+   weight NUMERIC(6, 2),
+   allergies TEXT,
+   neutered BOOLEAN NOT NULL DEFAULT false,
+   behavior VARCHAR(100),
+   special_needs TEXT,
+   notes TEXT,
+   coat_color VARCHAR(60),
+   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-INSERT INTO users(name,email,password_hash,role) VALUES
- ('Maria Eduarda Silva','cliente@demo.local','$2y$10$ubzpD6lTOIUyhtlufX5eBOAe8svE5edIY1Jo/a4RjZQpRVKuDym.2','client'),
- ('João Silva','staff@demo.local','$2y$10$SoWWh.1FdA9g5zMwqygaWuqMtzs9cO4VLmS4XHdvra9bxTK6LyujK','staff'),
- ('Administrador Geral','admin@demo.local','$2y$10$9cGIc4m3jK8Nay9//E6ioO/tNUVfhq3/bov5ZsDDysxT..vTDgprO','admin')
-ON CONFLICT(email) DO NOTHING;
-UPDATE users SET email_verified_at = COALESCE(email_verified_at, now())
-WHERE email IN ('cliente@demo.local','staff@demo.local','admin@demo.local');
-INSERT INTO services(name,description,duration_minutes,price)
-SELECT v.name,v.description,v.duration_minutes,v.price
-FROM (VALUES
- ('Banho Simples','Higienização completa, corte de unhas, limpeza de ouvidos e secagem profissional.',45,45::numeric),
- ('Tosa Estética','Tosa higiênica e padrão da raça com equipamentos premium.',60,55::numeric),
- ('Banho + Tosa Completa','Pacote completo de bem-estar com hidratação de pelos.',90,80::numeric),
- ('Corte de Unhas','Aparamento seguro e lixamento das patinhas.',15,25::numeric),
- ('Limpeza de Ouvidos','Prevenção de otite com produtos suaves.',15,30::numeric),
- ('Escovação de Dentes','Prevenção de tártaro e mau hálito.',20,20::numeric)
-) v(name,description,duration_minutes,price)
-WHERE NOT EXISTS (SELECT 1 FROM services s WHERE lower(s.name)=lower(v.name));
-INSERT INTO pets(owner_id,name,species,breed,sex,birth_date,weight,behavior)
-SELECT u.id,v.name,v.species,v.breed,v.sex,v.birth_date::date,v.weight,v.behavior FROM users u CROSS JOIN (VALUES
- ('Luna','Cachorro','Golden Retriever','Fêmea','2023-08-15',28.0,'Dócil e Brincalhão'),
- ('Mel','Gato','Siamês','Fêmea','2025-02-01',4.2,'Curiosa'),
- ('Toddy','Cachorro','Shih Tzu','Macho','2024-05-20',6.1,'Tranquilo')) v(name,species,breed,sex,birth_date,weight,behavior)
-WHERE u.email='cliente@demo.local' AND NOT EXISTS(SELECT 1 FROM pets p WHERE p.owner_id=u.id);
+CREATE TABLE services (
+   id BIGSERIAL PRIMARY KEY,
+   name VARCHAR(120) NOT NULL,
+   description TEXT NOT NULL,
+   duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
+   price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+   active BOOLEAN NOT NULL DEFAULT true,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE appointments (
+   id BIGSERIAL PRIMARY KEY,
+   pet_id BIGINT NOT NULL REFERENCES pets(id),
+   service_id BIGINT NOT NULL REFERENCES services(id),
+   staff_id BIGINT REFERENCES users(id),
+   scheduled_at TIMESTAMPTZ NOT NULL,
+   status VARCHAR(30) NOT NULL,
+   price NUMERIC(10, 2) NOT NULL,
+   notes TEXT,
+   completed_at TIMESTAMPTZ,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE account_tokens (
+   id BIGSERIAL PRIMARY KEY,
+   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   purpose VARCHAR(30) NOT NULL CHECK (purpose IN ('verify_email', 'reset_password')),
+   token_hash VARCHAR(255) NOT NULL,
+   expires_at TIMESTAMPTZ NOT NULL,
+   consumed_at TIMESTAMPTZ,
+   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 3. Cria índices.
+CREATE INDEX idx_pets_owner ON pets (owner_id);
+CREATE INDEX idx_appointments_pet_date ON appointments (pet_id, scheduled_at DESC);
+CREATE INDEX idx_appointments_staff_date ON appointments (staff_id, scheduled_at);
+CREATE INDEX idx_appointments_status_date ON appointments (status, scheduled_at);
+CREATE INDEX idx_account_tokens_lookup ON account_tokens (user_id, purpose, expires_at DESC);
+CREATE UNIQUE INDEX uq_users_email_lower ON users (lower(email));
+CREATE UNIQUE INDEX uq_users_cpf ON users (cpf) WHERE cpf IS NOT NULL;
+
+-- 4. Cria dados iniciais de demonstração.
+INSERT INTO users (name, email, password_hash, role)
+VALUES
+   ('Maria Eduarda Silva', 'cliente@demo.local', '$2y$10$ubzpD6lTOIUyhtlufX5eBOAe8svE5edIY1Jo/a4RjZQpRVKuDym.2', 'client'),
+   ('João Silva', 'staff@demo.local', '$2y$10$SoWWh.1FdA9g5zMwqygaWuqMtzs9cO4VLmS4XHdvra9bxTK6LyujK', 'staff'),
+   ('Administrador Geral', 'admin@demo.local', '$2y$10$9cGIc4m3jK8Nay9//E6ioO/tNUVfhq3/bov5ZsDDysxT..vTDgprO', 'admin');
+
+UPDATE users
+SET email_verified_at = COALESCE(email_verified_at, now())
+WHERE email IN ('cliente@demo.local', 'staff@demo.local', 'admin@demo.local');
+
+INSERT INTO services (name, description, duration_minutes, price)
+VALUES
+   ('Banho Simples', 'Higienização completa, corte de unhas, limpeza de ouvidos e secagem profissional.', 45, 45),
+   ('Tosa Estética', 'Tosa higiênica e padrão da raça com equipamentos premium.', 60, 55),
+   ('Banho + Tosa Completa', 'Pacote completo de bem-estar com hidratação de pelos.', 90, 80),
+   ('Corte de Unhas', 'Aparamento seguro e lixamento das patinhas.', 15, 25),
+   ('Limpeza de Ouvidos', 'Prevenção de otite com produtos suaves.', 15, 30),
+   ('Escovação de Dentes', 'Prevenção de tártaro e mau hálito.', 20, 20);
+
+INSERT INTO pets (owner_id, name, species, breed, sex, birth_date, weight, behavior)
+SELECT u.id, pet.name, pet.species, pet.breed, pet.sex, pet.birth_date::date, pet.weight, pet.behavior
+FROM users u
+CROSS JOIN (VALUES
+   ('Luna', 'Cachorro', 'Golden Retriever', 'Fêmea', '2023-08-15', 28.0, 'Dócil e Brincalhão'),
+   ('Mel', 'Gato', 'Siamês', 'Fêmea', '2025-02-01', 4.2, 'Curiosa'),
+   ('Toddy', 'Cachorro', 'Shih Tzu', 'Macho', '2024-05-20', 6.1, 'Tranquilo')
+) AS pet(name, species, breed, sex, birth_date, weight, behavior)
+WHERE u.email = 'cliente@demo.local';

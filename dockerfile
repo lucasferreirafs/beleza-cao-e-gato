@@ -13,7 +13,10 @@ RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-avail
 WORKDIR /var/www/html
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
-RUN chown -R www-data:www-data storage
+RUN mkdir -p storage && chown -R www-data:www-data storage
 COPY docker/apache.conf /etc/apache2/conf-available/app-security.conf
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+# Falha no build se o runtime não oferecer as extensões usadas pelo Storage.
+RUN php -r 'exit(extension_loaded("curl") && extension_loaded("fileinfo") ? 0 : 1);'
 RUN a2enconf app-security
 EXPOSE 80
