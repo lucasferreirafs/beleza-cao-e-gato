@@ -2,7 +2,7 @@
 <header class="page-heading"><div><h1>Configurações</h1><p>Gerencie a segurança e os acessos à sua conta.</p></div></header>
 <section class="panel account-settings">
     <h2>Acessos lembrados</h2>
-    <p>Ao entrar com “Lembrar de mim”, seu acesso permanece disponível por até 30 dias neste navegador.</p>
+    <p>Ao entrar com “Lembrar de login, seu acesso permanece disponível por até 30 dias neste navegador.</p>
     <form method="post" action="/conta/revogar-acessos" data-confirm="Revogar os acessos lembrados e encerrar as outras sessões?">
         <?= \App\Security\Csrf::field() ?><button class="button secondary" type="submit">Revogar outros acessos</button>
     </form>

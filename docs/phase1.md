@@ -13,7 +13,7 @@ A migração é aditiva e preserva os dados. Não execute `schema.sql` nem o res
 
 ## Comportamentos
 
-- Lembrar de mim: validade absoluta de 30 dias, token aleatório armazenado como hash, rotação e revogação no logout.
+- Lembrar de login: validade absoluta de 30 dias, token aleatório armazenado como hash, rotação e revogação no logout.
 - Cadastro e login exigem aceite explícito da versão atual dos termos; o banco registra versão e data.
 - CPF e e-mail começam bloqueados. A alteração exige senha atual; novo e-mail exige confirmação e encerra acessos anteriores.
 - Fotos usam exclusivamente `img-user`, via cURL no servidor, com nome aleatório. JPEG, PNG e WebP até 5 MiB; limites adicionais de dimensões são validados no servidor.
