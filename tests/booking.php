@@ -15,7 +15,7 @@ use App\Services\BookingService;
 Env::load(dirname(__DIR__) . '/.env');
 if (Env::get('APP_ENV') !== 'testing' || Env::get('BOOKING_QA_ALLOW_RESET') !== '1'
     || Env::get('DB_DATABASE') !== 'booking_qa' || Env::get('DB_HOST') !== 'beleza-booking-qa-db') {
-    fwrite(STDERR, "Use somente os contêineres locais de QA descritos em docs/phase4.md.\n");
+    fwrite(STDERR, "Use somente os contêineres locais de QA descritos em README.md.\n");
     exit(1);
 }
 date_default_timezone_set('America/Sao_Paulo');
