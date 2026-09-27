@@ -9,11 +9,16 @@
     </a>
 </header>
 <div class="stack">
-    <?php $photos = ['Luna' => 'pet-luna.png', 'Mel' => 'pet-mel.png', 'Toddy' => 'pet-toddy.png'];
+    <?php
     foreach ($pets as $pet): ?>
-        <article class="panel pet-card">
+        <article class="panel pet-card pet-card--managed">
+            <form class="pet-card-delete" method="post" action="/cliente/pets/<?= (int) $pet['id'] ?>" data-confirm="Excluir este pet?">
+                <?= \App\Security\Csrf::field() ?>
+                <input type="hidden" name="_method" value="DELETE">
+                <button type="submit" class="pet-delete-icon" aria-label="Excluir <?= htmlspecialchars($pet['name'], ENT_QUOTES, 'UTF-8') ?>" title="Excluir pet"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
+            </form>
             <header>
-                <img src="/assets/images/<?= $photos[$pet['name']] ?? 'pet-luna.png' ?>" alt="<?= htmlspecialchars($pet['name']) ?>">
+                <img src="<?= htmlspecialchars(\App\Support\PetHelper::photo($pet), ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($pet['name'], ENT_QUOTES, 'UTF-8') ?>">
                 <span>
                     <strong>
                         <?= htmlspecialchars($pet['name']) ?>
@@ -50,13 +55,6 @@
                     Editar
                 </a>
 
-                <form method="post" action="/cliente/pets/<?= (int) $pet['id'] ?>" data-confirm="Excluir este pet?">
-
-                    <?= \App\Security\Csrf::field() ?>
-                    <input type="hidden" name="_method" value="DELETE">
-
-                    <button class="button ghost danger">Excluir</button>
-                </form>
             </footer>
         </article>
     <?php endforeach; ?>

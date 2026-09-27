@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Core\Session;
@@ -11,66 +12,155 @@ use DomainException;
 
 final class BookingService
 {
-    public function state(): array { return (array) Session::get('booking', []); }
+    public const STEPS = [
+        'servico' => 1,
+        'escolha-pet' => 2,
+        'profissional' => 3,
+        'data-e-horario' => 4,
+        'confirmacao' => 5,
+    ];
+    public const MAX_SERVICES = 10;
+    public const BUFFER_MINUTES = 60;
+
+    public static function stepNumber(string $step): ?int
+    {
+        if (isset(self::STEPS[$step])) return self::STEPS[$step];
+        $legacy = filter_var($step, FILTER_VALIDATE_INT);
+        return $legacy !== false && $legacy >= 1 && $legacy <= 5 ? (int) $legacy : null;
+    }
+
+    public static function stepSlug(int $number): string
+    {
+        $slug = array_search($number, self::STEPS, true);
+        return is_string($slug) ? $slug : 'servico';
+    }
+
+    public function state(): array
+    {
+        $state = (array) Session::get('booking', []);
+        if (empty($state['service_ids']) && !empty($state['service_id'])) {
+            $state['service_ids'] = [(int) $state['service_id']];
+        }
+        return $state;
+    }
 
     public function nextIncompleteStep(): int
     {
         $state = $this->state();
-        if (empty($state['pet_id'])) return 1;
-        if (empty($state['service_id'])) return 2;
-        if (empty($state['date']) || empty($state['time'])) return 3;
-        if (!array_key_exists('staff_id', $state)) return 4;
+        if (empty($state['service_ids'])) return 1;
+        if (empty($state['pet_id'])) return 2;
+        if (!array_key_exists('staff_id', $state)) return 3;
+        if (empty($state['date']) || empty($state['time']) || empty($state['schedule_validated'])) return 4;
         return 5;
     }
 
     public function storeStep(int $step, array $input, int $userId): int
     {
-        if ($step < 1 || $step > 5 || $step > $this->nextIncompleteStep())
+        if ($step < 1 || $step > 5 || $step > $this->nextIncompleteStep()) {
             throw new DomainException('Complete as etapas anteriores do agendamento.');
+        }
 
         $state = $this->state();
+        $appointments = new AppointmentRepository();
+
         if ($step === 1) {
-            $petId = filter_var($input['pet_id'] ?? null, FILTER_VALIDATE_INT);
-            if (!$petId || !(new PetRepository())->findForUser((int) $petId, $userId)) throw new DomainException('Selecione um pet da sua conta.');
-            $state = ['pet_id' => (int) $petId];
+            $serviceIds = $input['service_ids'] ?? (isset($input['service_id']) ? [$input['service_id']] : []);
+            if (!is_array($serviceIds) || count($serviceIds) < 1 || count($serviceIds) > self::MAX_SERVICES) {
+                throw new DomainException('Selecione de 1 a ' . self::MAX_SERVICES . ' serviços.');
+            }
+            $normalized = [];
+            foreach ($serviceIds as $serviceId) {
+                $id = filter_var($serviceId, FILTER_VALIDATE_INT);
+                if (!$id || $id < 1) throw new DomainException('Um dos serviços selecionados é inválido.');
+                $normalized[] = (int) $id;
+            }
+            $normalized = array_values(array_unique($normalized));
+            if (count($normalized) !== count($serviceIds)) throw new DomainException('Remova serviços duplicados da seleção.');
+            $active = (new ServiceRepository())->findActiveMany($normalized);
+            if (count($active) !== count($normalized)) throw new DomainException('Um serviço selecionado não está mais disponível.');
+            $state['service_ids'] = $normalized;
+            unset($state['service_id'], $state['date'], $state['time'], $state['schedule_validated'], $state['quote']);
+            if (array_key_exists('pet_id', $state)) unset($state['staff_id']);
         } elseif ($step === 2) {
-            $this->requirePrevious($state, 'pet_id');
-            $serviceId = filter_var($input['service_id'] ?? null, FILTER_VALIDATE_INT);
-            if (!$serviceId || !(new ServiceRepository())->findActive((int) $serviceId)) throw new DomainException('Selecione um serviço disponível.');
-            $state['service_id'] = (int) $serviceId;
-            unset($state['date'], $state['time'], $state['staff_id']);
+            $this->requirePrevious($state, 'service_ids');
+            $petId = filter_var($input['pet_id'] ?? null, FILTER_VALIDATE_INT);
+            if (!$petId || !(new PetRepository())->findForUser((int) $petId, $userId)) {
+                throw new DomainException('Selecione um pet da sua conta.');
+            }
+            $state['pet_id'] = (int) $petId;
+            unset($state['staff_id'], $state['date'], $state['time'], $state['schedule_validated'], $state['quote']);
         } elseif ($step === 3) {
-            $this->requirePrevious($state, 'service_id');
-            $date = (string) ($input['date'] ?? '');
-            $time = (string) ($input['time'] ?? '');
-            $scheduled = DateTimeImmutable::createFromFormat('!Y-m-d H:i', "{$date} {$time}");
-            if (!$scheduled || $scheduled->format('Y-m-d H:i') !== "{$date} {$time}" || $scheduled <= new DateTimeImmutable() || !preg_match('/^(0[89]|1[0-7]):(00|30)$/', $time)) throw new DomainException('Escolha uma data e um horário futuro disponível.');
-            if (!in_array($time, (new AppointmentRepository())->availableSlots($date, (int) $state['service_id']), true)) throw new DomainException('Este horário não está disponível.');
-            if (($state['date'] ?? null) !== $date || ($state['time'] ?? null) !== $time)
-                unset($state['staff_id']);
+            $this->requirePrevious($state, 'pet_id');
+            $preference = $input['staff_id'] ?? null;
+            if ($preference !== null && !is_string($preference) && !is_int($preference)) {
+                throw new DomainException('Selecione um profissional válido.');
+            }
+            $staffId = $preference === '' || $preference === null ? null : filter_var($preference, FILTER_VALIDATE_INT);
+            if ($preference !== '' && $preference !== null && (!$staffId || $staffId < 1)) {
+                throw new DomainException('Selecione um profissional válido.');
+            }
+            if ($staffId !== null && !(new \App\Repositories\UserRepository())->findActiveStaff((int) $staffId)) {
+                throw new DomainException('Este profissional não está disponível.');
+            }
+            $state['staff_id'] = $staffId === null ? null : (int) $staffId;
+            unset($state['date'], $state['time'], $state['schedule_validated'], $state['quote']);
+        } elseif ($step === 4) {
+            $this->requirePrevious($state, 'staff_id');
+            $date = $input['date'] ?? '';
+            $time = $input['time'] ?? '';
+            if (!is_string($date) || !is_string($time)) throw new DomainException('Escolha uma data e um horário válidos.');
+            $scheduled = AppointmentRepository::parseSchedule($date . ' ' . $time);
+            if (!$scheduled || $scheduled->format('Y-m-d H:i') !== $date . ' ' . $time
+                || $scheduled <= new DateTimeImmutable() || !preg_match('/^(0[89]|1[0-7]):(00|30)$/', $time)) {
+                throw new DomainException('Escolha uma data e um horário futuro disponível.');
+            }
+
+            $staffId = $state['staff_id'];
+            if (array_key_exists('staff_id', $input)) {
+                $preference = $input['staff_id'];
+                if (!is_string($preference) && !is_int($preference)) throw new DomainException('Seleção de profissional inválida.');
+                $staffId = $preference === '' ? null : filter_var($preference, FILTER_VALIDATE_INT);
+                if ($preference !== '' && (!$staffId || $staffId < 1)) throw new DomainException('Selecione um profissional válido.');
+                if ($staffId !== null && !(new \App\Repositories\UserRepository())->findActiveStaff((int) $staffId)) {
+                    throw new DomainException('Este profissional não está disponível.');
+                }
+            }
+            $notes = $input['notes'] ?? '';
+            if (!is_string($notes) || preg_match('//u', $notes) !== 1 || preg_match_all('/./us', $notes) > 1000) {
+                throw new DomainException('As observações devem ter até 1000 caracteres.');
+            }
+            $state['staff_id'] = $staffId === null ? null : (int) $staffId;
             $state['date'] = $date;
             $state['time'] = $time;
-        } elseif ($step === 4) {
-            $this->requirePrevious($state, 'time');
-            $preference = (string) ($input['staff_id'] ?? '');
-            $staffId = $preference === '' ? null : filter_var($preference, FILTER_VALIDATE_INT);
-            if ($staffId !== null && (!$staffId || $staffId < 1))
-                throw new DomainException('Selecione um profissional disponível.');
-            $available = (new AppointmentRepository())->availableStaff($state['date'] . ' ' . $state['time'], (int) $state['service_id']);
-            if (!$available)
-                throw new DomainException('Este horário acabou de ficar indisponível. Escolha outro.');
-            if ($staffId !== null) {
-                $valid = array_filter($available, static fn(array $u): bool => (int) $u['id'] === $staffId);
-                if (!$valid) throw new DomainException('Selecione um profissional disponível.');
+            $state['notes'] = trim($notes);
+            $state['schedule_validated'] = false;
+            Session::put('booking', $state);
+
+            $freeStaff = $appointments->availableStaff($date . ' ' . $time, $state['service_ids'], (int) $state['pet_id']);
+            if (!$freeStaff) throw new DomainException('Este horário ficou indisponível. Escolha outro.');
+            if ($staffId !== null && !in_array((int) $staffId, array_map(static fn(array $row): int => (int) $row['id'], $freeStaff), true)) {
+                throw new DomainException('O profissional selecionado está indisponível neste horário. Escolha outro.');
             }
-            $state['staff_id'] = $staffId ? (int) $staffId : null;
-            $state['notes'] = mb_substr(trim((string) ($input['notes'] ?? '')), 0, 1000);
+            if (!in_array($time, $appointments->availableSlots($date, $state['service_ids'], null, (int) $state['pet_id']), true)) {
+                throw new DomainException('Este horário não está mais disponível.');
+            }
+            $state['schedule_validated'] = true;
+            $state['quote'] = (new ServiceRepository())->findActiveMany($state['service_ids']);
         } elseif ($step === 5) {
-            foreach (['pet_id','service_id','date','time','staff_id'] as $key) $this->requirePrevious($state, $key);
-            (new AppointmentRepository())->create($userId, ['pet_id' => $state['pet_id'], 'service_id' => $state['service_id'], 'staff_id' => $state['staff_id'] ?? null, 'scheduled_at' => $state['date'] . ' ' . $state['time'], 'notes' => $state['notes'] ?? null]);
+            foreach (['pet_id', 'service_ids', 'date', 'time'] as $key) $this->requirePrevious($state, $key);
+            if (!array_key_exists('staff_id', $state)) throw new DomainException('Escolha um profissional ou selecione sem preferência.');
+            $appointments->create($userId, [
+                'pet_id' => $state['pet_id'],
+                'service_ids' => $state['service_ids'],
+                'staff_id' => $state['staff_id'],
+                'scheduled_at' => $state['date'] . ' ' . $state['time'],
+                'notes' => $state['notes'] ?? null,
+                'expected_services' => $state['quote'] ?? [],
+            ]);
             Session::forget('booking');
             return 0;
         }
+
         Session::put('booking', $state);
         return min(5, $step + 1);
     }

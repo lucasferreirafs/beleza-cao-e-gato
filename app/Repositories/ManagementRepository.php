@@ -145,12 +145,29 @@ final class ManagementRepository
 
     public function adminRows(string $section): array
     {
+        if ($section === 'agendamentos') {
+            return array_map(static fn(array $a): array => [
+                'id' => $a['id'], 'label' => $a['client_name'] . ' / ' . $a['pet_name'],
+                'detail' => date('d/m/Y H:i', strtotime($a['scheduled_at'])) . ' • ' . $a['service_name'],
+                'links' => $a['staff_name'] ?? 'Sem profissional', 'status' => $a['status'],
+            ], (new AppointmentRepository())->allForAdmin());
+        }
+        if ($section === 'servicos') {
+            $counts = [];
+            foreach ((new AppointmentRepository())->allForAdmin() as $a) {
+                foreach ($a['services'] as $service) $counts[$service['id']] = ($counts[$service['id']] ?? 0) + 1;
+            }
+            return array_map(static fn(array $s): array => [
+                'id' => $s['id'], 'label' => $s['name'],
+                'detail' => $s['duration_minutes'] . ' min • R$ ' . number_format((float) $s['price'], 2, ',', '.'),
+                'links' => ($counts[$s['id']] ?? 0) . ' agendamentos',
+                'status' => $s['active'] ? 'active' : 'inactive',
+            ], Database::connection()->query('SELECT * FROM services ORDER BY name')->fetchAll());
+        }
         $sql = match ($section) {
             'clientes' => "SELECT u.id,u.name label,concat(u.email,' • ',coalesce(u.phone,'Sem telefone')) detail,concat(count(DISTINCT p.id),' pets') links,u.status FROM users u LEFT JOIN pets p ON p.owner_id=u.id WHERE u.role='client' GROUP BY u.id ORDER BY u.name",
             'pets' => "SELECT p.id,p.name label,concat(p.species,' • ',p.breed) detail,u.name links,'active' status FROM pets p JOIN users u ON u.id=p.owner_id ORDER BY p.name",
             'funcionarios' => "SELECT u.id,u.name label,concat(u.email,' • ',coalesce(u.phone,'Sem telefone')) detail,'Equipe da unidade' links,u.status FROM users u WHERE u.role='staff' ORDER BY u.name",
-            'servicos' => "SELECT s.id,s.name label,concat(s.duration_minutes,' min • R$ ',to_char(s.price,'FM999G999D00')) detail,concat(count(a.id),' agendamentos') links,CASE WHEN s.active THEN 'active' ELSE 'inactive' END status FROM services s LEFT JOIN appointments a ON a.service_id=s.id GROUP BY s.id ORDER BY s.name",
-            'agendamentos' => "SELECT a.id,concat(c.name,' / ',p.name) label,concat(to_char(a.scheduled_at,'DD/MM/YYYY HH24:MI'),' • ',s.name) detail,coalesce(st.name,'Sem profissional') links,a.status FROM appointments a JOIN pets p ON p.id=a.pet_id JOIN users c ON c.id=p.owner_id JOIN services s ON s.id=a.service_id LEFT JOIN users st ON st.id=a.staff_id ORDER BY a.scheduled_at DESC",
             default => null,
         };
         return $sql ? Database::connection()->query($sql)->fetchAll() : [];
@@ -160,22 +177,9 @@ final class ManagementRepository
     {
         $pdo = Database::connection();
         if (in_array($section, ['agenda', 'atendimentos', 'historico'], true)) {
-            $condition = $section === 'agenda' ? 'AND a.scheduled_at::date=current_date' : ($section === 'historico' ? "AND a.scheduled_at<now()" : '');
-            $s = $pdo->prepare("
-                SELECT a.id,to_char(a.scheduled_at,'DD/MM HH24:MI') schedule,p.name pet_name,c.name client_name,sv.name service_name,a.status 
-                FROM appointments a 
-                JOIN pets p 
-                ON p.id=a.pet_id 
-                JOIN users c 
-                ON c.id=p.owner_id 
-                JOIN services sv 
-                ON sv.id=a.service_id 
-                WHERE a.staff_id=:staff {$condition} 
-                ORDER BY a.scheduled_at DESC
-            ");
-
-            $s->execute(['staff' => $staffId]);
-            return $s->fetchAll();
+            $rows = (new AppointmentRepository())->allForStaff($staffId, $section === 'agenda');
+            if ($section === 'historico') $rows = array_values(array_filter($rows, static fn(array $a): bool => strtotime($a['scheduled_at']) < time()));
+            return array_map(static fn(array $a): array => $a + ['schedule' => date('d/m H:i', strtotime($a['scheduled_at']))], $rows);
         }
         if ($section === 'clientes') {
             $s = $pdo->prepare('
@@ -226,18 +230,7 @@ final class ManagementRepository
         }
 
         if ($section === 'agendamentos' && in_array($status, ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'], true)) {
-            $s = $pdo->prepare('
-                UPDATE appointments 
-                SET status=:status,
-                completed_at=CASE WHEN CAST(:is_completed AS boolean) 
-                THEN now() 
-                ELSE completed_at 
-                END,updated_at=now() 
-                WHERE id=:id
-            ');
-
-            $s->execute(['status' => $status, 'is_completed' => $status === 'completed', 'id' => $id]);
-            return $s->rowCount() === 1;
+            return (new AppointmentRepository())->changeStatus($id, $status);
         }
         return false;
     }
@@ -246,18 +239,6 @@ final class ManagementRepository
     {
         if (!in_array($status, ['confirmed', 'in_progress', 'completed', 'cancelled'], true))
             return false;
-        $s = Database::connection()->prepare('
-            UPDATE appointments 
-            SET status=:status,completed_at=CASE 
-            WHEN CAST(:is_completed AS boolean) 
-            THEN now() 
-            ELSE completed_at 
-            END,updated_at=now() 
-            WHERE id=:id 
-            AND staff_id=:staff
-        ');
-
-        $s->execute(['status' => $status, 'is_completed' => $status === 'completed', 'id' => $id, 'staff' => $staffId]);
-        return $s->rowCount() === 1;
+        return (new AppointmentRepository())->changeStatus($id, $status, $staffId);
     }
 }

@@ -1,6 +1,13 @@
 <?php
 $e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-$photos = ['Luna' => 'pet-luna.png', 'Mel' => 'pet-mel.png', 'Toddy' => 'pet-toddy.png'];
+$petsById = [];
+foreach ($pets as $pet) {
+    $petsById[(int) ($pet['id'] ?? 0)] = $pet;
+}
+$upcomingPet = $upcoming ? ($petsById[(int) ($upcoming['pet_id'] ?? 0)] ?? null) : null;
+$petPhoto = static fn(array $pet): string => !empty($pet['photo_path'])
+    ? \App\Support\PetHelper::photo($pet)
+    : '/assets/images/pet.webp';
 $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
 ?>
 
@@ -75,8 +82,8 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
 
             <?php if ($upcoming): ?>
                 <div class="appointment-info">
-                    <img src="/assets/images/<?= $e($photos[$upcoming['pet_name']] ?? 'pet-luna.png') ?>"
-                        alt="<?= $e($upcoming['pet_name']) ?>">
+                    <img src="<?= $e($upcomingPet ? $petPhoto($upcomingPet) : '/assets/images/pet.webp') ?>"
+                        alt="Foto de <?= $e($upcoming['pet_name']) ?>" width="86" height="86" loading="lazy">
 
                     <dl>
                         <div>
@@ -109,7 +116,7 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
             <?php else: ?>
                 <div class="empty-state">
                     <p>Nenhum agendamento futuro.</p>
-                    <a class="button primary" href="/cliente/agendamento/1">Agendar agora</a>
+                    <a class="button primary" href="/cliente/agendamento/servico">Agendar agora</a>
                 </div>
             <?php endif; ?>
         </article>
@@ -158,7 +165,7 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
 
         <?php foreach (array_slice($pets, 0, 4) as $pet): ?>
             <div class="pet-row">
-                <img src="/assets/images/<?= $e($photos[$pet['name']] ?? 'pet-luna.png') ?>" alt="<?= $e($pet['name']) ?>">
+                <img src="<?= $e($petPhoto($pet)) ?>" alt="Foto de <?= $e($pet['name']) ?>" width="54" height="54" loading="lazy">
 
                 <span>
                     <strong>

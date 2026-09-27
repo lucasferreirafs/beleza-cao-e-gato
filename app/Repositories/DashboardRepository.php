@@ -39,51 +39,27 @@ final class DashboardRepository
             (SELECT count(*) FROM appointments WHERE scheduled_at::date=current_date) appointments_today
         ")->fetch();
 
-        $recent = $pdo->query('
-            SELECT a.id,a.scheduled_at,a.status,p.name pet_name,c.name client_name,s.name service_name,st.name staff_name 
-            FROM appointments a 
-            JOIN pets p 
-            ON p.id=a.pet_id 
-            JOIN users c ON c.id=p.owner_id 
-            JOIN services s 
-            ON s.id=a.service_id 
-            LEFT JOIN users st 
-            ON st.id=a.staff_id 
-            ORDER BY a.created_at DESC 
-            LIMIT 8
-        ')->fetchAll();
-
-        $serviceStats = $pdo->query('
-            SELECT s.name,count(a.id) total 
-            FROM services s 
-            LEFT JOIN appointments a 
-            ON a.service_id=s.id 
-            GROUP BY s.id,s.name 
-            ORDER BY total DESC,s.name 
-            LIMIT 5
-        ')->fetchAll();
+        $repository = new AppointmentRepository();
+        $recent = $repository->allForAdmin(true);
+        $totals = [];
+        foreach ($repository->allForAdmin() as $appointment) {
+            foreach ($appointment['services'] as $service) {
+                $id = (int) $service['id'];
+                $totals[$id] ??= ['name' => $service['name'], 'total' => 0];
+                $totals[$id]['total']++;
+            }
+        }
+        $serviceStats = array_values($totals);
+        usort($serviceStats, static fn(array $a, array $b): int => $b['total'] <=> $a['total'] ?: strcmp($a['name'], $b['name']));
+        $serviceStats = array_slice($serviceStats, 0, 5);
 
         return compact('counts', 'recent', 'serviceStats');
     }
 
     public function staff(int $staffId): array
     {
-        $s = Database::connection()->prepare("
-            SELECT a.id,a.scheduled_at,a.status,a.price,p.name pet_name,c.name client_name,sv.name service_name 
-            FROM appointments a 
-            JOIN pets p 
-            ON p.id=a.pet_id 
-            JOIN users c 
-            ON c.id=p.owner_id 
-            JOIN services sv 
-            ON sv.id=a.service_id 
-            WHERE a.staff_id=:staff 
-            AND a.scheduled_at::date=current_date 
-            ORDER BY a.scheduled_at
-        ");
-
-        $s->execute(['staff' => $staffId]);
-        $appointments = $s->fetchAll();
+        $appointments = (new AppointmentRepository())->allForStaff($staffId, true);
+        usort($appointments, static fn(array $a, array $b): int => strtotime($a['scheduled_at']) <=> strtotime($b['scheduled_at']));
         $counts = [
             'total' => count($appointments),
             'completed' => 0,

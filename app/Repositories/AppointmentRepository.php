@@ -1,192 +1,219 @@
 <?php
 declare(strict_types=1);
+
 namespace App\Repositories;
 
 use App\Core\Database;
+use App\Services\BookingService;
 use DateTimeImmutable;
 use DomainException;
+use PDO;
 
 final class AppointmentRepository
 {
-    public function allForUser(int $userId): array
+    private function rows(string $condition = 'true', array $params = [], string $order = 'a.scheduled_at DESC'): array
     {
-        $s = Database::connection()->prepare('
-            SELECT a.*,p.name pet_name,sv.name service_name,sv.duration_minutes,u.name staff_name 
-            FROM appointments a 
-            JOIN pets p 
-            ON p.id=a.pet_id 
-            JOIN services sv 
-            ON sv.id=a.service_id 
-            LEFT JOIN users u 
-            ON u.id=a.staff_id 
-            WHERE p.owner_id=:owner 
-            ORDER BY a.scheduled_at DESC
-        ');
-
-        $s->execute(['owner' => $userId]);
-        return $s->fetchAll();
+        $pdo = Database::connection();
+        $s = $pdo->prepare("SELECT a.*,p.name pet_name,c.name client_name,s.name service_name,
+            s.duration_minutes legacy_duration,u.name staff_name
+            FROM appointments a JOIN pets p ON p.id=a.pet_id JOIN users c ON c.id=p.owner_id
+            JOIN services s ON s.id=a.service_id LEFT JOIN users u ON u.id=a.staff_id
+            WHERE {$condition} ORDER BY {$order}");
+        $s->execute($params);
+        return (new AppointmentStorage($pdo))->hydrate($s->fetchAll());
     }
 
-    public function allForPet(int $petId, int $ownerId): array
+    public function allForUser(int $id): array { return $this->rows('p.owner_id=:owner', ['owner' => $id]); }
+    public function allForPet(int $id, int $ownerId): array { return $this->rows('a.pet_id=:pet AND p.owner_id=:owner', ['pet' => $id, 'owner' => $ownerId]); }
+    public function allForStaff(int $id, bool $today = false): array
     {
-        $s = Database::connection()->prepare('
-            SELECT a.*,p.name pet_name,sv.name service_name,sv.duration_minutes,u.name staff_name 
-            FROM appointments a 
-            JOIN pets p 
-            ON p.id=a.pet_id 
-            JOIN services sv 
-            ON sv.id=a.service_id 
-            LEFT JOIN users u 
-            ON u.id=a.staff_id 
-            WHERE a.pet_id=:pet AND p.owner_id=:owner 
-            ORDER BY a.scheduled_at DESC
-        ');
+        return $this->rows('a.staff_id=:staff' . ($today ? ' AND a.scheduled_at::date=current_date' : ''), ['staff' => $id]);
+    }
+    public function allForAdmin(bool $recent = false): array { return $this->rows('true', [], $recent ? 'a.created_at DESC LIMIT 8' : 'a.scheduled_at DESC'); }
 
-        $s->execute(['pet' => $petId, 'owner' => $ownerId]);
-        return $s->fetchAll();
+    public static function parseSchedule(string $value): ?DateTimeImmutable
+    {
+        try { $date = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $value); }
+        catch (\ValueError) { return null; }
+        return $date && $date->format('Y-m-d H:i') === $value ? $date : null;
     }
 
-    public function availableSlots(string $date, int $serviceId, ?int $staffId = null): array
+    private function duration(array|int $ids): ?int
     {
-        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
-        if (!$day || $day->format('Y-m-d') !== $date)
-            return [];
+        $ids = is_array($ids) ? $ids : [$ids];
+        if (!$ids || count($ids) > BookingService::MAX_SERVICES) return null;
+        foreach ($ids as $id) if (!filter_var($id, FILTER_VALIDATE_INT) || (int) $id < 1) return null;
+        if (count(array_unique($ids)) !== count($ids)) return null;
+        $services = (new ServiceRepository())->findActiveMany($ids);
+        return count($services) === count($ids) ? array_sum(array_column($services, 'duration_minutes')) : null;
+    }
 
-        $sql = "
-            WITH settings AS (SELECT CAST(:booking_date AS date) AS booking_day, CAST(:staff AS bigint) AS staff_id),
-            selected_service AS (SELECT duration_minutes 
-            FROM services 
-            WHERE id=:service 
-            AND active=true), 
-            slots AS (SELECT generate_series(settings.booking_day+time '08:00',settings.booking_day+time '17:30',interval '30 minutes') AS slot
-            FROM settings) 
-            SELECT to_char(slot,'HH24:MI') label 
-            FROM slots,selected_service ss,settings
-            WHERE slot>now() 
-            AND EXISTS (SELECT 1 FROM users u WHERE u.role='staff' AND u.status='active' AND (settings.staff_id IS NULL OR u.id=settings.staff_id)
-            AND NOT EXISTS (SELECT 1 FROM appointments a JOIN services booked ON booked.id=a.service_id WHERE a.staff_id=u.id AND a.status 
-            NOT IN ('cancelled','canceled') 
-            AND a.scheduled_at < slot + make_interval(mins=>ss.duration_minutes) 
-            AND a.scheduled_at + make_interval(mins=>booked.duration_minutes) > slot)) 
-            ORDER BY slot
-        ";
+    private function fits(DateTimeImmutable $start, int $duration): bool
+    {
+        return $start > new DateTimeImmutable() && preg_match('/^(0[89]|1[0-7]):(00|30)$/', $start->format('H:i'))
+            && $start->modify('+' . $duration . ' minutes') <= $start->setTime(18, 0);
+    }
 
-        $s = Database::connection()->prepare($sql);
-        $s->execute([
-            'service' => $serviceId,
-            'booking_date' => $date,
-            'staff' => $staffId
+    private function reservations(DateTimeImmutable $day): array
+    {
+        // Include earlier bookings that could extend into this day. Services are limited to 1440 minutes.
+        return $this->rows("a.status NOT IN ('cancelled','canceled') AND a.scheduled_at>=:from_time AND a.scheduled_at<:until_time", [
+            'from_time' => $day->setTime(0, 0)->modify('-' . (BookingService::MAX_SERVICES + 1) . ' days')->format('c'),
+            'until_time' => $day->setTime(0, 0)->modify('+2 days')->format('c'),
         ]);
-        return array_column($s->fetchAll(), 'label');
     }
 
-    public function availableStaff(string $scheduledAt, int $serviceId): array
+    private function overlaps(array $booking, DateTimeImmutable $start, int $duration): bool
     {
-        $s = Database::connection()->prepare("
-            WITH requested AS (
-                SELECT CAST(:scheduled_at AS timestamptz) AS start_at, duration_minutes
-                FROM services WHERE id=:service AND active=true
-            )
-            SELECT u.id,u.name
-            FROM users u CROSS JOIN requested r
-            WHERE u.role='staff' AND u.status='active' AND r.start_at>now()
-            AND NOT EXISTS (
-                SELECT 1 FROM appointments a JOIN services booked ON booked.id=a.service_id
-                WHERE a.staff_id=u.id AND a.status NOT IN ('cancelled','canceled')
-                AND a.scheduled_at < r.start_at + make_interval(mins=>r.duration_minutes)
-                AND a.scheduled_at + make_interval(mins=>booked.duration_minutes) > r.start_at
-            )
-            ORDER BY u.name,u.id
-        ");
-        $s->execute(['scheduled_at' => $scheduledAt, 'service' => $serviceId]);
-        return $s->fetchAll();
+        $oldStart = new DateTimeImmutable($booking['scheduled_at']);
+        $buffer = BookingService::BUFFER_MINUTES;
+        return $oldStart->modify("-{$buffer} minutes") < $start->modify("+{$duration} minutes")
+            && $oldStart->modify('+' . ((int) $booking['duration_minutes'] + $buffer) . ' minutes') > $start;
+    }
+
+    private function freeStaff(DateTimeImmutable $start, int $duration, array $staff, array $bookings, ?int $petId): array
+    {
+        $fits = $this->fits($start, $duration);
+        foreach ($staff as &$person) {
+            $person['available'] = $fits;
+            if (!$fits) continue;
+            foreach ($bookings as $booking) {
+                if (($booking['staff_id'] === null || (int) $booking['staff_id'] === (int) $person['id']
+                    || ($petId !== null && (int) $booking['pet_id'] === $petId)) && $this->overlaps($booking, $start, $duration)) {
+                    $person['available'] = false;
+                    break;
+                }
+            }
+        }
+        unset($person);
+        return $staff;
+    }
+
+    public function availableSlots(string $date, array|int $services, ?int $staffId = null, ?int $petId = null): array
+    {
+        $day = self::parseSchedule($date . ' 08:00');
+        $duration = $this->duration($services);
+        if (!$day || !$duration) return [];
+        $staff = (new UserRepository())->allStaff();
+        if ($staffId !== null) $staff = array_values(array_filter($staff, static fn(array $s): bool => (int) $s['id'] === $staffId));
+        $bookings = $this->reservations($day);
+        $slots = [];
+        for ($start = $day; $start < $day->setTime(18, 0); $start = $start->modify('+30 minutes')) {
+            if (array_filter($this->freeStaff($start, $duration, $staff, $bookings, $petId), static fn(array $s): bool => $s['available'])) {
+                $slots[] = $start->format('H:i');
+            }
+        }
+        return $slots;
+    }
+
+    public function staffAvailability(string $scheduledAt, array|int $services, ?int $petId = null): array
+    {
+        $start = self::parseSchedule($scheduledAt);
+        $duration = $this->duration($services);
+        if (!$start || !$duration) return [];
+        return $this->freeStaff($start, $duration, (new UserRepository())->allStaff(), $this->reservations($start), $petId);
+    }
+
+    public function availableStaff(string $at, array|int $services, ?int $petId = null): array
+    {
+        return array_values(array_filter($this->staffAvailability($at, $services, $petId), static fn(array $s): bool => $s['available']));
     }
 
     public function create(int $ownerId, array $data): int
     {
-        $scheduledAt = (string) ($data['scheduled_at'] ?? '');
-        $scheduled = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $scheduledAt);
-
-        if (!$scheduled || $scheduled->format('Y-m-d H:i') !== $scheduledAt
-            || $scheduled <= new DateTimeImmutable()
-            || !preg_match('/^(0[89]|1[0-7]):(00|30)$/', $scheduled->format('H:i')))
-            throw new DomainException('Escolha uma data e um horário futuro disponível.');
+        $ids = $data['service_ids'] ?? (isset($data['service_id']) ? [$data['service_id']] : []);
+        if (!is_array($ids) || !$ids || count($ids) > BookingService::MAX_SERVICES) throw new DomainException('Selecione serviços válidos.');
+        foreach ($ids as $id) if (!filter_var($id, FILTER_VALIDATE_INT) || (int) $id < 1) throw new DomainException('Serviço inválido.');
+        $ids = array_map('intval', array_values($ids));
+        if (count($ids) !== count(array_unique($ids))) throw new DomainException('Serviços duplicados não são permitidos.');
+        $petId = filter_var($data['pet_id'] ?? null, FILTER_VALIDATE_INT);
+        $preference = $data['staff_id'] ?? null;
+        $staffId = $preference === null || $preference === '' ? null : filter_var($preference, FILTER_VALIDATE_INT);
+        if (!$petId || $petId < 1 || ($staffId !== null && (!$staffId || $staffId < 1))) throw new DomainException('Pet ou profissional inválido.');
+        $at = $data['scheduled_at'] ?? '';
+        $start = is_string($at) ? self::parseSchedule($at) : null;
+        if (!$start) throw new DomainException('Data ou horário inválido.');
+        $notes = $data['notes'] ?? null;
+        if ($notes !== null && (!is_string($notes) || preg_match('//u', $notes) !== 1 || preg_match_all('/./us', $notes) > 1000)) throw new DomainException('As observações devem ter até 1000 caracteres.');
 
         $pdo = Database::connection();
         $pdo->beginTransaction();
-
         try {
-            $pet = $pdo->prepare('SELECT id FROM pets WHERE id=:pet AND owner_id=:owner');
-            $pet->execute(['pet' => $data['pet_id'], 'owner' => $ownerId]);
-
-            if (!$pet->fetchColumn())
-                throw new DomainException('O pet selecionado não pertence à sua conta.');
-
-            $service = $pdo->prepare('SELECT id,price,duration_minutes FROM services WHERE id=:service AND active=true');
-            $service->execute(['service' => $data['service_id']]);
-            $serviceData = $service->fetch();
-
-            if (!$serviceData)
-                throw new DomainException('O serviço selecionado não está disponível.');
-
-            $staffId = !empty($data['staff_id']) ? (int) $data['staff_id'] : null;
-        
-            $lock = $pdo->prepare("SELECT id FROM users WHERE role='staff' AND status='active'"
-                . ($staffId !== null ? ' AND id=:staff' : '') . ' ORDER BY id FOR UPDATE');
-                
-            $lock->execute($staffId !== null ? ['staff' => $staffId] : []);
-            $lock->fetchAll();
-
-            $availableStaff = null;
-            foreach ($this->availableStaff($scheduledAt, (int) $data['service_id']) as $member) {
-                if ($staffId === null || (int) $member['id'] === $staffId) {
-                    $availableStaff = (int) $member['id'];
-                    break;
+            $pdo->exec('SET TRANSACTION ISOLATION LEVEL READ COMMITTED');
+            $pdo->exec("SET LOCAL lock_timeout='5s'");
+            // All booking and status mutations share this lock; recheck after acquiring it.
+            $pdo->query('SELECT pg_advisory_xact_lock(4242, 4)');
+            $pet = $pdo->prepare('SELECT id FROM pets WHERE id=:pet AND owner_id=:owner FOR UPDATE');
+            $pet->execute(['pet' => $petId, 'owner' => $ownerId]);
+            if (!$pet->fetchColumn()) throw new DomainException('Selecione um pet da sua conta.');
+            $s = $pdo->prepare('SELECT id,name,price,duration_minutes FROM services WHERE active=true AND id IN (' . implode(',', array_fill(0, count($ids), '?')) . ') ORDER BY id FOR SHARE');
+            $s->execute($ids);
+            $indexed = array_column($s->fetchAll(), null, 'id');
+            if (count($indexed) !== count($ids)) throw new DomainException('Um serviço selecionado deixou de estar disponível.');
+            $services = array_map(static fn(int $id): array => $indexed[$id], $ids);
+            if (isset($data['expected_services'])) {
+                $quote = static fn(array $items): array => array_map(static fn(array $s): array => [
+                    (int) $s['id'], (string) $s['name'], (int) round((float) $s['price'] * 100), (int) $s['duration_minutes'],
+                ], $items);
+                if ($quote($services) !== $quote($data['expected_services'])) {
+                    throw new DomainException('Os serviços foram atualizados. Revise o valor e o horário antes de confirmar.');
                 }
             }
-
-            if (!$availableStaff)
-                throw new DomainException('Este horário acabou de ficar indisponível. Escolha outro.');
-
-            $s = $pdo->prepare("
-                INSERT INTO appointments (pet_id,service_id,staff_id,scheduled_at,status,price,notes) 
-                VALUES (:pet,:service,:staff,:scheduled_at,'pending',:price,:notes) 
-                RETURNING id
-            ");
-            $s->execute([
-                'pet' => $data['pet_id'],
-                'service' => $data['service_id'],
-                'staff' => $availableStaff,
-                'scheduled_at' => $data['scheduled_at'],
-                'price' => $serviceData['price'],
-                'notes' => ($data['notes'] ?? '') ?: null
-            ]);
-
-            $id = (int) $s->fetchColumn();
+            $duration = array_sum(array_column($services, 'duration_minutes'));
+            if (!$this->fits($start, $duration)) throw new DomainException('Escolha um horário futuro que comporte todos os serviços até as 18h.');
+            $lock = $pdo->prepare("SELECT id FROM users WHERE role='staff' AND status='active'" . ($staffId !== null ? ' AND id=:staff' : '') . ' ORDER BY id FOR UPDATE');
+            $lock->execute($staffId !== null ? ['staff' => $staffId] : []);
+            $locked = array_map('intval', $lock->fetchAll(PDO::FETCH_COLUMN));
+            $available = $this->availableStaff($at, $ids, (int) $petId);
+            $assigned = null;
+            foreach ($available as $person) {
+                if (in_array((int) $person['id'], $locked, true)) { $assigned = (int) $person['id']; break; }
+            }
+            if ($assigned === null) throw new DomainException('Horário indisponível para o pet ou profissional selecionado. Escolha outra opção.');
+            $cents = array_sum(array_map(static fn(array $s): int => (int) round((float) $s['price'] * 100), $services));
+            $id = (new AppointmentStorage($pdo))->insert([
+                'pet' => $petId, 'staff' => $assigned, 'scheduled_at' => $start->format('c'),
+                'price' => number_format($cents / 100, 2, '.', ''), 'duration' => $duration, 'notes' => $notes,
+            ], $services);
             $pdo->commit();
             return $id;
-        } catch (\Throwable $e) {
-            if ($pdo->inTransaction())
-                $pdo->rollBack();
-            throw $e;
+        } catch (\Throwable $error) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            if ($error instanceof \PDOException && in_array($error->getCode(), ['55P03','40001','40P01','23P01'], true)) {
+                throw new DomainException('A agenda foi atualizada durante a reserva. Consulte o horário e tente novamente.', 0, $error);
+            }
+            throw $error;
         }
     }
 
-    public function cancelForUser(int $id, int $ownerId): bool
+    public function cancelForUser(int $id, int $ownerId): bool { return $this->changeStatus($id, 'cancelled', null, $ownerId); }
+
+    public function changeStatus(int $id, string $status, ?int $staffId = null, ?int $ownerId = null): bool
     {
-        $s = Database::connection()->prepare("
-            UPDATE appointments a 
-            SET status='cancelled',updated_at=now() 
-            FROM pets p 
-            WHERE a.id=:id 
-            AND p.id=a.pet_id 
-            AND p.owner_id=:owner 
-            AND a.status 
-            IN ('pending','confirmed','scheduled') 
-            AND a.scheduled_at>now()
-        ");
-        
-        $s->execute(['id' => $id, 'owner' => $ownerId]);
-        return $s->rowCount() === 1;
+        if (!in_array($status, ['pending','confirmed','in_progress','completed','cancelled'], true)) return false;
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $pdo->exec("SET LOCAL lock_timeout='5s'");
+            $pdo->query('SELECT pg_advisory_xact_lock(4242, 4)');
+            $s = $pdo->prepare('SELECT a.*,p.owner_id FROM appointments a JOIN pets p ON p.id=a.pet_id WHERE a.id=:id FOR UPDATE OF a');
+            $s->execute(['id' => $id]);
+            $row = $s->fetch();
+            if (!$row || ($staffId !== null && (int) $row['staff_id'] !== $staffId)
+                || ($ownerId !== null && ((int) $row['owner_id'] !== $ownerId || $status !== 'cancelled'
+                    || !in_array($row['status'], ['pending','confirmed','scheduled'], true) || strtotime($row['scheduled_at']) <= time()))
+                || (in_array($row['status'], ['cancelled','canceled'], true) && $status !== 'cancelled')) {
+                $pdo->rollBack();
+                return false; // Cancelled slots may have been reused; create a new booking instead.
+            }
+            $s = $pdo->prepare("UPDATE appointments SET status=:status,
+                completed_at=CASE WHEN CAST(:completed AS boolean) THEN now() ELSE completed_at END,updated_at=now() WHERE id=:id");
+            $s->execute(['status' => $status, 'completed' => $status === 'completed' ? 'true' : 'false', 'id' => $id]);
+            $pdo->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
     }
 }

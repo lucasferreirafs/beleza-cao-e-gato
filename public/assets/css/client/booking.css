@@ -1197,21 +1197,64 @@ body.page-client-booking {
     display: none !important;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 1000px) {
     .page-client-booking .stepper {
-        display: flex;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-    }
-
-    .page-client-booking .stepper::-webkit-scrollbar {
-        display: none;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: start;
+        overflow: visible;
+        padding: 14px 10px 42px;
     }
 
     .page-client-booking .stepper span {
-        flex-shrink: 0;
-        min-width: 180px;
+        position: relative;
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0;
+    }
+
+    .page-client-booking .stepper span b {
+        position: relative;
+        z-index: 1;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        font-size: 13px;
+    }
+
+    .page-client-booking .stepper span small {
+        display: none;
+    }
+
+    .page-client-booking .stepper span strong {
+        display: none;
+    }
+
+    .page-client-booking .stepper span.active strong {
+        display: block;
+        position: absolute;
+        top: 42px;
+        left: 50%;
+        width: max-content;
+        max-width: min(140px, 40vw);
+        transform: translateX(-50%);
+        text-align: center;
+        font-size: 11px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+
+    .page-client-booking .stepper span:not(:last-child)::after {
+        position: absolute;
+        top: 17px;
+        left: calc(50% + 17px);
+        width: calc(100% - 34px);
+        height: 1px;
+        margin: 0;
+        z-index: 0;
     }
 }
 
@@ -1388,3 +1431,89 @@ body.page-client-booking {
 .page-client-booking [data-password-strength][data-level="3"] .register-strength-track i.active { background: #10b981; }
 .page-client-booking [data-password-strength][data-level="4"] .register-strength-track i.active { background: #059669; }
 
+/* Regras responsivas isoladas para a escolha de profissional. */
+.page-client-booking .booking-service-card input[type="checkbox"],
+.page-client-booking .staff-card input[type="radio"] {
+    display: block;
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+}
+.page-client-booking .booking-service-card:focus-within,
+.page-client-booking .staff-card:focus-within {
+    outline: 3px solid var(--orange-500);
+    outline-offset: 3px;
+}
+.page-client-booking .booking-service-check { border-radius: 5px; }
+.page-client-booking .booking-service-check i { visibility: hidden; }
+.page-client-booking .booking-service-card.selected .booking-service-check i { visibility: visible; }
+.page-client-booking .booking-service-card.selected .radio-indicator::after { content: none; }
+.page-client-booking .staff-card .service-info,
+.page-client-booking .staff-card .radio-indicator { grid-area: auto; }
+.page-client-booking .staff-card--preference { grid-column: 1 / -1; }
+.page-client-booking .staff-card .service-info span { font-size: 13px; color: #66756e; }
+.page-client-booking .staff-card .staff-avatar { max-width: 100%; }
+.page-client-booking .staff-card .radio-indicator { grid-column: 3; grid-row: 1; }
+.page-client-booking .staff-name { grid-column: 2; grid-row: 1; }
+.page-client-booking .summary-notes { overflow-wrap: anywhere; }
+.page-client-booking .staff-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: 12px;
+}
+
+.page-client-booking .staff-card {
+    min-width: 0;
+    min-height: 76px;
+    position: relative;
+    gap: 12px;
+}
+
+.page-client-booking .staff-card--person {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+}
+
+.page-client-booking .staff-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 600;
+}
+
+.page-client-booking .staff-card.unavailable {
+    opacity: .58;
+    cursor: not-allowed;
+}
+
+.page-client-booking .staff-unavailable-badge {
+    grid-column: 2 / -1;
+    color: var(--error);
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+@media (max-width: 600px) {
+    .page-client-booking .staff-list {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .page-client-booking .staff-card {
+        min-height: 72px;
+        padding: 12px;
+    }
+
+    .page-client-booking .staff-card--person {
+        grid-template-columns: 48px minmax(0, 1fr) auto;
+    }
+
+    .page-client-booking .staff-card--preference {
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+    }
+
+    .page-client-booking .staff-card .service-info span {
+        line-height: 1.4;
+        white-space: normal;
+    }
+}

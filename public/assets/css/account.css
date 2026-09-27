@@ -230,18 +230,126 @@ body.overlay-open {
     color: #53656c;
 }
 
-.account-form input[type=file] {
-    padding: 10px;
-    width: 100%;
-    max-width: 450px;
-    min-height: 44px;
+.app-body .account-form .profile-head {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e5e7eb;
 }
 
-.account-form .photo-picker {
-    margin-top: 16px;
+.app-body .account-form .profile-photo-preview {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
+    background: #ebf2f4;
+    color: #1a4350;
+    font-size: 32px;
+    border: 1px solid #d2e2e6;
+}
+
+.account-form .profile-head-info {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.app-body .account-form .profile-head-info h2 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    line-height: 1.3;
+}
+
+.app-body .account-form .profile-head-info p {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.account-form .profile-photo-actions {
+    grid-column: 1 / -1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
+}
+
+.account-form .profile-photo-actions small {
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.account-form .profile-photo-actions .field-error {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.app-body .account-form .profile-photo-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: #1a4350;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color .18s, transform .18s;
+}
+
+.app-body .account-form .profile-photo-button:hover {
+    background: #0f2c35;
+    transform: translateY(-1px);
+}
+
+.account-form .profile-photo-button:focus-within {
+    outline: 2px solid #e8612d;
+    outline-offset: 3px;
+}
+
+.app-body .account-form .profile-photo-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    clip-path: inset(50%);
+    overflow: hidden;
+}
+
+@media (min-width: 1100px) {
+    .app-body .account-form .profile-head {
+        grid-template-columns: 96px minmax(0, 1fr) minmax(180px, 220px);
+    }
+
+    .account-form .profile-photo-actions {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 420px) {
+    .app-body .account-form .profile-head {
+        grid-template-columns: 64px minmax(0, 1fr);
+    }
+
+    .app-body .account-form .profile-photo-preview {
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        font-size: 24px;
+    }
+
+    .app-body .account-form .profile-head-info h2 {
+        font-size: 18px;
+    }
 }
 
 .account-form .identity-help {

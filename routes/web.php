@@ -46,9 +46,12 @@ $router->get('/admin', [DashboardController::class, 'admin'], [$auth, RoleMiddle
 $router->get('/cliente/pets', [ClientController::class, 'pets'], [$auth, RoleMiddleware::class . ':client']);
 $router->get('/cliente/pets/novo', [ClientController::class, 'petForm'], [$auth, RoleMiddleware::class . ':client']);
 $router->get('/cliente/pets/{id}/editar', [ClientController::class, 'editPet'], [$auth, RoleMiddleware::class . ':client']);
+$router->get('/cliente/pets/{id}/foto', [ClientController::class, 'petPhoto'], [$auth, RoleMiddleware::class . ':client']);
+$router->get('/cliente/profissionais/{id}/foto', [ClientController::class, 'staffPhoto'], [$auth, RoleMiddleware::class . ':client']);
 $router->get('/cliente/pets/{id}', [ClientController::class, 'petProfile'], [$auth, RoleMiddleware::class . ':client']);
 $router->get('/cliente/servicos', [ClientController::class, 'services'], [$auth, RoleMiddleware::class . ':client']);
 $router->get('/cliente/agendamentos', [ClientController::class, 'appointments'], [$auth, RoleMiddleware::class . ':client']);
+$router->get('/cliente/agendamento/disponibilidade', [ClientController::class, 'bookingAvailability'], [$auth, RoleMiddleware::class . ':client']);
 $router->get('/cliente/agendamento/{step}', [ClientController::class, 'booking'], [$auth, RoleMiddleware::class . ':client']);
 
 // POST - CLIENTE

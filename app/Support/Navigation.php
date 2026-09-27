@@ -31,7 +31,15 @@ final class Navigation
         };
         $crumbs[] = ['label' => $label, 'url' => count($segments) > 2 ? $home . '/' . ($section === 'agendamento' ? 'agendamentos' : $section) : null];
         if ($section === 'agendamento') {
-            $crumbs[] = ['label' => 'Novo agendamento · Etapa ' . max(1, min(5, (int) ($segments[2] ?? 1))), 'url' => null];
+            $stepLabel = match ($segments[2] ?? '') {
+                'servico', '1' => 'Serviços',
+                'escolha-pet', '2' => 'Pet',
+                'profissional', '3' => 'Profissional',
+                'data-e-horario', '4' => 'Data e horário',
+                'confirmacao', '5' => 'Confirmação',
+                default => 'Agendamento',
+            };
+            $crumbs[] = ['label' => 'Novo agendamento · ' . $stepLabel, 'url' => null];
         } elseif (count($segments) > 2) {
             $crumbs[] = ['label' => $title, 'url' => null];
         }

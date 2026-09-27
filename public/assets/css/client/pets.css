@@ -1034,4 +1034,10 @@ body.page-client-pets {
 .page-client-pets [data-password-strength][data-level="2"] .register-strength-track i.active { background: #f59e0b; }
 .page-client-pets [data-password-strength][data-level="3"] .register-strength-track i.active { background: #10b981; }
 .page-client-pets [data-password-strength][data-level="4"] .register-strength-track i.active { background: #059669; }
-
+.page-client-pets .pet-card--managed { position: relative; }
+.page-client-pets .pet-card-delete { position: absolute; top: 12px; right: 12px; z-index: 1; }
+.page-client-pets .pet-delete-icon { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #fee2e2; border-radius: 50%; background: #fff; color: #b42318; cursor: pointer; }
+.page-client-pets .pet-delete-icon:hover { background: #fef2f2; border-color: #fca5a5; }
+.page-client-pets .pet-delete-icon:focus-visible { outline: 2px solid #e8612d; outline-offset: 3px; }
+.page-client-pets .pet-card--managed > header { padding-right: 42px; }
+.page-client-pets .pet-card--managed > header img { object-fit: cover; }

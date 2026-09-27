@@ -104,11 +104,13 @@ CREATE TABLE pets (
    birth_date DATE,
    weight NUMERIC(6, 2),
    allergies TEXT,
+   has_allergies BOOLEAN GENERATED ALWAYS AS (NULLIF(btrim(allergies), '') IS NOT NULL) STORED,
    neutered BOOLEAN NOT NULL DEFAULT false,
    behavior VARCHAR(100),
    special_needs TEXT,
    notes TEXT,
    coat_color VARCHAR(60),
+   photo_path VARCHAR(100),
    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -133,9 +135,21 @@ CREATE TABLE appointments (
    status VARCHAR(30) NOT NULL,
    price NUMERIC(10, 2) NOT NULL,
    notes TEXT,
+   duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
    completed_at TIMESTAMPTZ,
    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE appointment_services (
+   appointment_id BIGINT NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+   service_id BIGINT NOT NULL REFERENCES services(id),
+   position SMALLINT NOT NULL CHECK (position > 0),
+   service_name VARCHAR(120) NOT NULL,
+   price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+   duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
+   PRIMARY KEY (appointment_id, service_id),
+   UNIQUE (appointment_id, position)
 );
 
 CREATE TABLE account_tokens (
@@ -148,7 +162,7 @@ CREATE TABLE account_tokens (
    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 3. Cria índices.
+-- 3. Cria tabelas de autenticação persistente.
 CREATE TABLE remember_tokens (
    selector VARCHAR(32) PRIMARY KEY,
    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -171,17 +185,24 @@ BEGIN
 END;
 $$;
 
+-- 4. Cria índices para consultas, disponibilidade e unicidade.
 CREATE INDEX idx_remember_tokens_user ON remember_tokens (user_id);
 CREATE INDEX idx_remember_tokens_expiry ON remember_tokens (expires_at);
 CREATE INDEX idx_pets_owner ON pets (owner_id);
 CREATE INDEX idx_appointments_pet_date ON appointments (pet_id, scheduled_at DESC);
 CREATE INDEX idx_appointments_staff_date ON appointments (staff_id, scheduled_at);
 CREATE INDEX idx_appointments_status_date ON appointments (status, scheduled_at);
+CREATE INDEX appointments_staff_schedule_active_idx
+   ON appointments (staff_id, scheduled_at)
+   WHERE staff_id IS NOT NULL AND status NOT IN ('cancelled', 'canceled');
+CREATE INDEX appointments_unassigned_schedule_active_idx
+   ON appointments (scheduled_at)
+   WHERE staff_id IS NULL AND status NOT IN ('cancelled', 'canceled');
 CREATE INDEX idx_account_tokens_lookup ON account_tokens (user_id, purpose, expires_at DESC);
 CREATE UNIQUE INDEX uq_users_email_lower ON users (lower(email));
 CREATE UNIQUE INDEX uq_users_cpf ON users (cpf) WHERE cpf IS NOT NULL;
 
--- 4. Cria dados iniciais de demonstração.
+-- 5. Cria dados iniciais de demonstração.
 INSERT INTO users (name, email, password_hash, role)
 VALUES
    ('Maria Eduarda Silva', 'cliente@demo.local', '$2y$10$ubzpD6lTOIUyhtlufX5eBOAe8svE5edIY1Jo/a4RjZQpRVKuDym.2', 'client'),

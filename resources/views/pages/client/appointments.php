@@ -3,7 +3,7 @@
         <h1>Meus Agendamentos</h1>
         <p>Gerencie as reservas e histórico de estética de seus pets.</p>
     </div>
-    <a class="button primary" href="/cliente/agendamento/1">
+    <a class="button primary" href="/cliente/agendamento/servico">
         <i class="fa-solid fa-plus"></i>
         Novo Agendamento
     </a>
@@ -122,7 +122,7 @@
     <?php if (!$appointments): ?>
         <div class="empty-state">
             <p>Você ainda não possui agendamentos.</p>
-            <a class="button primary" href="/cliente/agendamento/1">Criar primeiro agendamento</a>
+            <a class="button primary" href="/cliente/agendamento/servico">Criar primeiro agendamento</a>
         </div>
     <?php endif; ?>
 

@@ -27,9 +27,9 @@ $isCastrated = !empty($pet['neutered']) ? 'Sim' : 'Não';
 $weightFormatted = PetHelper::formatWeight($pet['weight'] ?? null);
 $birthFormatted = PetHelper::formatDate($pet['birth_date'] ?? null);
 
-$coatColor = !empty($pet['coat_color']) 
-    ? (string) $pet['coat_color'] 
-    : ($petName === 'Luna' ? 'Dourado' : 'Não informada');
+$coatColor = trim((string) ($pet['coat_color'] ?? '')) !== ''
+    ? (string) $pet['coat_color']
+    : 'Não informada';
 
 $allergies = !empty($pet['allergies']) 
     ? (string) $pet['allergies'] 
@@ -170,7 +170,7 @@ $careNotes = !empty($pet['notes'])
                 </div>
                 <h3>Nenhum atendimento registrado</h3>
                 <p>Quando <?= $e($petName) ?> realizar banho, tosa ou outro serviço, o histórico completo de atendimentos aparecerá aqui.</p>
-                <a href="/cliente/agendamento/1" class="button primary">
+                <a href="/cliente/agendamento/servico" class="button primary">
                     <i class="fa-solid fa-plus"></i>
                     Agendar Atendimento
                 </a>

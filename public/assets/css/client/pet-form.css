@@ -1064,3 +1064,48 @@ body.page-client-pet-form {
 .page-client-pet-form [data-password-strength][data-level="3"] .register-strength-track i.active { background: #10b981; }
 .page-client-pet-form [data-password-strength][data-level="4"] .register-strength-track i.active { background: #059669; }
 
+/* Inputs do pet seguem as dimensões e o foco laranja do login/cadastro. */
+.page-client-pet-form .pet-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.page-client-pet-form .pet-form select,
+.page-client-pet-form .pet-form textarea {
+    min-height: 48px;
+    padding: 13px 14px;
+    border: 1.5px solid rgba(26, 67, 80, 0.18);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color .22s cubic-bezier(.4,0,.2,1), box-shadow .22s cubic-bezier(.4,0,.2,1);
+}
+.page-client-pet-form .pet-form textarea { min-height: 90px; }
+.page-client-pet-form .pet-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+.page-client-pet-form .pet-form select:focus,
+.page-client-pet-form .pet-form textarea:focus {
+    border-color: #e8612d;
+    box-shadow: 0 0 0 3px rgba(232,97,45,.12);
+}
+.page-client-pet-form .pet-form input[type="radio"],
+.page-client-pet-form .pet-form input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #e8612d; }
+.page-client-pet-form .pet-photo-upload { flex-wrap: wrap; }
+.page-client-pet-form .pet-photo-upload .photo-placeholder { overflow: hidden; flex: 0 0 96px; }
+.page-client-pet-form .pet-photo-upload .photo-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+.page-client-pet-form .pet-photo-input { position: absolute; width: 1px; height: 1px; padding: 0; opacity: 0; clip: rect(0,0,0,0); overflow: hidden; }
+.page-client-pet-form .pet-photo-input:focus-visible + #pet-photo-help { outline: 2px solid #e8612d; outline-offset: 3px; }
+.page-client-pet-form .pet-photo-label { cursor: pointer; }
+.page-client-pet-form .pet-photo-upload small { color: var(--gray-500); }
+.page-client-pet-form .pet-photo-upload .pet-photo-error { flex-basis: 100%; color: #b83f11; }
+.page-client-pet-form .pet-toggle-field,
+.page-client-pet-form .pet-allergies-field { min-width: 0; }
+.page-client-pet-form .pet-toggle-field legend,
+.page-client-pet-form .pet-allergies-field legend { margin-bottom: 10px; font-size: 12px; font-weight: 600; }
+.page-client-pet-form .pet-allergies-field legend span { display: block; margin-top: 4px; color: var(--gray-500); font-size: 11px; font-weight: 400; }
+.page-client-pet-form .pet-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.page-client-pet-form .pet-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.page-client-pet-form .pet-toggle-track { position: relative; flex: 0 0 46px; width: 46px; height: 26px; border-radius: 999px; background: #cbd5d1; transition: background .2s; }
+.page-client-pet-form .pet-toggle-track::after { content: ""; position: absolute; width: 20px; height: 20px; top: 3px; left: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px #18221f30; transition: transform .2s; }
+.page-client-pet-form .pet-toggle input:checked + .pet-toggle-track { background: #e8612d; }
+.page-client-pet-form .pet-toggle input:checked + .pet-toggle-track::after { transform: translateX(20px); }
+.page-client-pet-form .pet-toggle input:focus-visible + .pet-toggle-track { outline: 2px solid #e8612d; outline-offset: 3px; }
+.page-client-pet-form .pet-allergy-details { min-width: 0; margin-top: 16px; }
+.page-client-pet-form .pet-allergy-details textarea { min-height: 96px; resize: vertical; }

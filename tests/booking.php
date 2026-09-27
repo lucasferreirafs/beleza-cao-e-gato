@@ -1,23 +1,40 @@
 <?php
 declare(strict_types=1);
 
-// Run from the project root: php tests/booking.php
-// BOOKING_TEST_URL defaults to APP_URL. All committed fixtures are removed in finally.
-$root = is_file(dirname(__DIR__) . '/vendor/autoload.php') ? dirname(__DIR__) : getcwd();
-require $root . '/vendor/autoload.php';
+// Destructive fixtures are allowed only in the dedicated, disposable local QA database.
+require dirname(__DIR__) . '/vendor/autoload.php';
 
 use App\Core\Database;
 use App\Core\Env;
 use App\Repositories\AppointmentRepository;
+use App\Repositories\AppointmentStorage;
+use App\Repositories\DashboardRepository;
+use App\Repositories\ManagementRepository;
 use App\Services\BookingService;
 
-Env::load($root . '/.env');
-if (!in_array(Env::get('APP_ENV'), ['development', 'test', 'testing'], true)) {
-    fwrite(STDERR, "Execute somente em um ambiente de desenvolvimento/teste.\n");
+Env::load(dirname(__DIR__) . '/.env');
+if (Env::get('APP_ENV') !== 'testing' || Env::get('BOOKING_QA_ALLOW_RESET') !== '1'
+    || Env::get('DB_DATABASE') !== 'booking_qa' || Env::get('DB_HOST') !== 'beleza-booking-qa-db') {
+    fwrite(STDERR, "Use somente os contêineres locais de QA descritos em docs/phase4.md.\n");
     exit(1);
 }
-date_default_timezone_set((string) Env::get('APP_TIMEZONE', 'America/Sao_Paulo'));
-$baseUrl = rtrim((string) Env::get('BOOKING_TEST_URL', Env::get('APP_URL', 'http://localhost:8080')), '/');
+date_default_timezone_set('America/Sao_Paulo');
+
+if (($argv[1] ?? '') === '--worker') {
+    $data = json_decode(base64_decode($argv[2]), true, 512, JSON_THROW_ON_ERROR);
+    try {
+        $id = (new AppointmentRepository())->create($data['owner'], $data['booking']);
+        echo json_encode(['ok' => true, 'id' => $id]);
+    } catch (DomainException $e) {
+        echo json_encode(['ok' => false, 'conflict' => true]);
+    } catch (Throwable $e) {
+        echo json_encode(['ok' => false, 'error' => get_class($e) . ': ' . $e->getMessage()]);
+    }
+    exit;
+}
+
+$pdo = Database::connection();
+$baseUrl = rtrim((string) Env::get('BOOKING_TEST_URL', 'http://localhost'), '/');
 $cookies = [];
 $checks = 0;
 
@@ -27,7 +44,6 @@ function check(bool $condition, string $message): void
     if (!$condition) throw new RuntimeException($message);
     $checks++;
 }
-
 function request(string $method, string $path, array $data = []): array
 {
     global $baseUrl, $cookies;
@@ -40,7 +56,7 @@ function request(string $method, string $path, array $data = []): array
     $context = stream_context_create(['http' => [
         'method' => $method, 'header' => implode("\r\n", $headers),
         'content' => $method === 'POST' ? http_build_query($data) : '',
-        'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 30,
+        'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 20,
     ]]);
     $body = file_get_contents($baseUrl . $path, false, $context);
     if ($body === false) throw new RuntimeException('Falha HTTP: ' . $path);
@@ -54,193 +70,231 @@ function request(string $method, string $path, array $data = []): array
     check($status < 500, "HTTP {$status} em {$method} {$path}");
     return compact('status', 'location', 'body');
 }
-
 function csrf(array $response): string
 {
-    if (!preg_match('/name="_token" value="([^"]+)"/', $response['body'], $match))
-        throw new RuntimeException('Token CSRF não encontrado.');
+    if (!preg_match('/name="_token" value="([^"]+)"/', $response['body'], $match)) throw new RuntimeException('CSRF ausente.');
     return html_entity_decode($match[1], ENT_QUOTES, 'UTF-8');
 }
-
-function step(int $number, string $query = ''): array
+function route(int $step): string { return '/cliente/agendamento/' . BookingService::stepSlug($step); }
+function page(int $step, string $query = ''): array
 {
-    $page = request('GET', '/cliente/agendamento/' . $number . $query);
-    check($page['status'] === 200, 'Passo ' . $number . ' não abriu.');
-    check(str_contains($page['body'], 'action="/cliente/agendamento/' . $number . '"'), 'Formulário incorreto.');
+    $page = request('GET', route($step) . $query);
+    check($page['status'] === 200 && str_contains($page['body'], 'action="' . route($step) . '"'), 'Etapa não abriu: ' . $step);
     return $page;
 }
-
-function submit(int $number, array $page, array $data, string $destination): array
+function submit(int $step, array $data, int|string $next, ?array $source = null): array
 {
-    $response = request('POST', '/cliente/agendamento/' . $number, ['_token' => csrf($page)] + $data);
-    check($response['status'] === 302 && $response['location'] === $destination,
-        'Redirecionamento inesperado ao enviar o passo ' . $number . ': ' . ($response['location'] ?? (string) $response['status']));
+    $response = request('POST', route($step), ['_token' => csrf($source ?? page($step))] + $data);
+    $expected = is_int($next) ? route($next) : $next;
+    check($response['status'] === 302 && $response['location'] === $expected, 'Destino incorreto no passo ' . $step . ': ' . ($response['location'] ?? $response['status']));
     return $response;
 }
-
-function rejects(callable $action, string $message): void
+function rejects(callable $operation, string $message): void
 {
-    try { $action(); } catch (DomainException) { check(true, $message); return; }
+    try { $operation(); } catch (DomainException) { check(true, $message); return; }
     throw new RuntimeException($message);
 }
-
-$pdo = Database::connection();
-$repository = new AppointmentRepository();
-$tag = 'booking-test-' . bin2hex(random_bytes(8));
-$userIds = [];
-$petId = null;
-$serviceId = null;
-$password = bin2hex(random_bytes(16)) . 'Aa1!';
-$date = (new DateTimeImmutable('+60 days'))->format('Y-m-d');
-$scheduledAt = $date . ' 10:00';
-$exitCode = 0;
+function login(string $email, string $password): void
+{
+    global $cookies;
+    $cookies = [];
+    $form = request('GET', '/login');
+    $response = request('POST', '/login', ['_token' => csrf($form), 'email' => $email, 'password' => $password]);
+    check($response['location'] === '/dashboard', 'Login falhou.');
+}
+function race(array $requests): array
+{
+    global $pdo;
+    $pdo->beginTransaction();
+    $pdo->query('SELECT pg_advisory_xact_lock(4242, 4)');
+    $processes = [];
+    try {
+        foreach ($requests as $data) {
+            $pipes = [];
+            $process = proc_open([PHP_BINARY, __FILE__, '--worker', base64_encode(json_encode($data))],
+                [0 => ['pipe','r'], 1 => ['pipe','w'], 2 => ['pipe','w']], $pipes);
+            if (!is_resource($process)) throw new RuntimeException('Worker não iniciou.');
+            fclose($pipes[0]);
+            $processes[] = [$process, $pipes];
+        }
+        usleep(300000); // Keep both requests waiting on the same lock before releasing them.
+        $pdo->commit();
+        $results = [];
+        foreach ($processes as [$process, $pipes]) {
+            $out = stream_get_contents($pipes[1]);
+            $err = stream_get_contents($pipes[2]);
+            fclose($pipes[1]); fclose($pipes[2]);
+            check(proc_close($process) === 0 && $err === '', 'Erro no worker: ' . $err);
+            $result = json_decode($out, true, 512, JSON_THROW_ON_ERROR);
+            check(!isset($result['error']), $result['error'] ?? 'Worker concluído.');
+            $results[] = $result;
+        }
+        return $results;
+    } finally {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+    }
+}
 
 try {
-    // Dedicated identities and service prevent tests from modifying existing records.
-    foreach (['client', 'staff', 'staff'] as $index => $role) {
-        $statement = $pdo->prepare("INSERT INTO users(name,email,password_hash,role,status,email_verified_at)
-            VALUES (:name,:email,:password,:role,'active',now()) RETURNING id");
-        $statement->execute(['name' => $tag . '-' . $index, 'email' => $tag . '-' . $index . '@example.invalid',
-            'password' => password_hash($password, PASSWORD_DEFAULT), 'role' => $role]);
-        $userIds[] = (int) $statement->fetchColumn();
+    foreach (['legacy', 'duration-only', 'items-only', 'modern'] as $mode) {
+        $pdo->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
+        if (in_array($mode, ['legacy','duration-only'], true)) $pdo->exec('DROP TABLE appointment_services');
+        if (in_array($mode, ['legacy','items-only'], true)) $pdo->exec('ALTER TABLE appointments DROP COLUMN duration_minutes');
+        $schema = (new AppointmentStorage($pdo))->capabilities();
+        check($schema['items'] === in_array($mode, ['items-only','modern'], true), 'Detecção de tabela incorreta.');
+        check($schema['duration'] === in_array($mode, ['duration-only','modern'], true), 'Detecção de coluna incorreta.');
+        $pdo->exec("UPDATE users SET status='blocked' WHERE role='staff'");
+        $password = 'BookingQa-password1!';
+        $people = [];
+        foreach (['client','staff','staff','admin','client'] as $i => $role) {
+            $s = $pdo->prepare("INSERT INTO users(name,email,password_hash,role,status,email_verified_at)
+                VALUES (:name,:email,:hash,:role,'active',now()) RETURNING id");
+            $s->execute(['name' => 'QA ' . $i, 'email' => 'qa' . $i . '@example.invalid',
+                'hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => $role]);
+            $people[] = (int) $s->fetchColumn();
+        }
+        [$owner,$staff1,$staff2,$admin,$otherOwner] = $people;
+        $pets = [];
+        for ($i = 0; $i < 5; $i++) {
+            $s = $pdo->prepare("INSERT INTO pets(owner_id,name,species,breed,sex) VALUES (:owner,:name,'Cachorro','Teste','Macho') RETURNING id");
+            $s->execute(['owner' => $owner, 'name' => 'Pet QA ' . $i]);
+            $pets[] = (int) $s->fetchColumn();
+        }
+        $services = [];
+        foreach ([[60,'71.25'],[30,'15.00']] as $i => [$duration,$price]) {
+            $s = $pdo->prepare("INSERT INTO services(name,description,duration_minutes,price) VALUES (:name,'Serviço QA',:duration,:price) RETURNING id");
+            $s->execute(['name' => 'Serviço QA ' . $i,'duration' => $duration,'price' => $price]);
+            $services[] = (int) $s->fetchColumn();
+        }
+        $repo = new AppointmentRepository();
+        $date = (new DateTimeImmutable('+60 days'))->format('Y-m-d');
+        check($repo->availableSlots('2030-02-30', $services) === [], 'Data inválida foi aceita.');
+        check($repo->availableSlots($date, [$services[0],$services[0]]) === [], 'Serviços duplicados foram aceitos.');
+        check(!in_array('17:00', $repo->availableSlots($date, $services), true), 'Duração ultrapassa fechamento.');
+        foreach (['client' => $owner, 'staff' => $staff1, 'admin' => $admin] as $role => $id) {
+            $dash = new DashboardRepository();
+            $role === 'admin' ? $dash->admin() : $dash->{$role}($id);
+            check(true, 'Dashboard vazio com schema ' . $mode);
+        }
+        login('qa0@example.invalid', $password);
+        check(request('GET', '/dashboard')['location'] === '/cliente', 'Redirecionamento após login incorreto.');
+        check(request('GET', '/cliente')['status'] === 200, 'Dashboard falhou.');
+        check(request('GET', route(5))['location'] === route(1), 'Pulo de etapas permitido.');
+        check(request('GET', '/cliente/agendamento/1')['location'] === route(1), 'Rota numérica não foi normalizada.');
+        submit(1, ['service_ids' => []], 1);
+        submit(1, ['service_ids' => [$services[0],$services[0]]], 1);
+        submit(1, ['service_ids' => $services], 2);
+        submit(2, ['pet_id' => -1], 2);
+        submit(2, ['pet_id' => $pets[0]], 3);
+        submit(3, ['staff_id' => 'inválido'], 3);
+        submit(3, ['staff_id' => $staff1], 4);
+        check(request('GET', '/cliente/agendamento/disponibilidade?date=2030-02-30')['status'] === 422, 'API aceitou data inexistente.');
+        submit(4, ['date' => '2000-01-01','time' => '10:00'], 4);
+        $note = "Cuidado <script>alert(1)</script>\nObservação QA";
+        submit(4, ['date' => $date,'time' => '10:00','staff_id' => $staff1,'notes' => $note], 5);
+        $confirmation = page(5);
+        check(str_contains($confirmation['body'], '86,25') && str_contains($confirmation['body'], '1h 30 min'), 'Total/duração incorretos.');
+        check(str_contains($confirmation['body'], 'Serviço QA 0') && str_contains($confirmation['body'], 'Serviço QA 1'), 'Resumo perdeu serviços.');
+        check(str_contains($confirmation['body'], '&lt;script&gt;') && !str_contains($confirmation['body'], '<script>alert(1)'), 'Observação não escapada.');
+        check(request('POST', route(5), ['_token' => 'invalid'])['status'] === 419, 'CSRF foi ignorado.');
+        submit(5, ['price' => '0.01'], '/cliente/agendamentos', $confirmation);
+        $saved = $repo->allForUser($owner);
+        check(count($saved) === 1 && count($saved[0]['services']) === 2, 'Não gravou uma reserva com dois serviços.');
+        check((float) $saved[0]['price'] === 86.25 && $saved[0]['duration_minutes'] === 90 && $saved[0]['notes'] === $note, 'Snapshots ou nota incorretos.');
+        submit(5, [], 1, $confirmation);
+        check(count($repo->allForUser($owner)) === 1, 'Reenvio duplicou reserva.');
+        check(request('GET', '/cliente')['status'] === 200 && request('GET', '/cliente/agendamentos')['status'] === 200, 'Leitura após reserva falhou.');
+
+        $data = ['pet_id' => $pets[1],'service_ids' => $services,'staff_id' => $staff1,'scheduled_at' => $date . ' 10:00','notes' => '0'];
+        rejects(fn() => $repo->create($owner, $data), 'Mesmo profissional foi reservado duas vezes.');
+        rejects(fn() => $repo->create($owner, array_replace($data, ['pet_id' => $pets[0], 'staff_id' => $staff2])), 'Mesmo pet foi reservado com outra pessoa.');
+        rejects(fn() => $repo->create($otherOwner, $data), 'Pet de outra conta foi aceito.');
+        check(!in_array('12:00', $repo->availableSlots($date, $services, $staff1), true), 'Buffer de 1 hora foi ignorado.');
+        check(in_array('12:30', $repo->availableSlots($date, $services, $staff1), true), 'Limite exato de uma hora bloqueado.');
+        check(in_array('08:00', $repo->availableSlots($date, $services[0], $staff1), true), 'Limite anterior exato bloqueado.');
+        check(!in_array('08:00', $repo->availableSlots($date, $services, $staff1), true), 'Buffer anterior foi ignorado.');
+        check(!in_array('10:00', $repo->availableSlots($date, $services, null, $pets[0]), true), 'Pet ocupado ainda aparece disponível.');
+
+        // Specific professional remains visible but disabled after choosing a busy time.
+        submit(1, ['service_ids' => $services], 2);
+        submit(2, ['pet_id' => $pets[1]], 3);
+        submit(3, ['staff_id' => $staff1], 4);
+        submit(4, ['date' => $date,'time' => '10:00','staff_id' => $staff1], 4);
+        $busy = page(4);
+        check((bool) preg_match('/name="staff_id" value="' . $staff1 . '"[^>]*disabled/', $busy['body']), 'Profissional ocupado não ficou desabilitado.');
+        check(str_contains($busy['body'], 'Indisponível'), 'Estado ocupado não foi exibido.');
+        check(request('GET', route(5))['location'] === route(4), 'Etapa inválida permitiu confirmação.');
+        submit(4, ['date' => $date,'time' => '10:00','staff_id' => '','notes' => '0'], 5);
+        check(str_contains(page(5)['body'], 'summary-notes">0'), 'Observação zero foi ocultada.');
+        submit(5, [], '/cliente/agendamentos');
+        $rows = $repo->allForUser($owner);
+        $automatic = current(array_filter($rows, fn(array $a): bool => (int) $a['pet_id'] === $pets[1]));
+        check((int) $automatic['staff_id'] === $staff2, 'Sem preferência não atribuiu o profissional livre.');
+        check(!in_array('10:00', $repo->availableSlots($date, $services), true), 'Horário sem equipe livre foi oferecido.');
+
+        // Changing a service must not change already booked durations/prices.
+        $pdo->prepare('UPDATE services SET duration_minutes=120,price=99 WHERE id=:id')->execute(['id' => $services[0]]);
+        $snapshot = current(array_filter($repo->allForUser($owner), fn(array $a): bool => (int) $a['pet_id'] === $pets[0]));
+        check($snapshot['duration_minutes'] === 90 && (float) $snapshot['price'] === 86.25, 'Alterar catálogo modificou reserva existente.');
+        $pdo->prepare('UPDATE services SET duration_minutes=60,price=71.25 WHERE id=:id')->execute(['id' => $services[0]]);
+
+        // Price changed after review must require a new confirmation.
+        $quoteDate = (new DateTimeImmutable('+61 days'))->format('Y-m-d');
+        submit(1, ['service_ids' => $services], 2);
+        submit(2, ['pet_id' => $pets[2]], 3);
+        submit(3, ['staff_id' => $staff1], 4);
+        submit(4, ['date' => $quoteDate,'time' => '10:00','staff_id' => $staff1], 5);
+        $review = page(5);
+        $pdo->prepare('UPDATE services SET price=72.25 WHERE id=:id')->execute(['id' => $services[0]]);
+        submit(5, [], 4, $review);
+        check(str_contains(page(4)['body'], 'Os serviços foram atualizados'), 'Mudança de preço não foi explicada.');
+        $pdo->prepare('UPDATE services SET price=71.25 WHERE id=:id')->execute(['id' => $services[0]]);
+
+        foreach ([['qa1@example.invalid','/staff'],['qa3@example.invalid','/admin']] as [$email,$home]) {
+            login($email,$password);
+            check(request('GET',$home)['status'] === 200, 'Dashboard de equipe falhou.');
+        }
+        $management = new ManagementRepository();
+        check(count($management->adminRows('agendamentos')) === 2, 'Listagem admin falhou.');
+        check(count($management->staffRows('atendimentos',$staff1)) === 1, 'Listagem staff falhou.');
+        $management->adminRows('servicos');
+        check($repo->cancelForUser((int) $snapshot['id'],$owner), 'Cancelamento falhou.');
+        check(!$management->setAdminStatus('agendamentos',(int) $snapshot['id'],'pending'), 'Reabertura de cancelado ocupou um slot liberado.');
+        check(in_array('10:00',$repo->availableSlots($date,$services,$staff1),true), 'Cancelamento não liberou a agenda.');
+
+        if (in_array($mode,['legacy','modern'],true)) {
+            $raceDate = (new DateTimeImmutable('+65 days'))->format('Y-m-d');
+            $base = array_replace($data, ['scheduled_at' => $raceDate . ' 10:00']);
+            $requests = array_map(fn(int $pet): array => ['owner'=>$owner,'booking'=>array_replace($base,['pet_id'=>$pet])], [$pets[2],$pets[3]]);
+            $result = race($requests);
+            check(count(array_filter($result,fn(array $r): bool=>$r['ok'])) === 1, 'Concorrência duplicou o profissional.');
+            $autoDate = (new DateTimeImmutable('+66 days'))->format('Y-m-d');
+            $base = array_replace($data,['scheduled_at'=>$autoDate . ' 10:00','staff_id'=>null]);
+            $requests = array_map(fn(int $pet): array => ['owner'=>$owner,'booking'=>array_replace($base,['pet_id'=>$pet])], [$pets[2],$pets[3],$pets[4]]);
+            $result = race($requests);
+            check(count(array_filter($result,fn(array $r): bool=>$r['ok'])) === 2, 'Concorrência sem preferência excedeu ou perdeu capacidade.');
+            $petDate = (new DateTimeImmutable('+67 days'))->format('Y-m-d');
+            $requests = array_map(fn(int $staff): array => ['owner'=>$owner,'booking'=>array_replace($data,['pet_id'=>$pets[4],'staff_id'=>$staff,'scheduled_at'=>$petDate . ' 10:00'])],[$staff1,$staff2]);
+            check(count(array_filter(race($requests),fn(array $r): bool=>$r['ok'])) === 1, 'Concorrência reservou o mesmo pet duas vezes.');
+        }
+        // Upgrade compatibility records and run the migration twice to verify idempotence.
+        if ($mode === 'legacy') {
+            for ($i=0;$i<2;$i++) {
+                $process = proc_open([PHP_BINARY,dirname(__DIR__).'/bin/migrate-phase4.php'],[1=>['pipe','w'],2=>['pipe','w']],$pipes);
+                $out=stream_get_contents($pipes[1]); $err=stream_get_contents($pipes[2]);
+                fclose($pipes[1]);fclose($pipes[2]);
+                check(proc_close($process)===0,'Migração falhou: '.$err.$out);
+            }
+            $s=$pdo->prepare('SELECT count(*) FROM appointment_services WHERE appointment_id=:id');
+            $s->execute(['id'=>$snapshot['id']]);
+            check((int)$s->fetchColumn()===2,'Migração perdeu serviços da reserva compatível.');
+            check($repo->allForUser($owner)[0]['duration_minutes']===90,'Migração alterou a duração.');
+        }
+        echo "OK: {$mode} — login, dashboards, etapas, CSRF, snapshots e agenda.\n";
     }
-    [$ownerId, $staffId, $otherStaffId] = $userIds;
-    $statement = $pdo->prepare("INSERT INTO pets(owner_id,name,species,breed,sex) VALUES (:owner,:name,'Cachorro','Teste','Macho') RETURNING id");
-    $statement->execute(['owner' => $ownerId, 'name' => $tag]);
-    $petId = (int) $statement->fetchColumn();
-    $statement = $pdo->prepare("INSERT INTO services(name,description,duration_minutes,price) VALUES (:name,'Serviço temporário de teste',60,71.25) RETURNING id");
-    $statement->execute(['name' => $tag]);
-    $serviceId = (int) $statement->fetchColumn();
-
-    check($pdo->query('SHOW timezone')->fetchColumn() === Env::get('APP_TIMEZONE', 'America/Sao_Paulo'), 'Fuso do banco diverge da aplicação.');
-    check(in_array('10:00', $repository->availableSlots($date, $serviceId), true), 'Consulta sem preferência falhou.');
-    check(in_array('10:00', $repository->availableSlots($date, $serviceId, $staffId), true), 'Consulta com profissional falhou.');
-    check($repository->availableSlots('2030-02-30', $serviceId) === [], 'Data inexistente foi aceita.');
-    check($repository->availableSlots('invalida', $serviceId) === [], 'Data inválida foi aceita.');
-    check($repository->availableSlots($date, -1) === [], 'Serviço inexistente foi aceito.');
-    foreach ($repository->availableSlots(date('Y-m-d'), $serviceId, $staffId) as $time)
-        check(new DateTimeImmutable(date('Y-m-d') . ' ' . $time) > new DateTimeImmutable(), 'Horário passado oferecido.');
-    echo "OK: consulta real de horários, profissional e fuso.\n";
-
-    $login = request('GET', '/login');
-    $response = request('POST', '/login', ['_token' => csrf($login), 'email' => $tag . '-0@example.invalid', 'password' => $password]);
-    check($response['location'] === '/dashboard', 'Login de teste falhou.');
-    check(request('GET', '/cliente/agendamento/5')['location'] === '/cliente/agendamento/1', 'Etapas puderam ser puladas.');
-
-    $page = step(1);
-    check(str_contains($page['body'], 'value="' . $petId . '"'), 'Pet de teste não apareceu (verifique AUTH_BYPASS).');
-    submit(5, $page, [], '/cliente/agendamento/1');
-    submit(1, step(1), ['pet_id' => -1], '/cliente/agendamento/1');
-    submit(1, step(1), ['pet_id' => $petId], '/cliente/agendamento/2');
-    echo "OK: passo 1, seleção de pet e bloqueio de pet inválido.\n";
-
-    submit(2, step(2), ['service_id' => -1], '/cliente/agendamento/2');
-    submit(2, step(2), ['service_id' => $serviceId], '/cliente/agendamento/3');
-    echo "OK: passo 2, seleção e validação de serviço.\n";
-
-    $invalidDate = step(3, '?date=2030-02-30');
-    check(str_contains($invalidDate['body'], 'Escolha uma data válida'), 'Data inválida na URL não foi tratada.');
-    $page = step(3, '?date=' . $date);
-    check(str_contains($page['body'], 'value="10:00"'), 'Passo 3 não mostrou os horários.');
-    submit(3, $page, ['date' => $date, 'time' => '07:00'], '/cliente/agendamento/3');
-    submit(3, step(3), ['date' => '2030-02-30', 'time' => '10:00'], '/cliente/agendamento/3');
-    submit(3, step(3), ['date' => '2000-01-01', 'time' => '10:00'], '/cliente/agendamento/3');
-    submit(3, step(3), ['date' => $date, 'time' => '10:00'], '/cliente/agendamento/4');
-    check(request('GET', '/cliente/agendamento/5')['location'] === '/cliente/agendamento/4', 'Escolha de profissional foi pulada.');
-    echo "OK: passo 3, data/horário e entradas inválidas, sem erro 500.\n";
-
-    $page = step(4);
-    check(str_contains($page['body'], 'value="' . $staffId . '"'), 'Profissional disponível não apareceu.');
-    submit(4, $page, ['staff_id' => 'invalido'], '/cliente/agendamento/4');
-    submit(4, step(4), ['staff_id' => $staffId, 'notes' => $tag], '/cliente/agendamento/5');
-    echo "OK: passo 4, profissional específico e observações.\n";
-
-    $page = step(5);
-    check(str_contains($page['body'], '71,25') && str_contains($page['body'], '10:00'), 'Resumo incorreto.');
-    $blocked = request('POST', '/cliente/agendamento/5', ['_token' => 'invalido']);
-    check($blocked['status'] === 419, 'Confirmação sem CSRF foi aceita.');
-    submit(5, $page, ['price' => '0.01'], '/cliente/agendamentos');
-    $list = request('GET', '/cliente/agendamentos');
-    check($list['status'] === 200 && str_contains($list['body'], $tag), 'Agendamento não apareceu na lista.');
-
-    // A fresh connection proves COMMIT and independently verifies the stored timestamp.
-    $verification = new PDO('pgsql:host=' . Env::get('DB_HOST') . ';port=' . Env::get('DB_PORT', '5432')
-        . ';dbname=' . Env::get('DB_DATABASE', 'postgres') . ';sslmode=' . Env::get('DB_SSLMODE', 'require'),
-        Env::get('DB_USERNAME'), Env::get('DB_PASSWORD'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-    $statement = $verification->prepare('SELECT *,extract(epoch FROM scheduled_at) AS epoch FROM appointments WHERE pet_id=:pet ORDER BY id');
-    $statement->execute(['pet' => $petId]);
-    $saved = $statement->fetchAll(PDO::FETCH_ASSOC);
-    check(count($saved) === 1, 'Confirmação não gravou exatamente um agendamento.');
-    $saved = $saved[0];
-    check((int) $saved['service_id'] === $serviceId && (int) $saved['staff_id'] === $staffId, 'Relacionamentos incorretos.');
-    check($saved['status'] === 'pending' && (float) $saved['price'] === 71.25 && $saved['notes'] === $tag, 'Dados persistidos incorretos.');
-    check((int) $saved['epoch'] === (new DateTimeImmutable($scheduledAt))->getTimestamp(), 'Agendamento gravado no fuso incorreto.');
-    submit(5, $page, [], '/cliente/agendamento/1');
-    $statement->execute(['pet' => $petId]);
-    check(count($statement->fetchAll()) === 1, 'Reenvio da confirmação duplicou o agendamento.');
-    echo "OK: passo 5, COMMIT confirmado por outra conexão, preço, status e horário corretos; reenvio sem duplicação.\n";
-
-    $data = ['pet_id' => $petId, 'service_id' => $serviceId, 'staff_id' => $staffId, 'scheduled_at' => $scheduledAt, 'notes' => $tag];
-    rejects(fn() => $repository->create($ownerId, $data), 'Reserva duplicada foi aceita.');
-    rejects(fn() => $repository->create($ownerId, array_replace($data, ['scheduled_at' => $date . ' 10:30'])), 'Sobreposição de duração foi aceita.');
-    rejects(fn() => $repository->create($otherStaffId, array_replace($data, ['scheduled_at' => $date . ' 12:00'])), 'Pet de outra conta foi aceito.');
-    rejects(fn() => $repository->create($ownerId, array_replace($data, ['scheduled_at' => '2000-01-01 10:00'])), 'Confirmação com data passada foi aceita.');
-    check(!in_array('10:30', $repository->availableSlots($date, $serviceId, $staffId), true), 'Horário sobreposto ainda disponível.');
-    check(in_array('11:00', $repository->availableSlots($date, $serviceId, $staffId), true), 'Horário adjacente foi bloqueado.');
-    echo "OK: conflitos de horário e propriedade do pet protegidos.\n";
-
-    submit(1, step(1), ['pet_id' => $petId], '/cliente/agendamento/2');
-    submit(2, step(2), ['service_id' => $serviceId], '/cliente/agendamento/3');
-    submit(3, step(3), ['date' => $date, 'time' => '10:30'], '/cliente/agendamento/4');
-    $page = step(4);
-    check(!str_contains($page['body'], 'name="staff_id" value="' . $staffId . '"'), 'Profissional ocupado apareceu.');
-    submit(4, $page, ['staff_id' => $staffId], '/cliente/agendamento/4');
-    submit(4, step(4), ['staff_id' => $otherStaffId], '/cliente/agendamento/5');
-    // Returning to date/time invalidates the old professional selection.
-    submit(3, step(3), ['date' => $date, 'time' => '12:00'], '/cliente/agendamento/4');
-    check(request('GET', '/cliente/agendamento/5')['location'] === '/cliente/agendamento/4', 'Troca de horário manteve profissional antigo.');
-    submit(4, step(4), ['staff_id' => '', 'notes' => $tag . '-automatic'], '/cliente/agendamento/5');
-    submit(5, step(5), [], '/cliente/agendamentos');
-    $statement->execute(['pet' => $petId]);
-    $saved = $statement->fetchAll(PDO::FETCH_ASSOC);
-    check(count($saved) === 2 && $saved[1]['staff_id'] !== null, 'Sem preferência não atribuiu um profissional.');
-    check((int) $saved[1]['epoch'] === (new DateTimeImmutable($date . ' 12:00'))->getTimestamp(), 'Horário automático incorreto.');
-    echo "OK: segundo fluxo completo sem preferência e alteração de horário.\n";
-
-    // A slot can be taken after the summary was displayed: final confirmation must recheck.
-    submit(1, step(1), ['pet_id' => $petId], '/cliente/agendamento/2');
-    submit(2, step(2), ['service_id' => $serviceId], '/cliente/agendamento/3');
-    submit(3, step(3), ['date' => $date, 'time' => '14:00'], '/cliente/agendamento/4');
-    submit(4, step(4), ['staff_id' => $staffId], '/cliente/agendamento/5');
-    $repository->create($ownerId, array_replace($data, ['scheduled_at' => $date . ' 14:00']));
-    submit(5, step(5), [], '/cliente/agendamento/5');
-    check(str_contains(step(5)['body'], 'indisponível'), 'Conflito na confirmação não foi explicado.');
-    echo "OK: horário ocupado durante o preenchimento não gera reserva duplicada.\n";
-
-    $_SESSION = ['booking' => ['pet_id' => $petId, 'service_id' => $serviceId, 'date' => $date, 'time' => '10:00', 'staff_id' => $staffId]];
-    rejects(fn() => (new BookingService())->storeStep(5, [], $ownerId), 'Conflito não preservou transação.');
-    check(isset($_SESSION['booking']) && !$pdo->inTransaction(), 'Estado ou rollback incorreto após falha.');
-    echo "SUCESSO: {$checks} verificações.\n";
-} catch (Throwable $exception) {
-    fwrite(STDERR, get_class($exception) . ': ' . $exception->getMessage() . "\n");
-    $exitCode = 1;
-} finally {
+    echo "SUCESSO: {$checks} verificações; concorrência real executada nos schemas antigo e novo.\n";
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    if ($cookies) {
-        try {
-            $page = request('GET', '/cliente/agendamento/1');
-            request('POST', '/logout', ['_token' => csrf($page)]);
-        } catch (Throwable) { /* Fixture cleanup still runs when HTTP is unavailable. */ }
-    }
-    $pdo->beginTransaction();
-    if ($petId !== null) {
-        $pdo->prepare('DELETE FROM appointments WHERE pet_id=:pet')->execute(['pet' => $petId]);
-        $pdo->prepare('DELETE FROM pets WHERE id=:pet AND owner_id=:owner')->execute(['pet' => $petId, 'owner' => $userIds[0]]);
-    }
-    if ($serviceId !== null) $pdo->prepare('DELETE FROM services WHERE id=:id AND name=:name')->execute(['id' => $serviceId, 'name' => $tag]);
-    foreach ($userIds as $index => $id)
-        $pdo->prepare('DELETE FROM users WHERE id=:id AND email=:email')->execute(['id' => $id, 'email' => $tag . '-' . $index . '@example.invalid']);
-    $pdo->commit();
-    echo "Dados temporários desta execução removidos.\n";
+    fwrite(STDERR,get_class($e).': '.$e->getMessage()."\n".$e->getTraceAsString()."\n");
+    exit(1);
 }
-exit($exitCode);

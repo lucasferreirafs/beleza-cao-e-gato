@@ -154,6 +154,88 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    const petForm = document.querySelector('[data-pet-form]');
+    if (petForm) {
+        const allergyToggle = petForm.querySelector('[data-allergies-toggle]');
+        const allergyDetails = petForm.querySelector('#pet-allergy-details');
+        const allergyDescription = petForm.querySelector('#pet-allergy-description');
+        if (allergyToggle && allergyDetails && allergyDescription) {
+            const syncAllergies = (animate = false) => {
+                const expanded = allergyToggle.checked;
+                allergyDetails.getAnimations?.().forEach(animation => animation.cancel());
+                allergyToggle.setAttribute('aria-expanded', String(expanded));
+                allergyDetails.hidden = !expanded;
+                allergyDescription.disabled = !expanded;
+                allergyDescription.required = expanded;
+                if (!expanded) allergyDescription.value = '';
+                if (expanded && animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    allergyDetails.animate?.([
+                        { opacity: 0, transform: 'translateY(-6px)' },
+                        { opacity: 1, transform: 'translateY(0)' }
+                    ], { duration: 180, easing: 'ease-out' });
+                }
+            };
+            allergyToggle.addEventListener('change', () => syncAllergies(true));
+            petForm.addEventListener('reset', () => queueMicrotask(() => syncAllergies()));
+            window.addEventListener('pageshow', () => syncAllergies());
+            syncAllergies();
+        }
+        const photo = petForm.querySelector('#pet-photo');
+        const preview = petForm.querySelector('[data-pet-photo-preview]');
+        const placeholder = petForm.querySelector('[data-pet-photo-placeholder]');
+        const error = petForm.querySelector('[data-pet-photo-error]');
+        const originalPhoto = preview.getAttribute('src');
+        let revision = 0;
+        const restorePhoto = () => {
+            if (originalPhoto) { preview.src = originalPhoto; preview.hidden = false; placeholder.hidden = true; }
+            else { preview.removeAttribute('src'); preview.hidden = true; placeholder.hidden = false; }
+        };
+        photo.addEventListener('change', () => {
+            const current = ++revision;
+            const file = photo.files[0];
+            error.hidden = true;
+            error.textContent = '';
+            restorePhoto();
+            if (!file) return;
+            const reject = message => {
+                if (current !== revision) return;
+                photo.value = '';
+                error.textContent = message;
+                error.hidden = false;
+                restorePhoto();
+            };
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0 || file.size > 5 * 1024 * 1024) {
+                reject('Selecione uma imagem JPG, PNG ou WebP de até 5 MB.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onerror = () => reject('Não foi possível ler esta imagem.');
+            reader.onload = () => {
+                if (current !== revision) return;
+                const image = new Image();
+                image.onerror = () => reject('O arquivo selecionado não é uma imagem válida.');
+                image.onload = () => {
+                    if (current !== revision) return;
+                    if (image.width > 8192 || image.height > 8192 || image.width * image.height > 25000000) {
+                        reject('A imagem excede as dimensões permitidas.');
+                        return;
+                    }
+                    preview.src = reader.result;
+                    preview.hidden = false;
+                    placeholder.hidden = true;
+                };
+                image.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        });
+        petForm.addEventListener('submit', event => {
+            if (!petForm.checkValidity()) { event.preventDefault(); petForm.reportValidity(); return; }
+            const submit = petForm.querySelector('button[type="submit"]');
+            submit.disabled = true;
+            submit.textContent = 'Salvando…';
+        });
+    }
+
     document.querySelectorAll("[data-password-toggle]").forEach((button) =>
         button.addEventListener("click", () => {
             const input = button.parentElement?.querySelector("input");
@@ -269,13 +351,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    document.querySelector("[data-booking-date]")?.addEventListener("change", (event) => {
-        const url = new URL(window.location.href);
-        url.searchParams.set("date", event.currentTarget.value);
-        window.location.assign(url.toString());
-    });
-
-    document.querySelectorAll(".selection-card input, .service-card input").forEach((input) =>
+    document.querySelectorAll('.selection-card input[type="radio"], .service-card input[type="radio"]').forEach((input) =>
         input.addEventListener("change", () => {
             const isService = input.closest(".service-card");
             const listClass = isService ? ".service-list" : ".selection-grid";
@@ -626,6 +702,115 @@ document.addEventListener("DOMContentLoaded", () => {
 
         emailInput.addEventListener("input", () => {
             if (emailInput.validity.customError) setFieldError(emailInput, "");
+        });
+    }
+
+    const bookingForm = document.querySelector('[data-booking-form]');
+    if (bookingForm) {
+        const serviceChecks = [...bookingForm.querySelectorAll('input[name="service_ids[]"]')];
+        serviceChecks.forEach(input => input.addEventListener('change', () => {
+            input.closest('.booking-service-card')?.classList.toggle('selected', input.checked);
+        }));
+        bookingForm.addEventListener('submit', event => {
+            if (serviceChecks.length && !serviceChecks.some(input => input.checked)) {
+                event.preventDefault();
+                serviceChecks[0].focus();
+                const hint = bookingForm.querySelector('.booking-hint');
+                if (hint) hint.textContent = 'Selecione pelo menos um serviço para continuar.';
+            }
+        });
+
+        const dateInput = bookingForm.querySelector('[data-booking-date]');
+        const timeSelect = bookingForm.querySelector('[data-booking-time]');
+        const staffSection = bookingForm.querySelector('[data-staff-slot-status]');
+        const staffMessage = bookingForm.querySelector('[data-staff-slot-message]');
+        const slotMessage = bookingForm.querySelector('[data-slot-status]');
+        const nextButton = bookingForm.querySelector('button[type="submit"]');
+        let preferredStaff = staffSection?.dataset.selectedStaff || '';
+        let availabilityPending = false;
+        bookingForm.addEventListener('submit', event => {
+            if (!dateInput) return;
+            if (availabilityPending || timeSelect.disabled || !timeSelect.value ||
+                !staffSection?.querySelector('input[name="staff_id"]:checked:not(:disabled)')) {
+                event.preventDefault();
+                if (staffMessage) staffMessage.textContent = 'Selecione um horário e um profissional disponível para continuar.';
+            }
+        });
+        let availabilityRevision = 0;
+        const refreshAvailability = async (includeTime = true) => {
+            if (!dateInput || !timeSelect) return;
+            const revision = ++availabilityRevision;
+            availabilityPending = true;
+            if (nextButton) nextButton.disabled = true;
+            const previousTime = timeSelect.value;
+            const query = new URLSearchParams({ date: dateInput.value });
+            if (includeTime && previousTime) query.set('time', previousTime);
+            timeSelect.disabled = true;
+            if (slotMessage) slotMessage.textContent = 'Consultando disponibilidade…';
+            try {
+                const response = await fetch(bookingForm.dataset.availabilityUrl + '?' + query.toString(), {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin'
+                });
+                const result = await response.json();
+                if (revision !== availabilityRevision) return;
+                if (!response.ok) throw new Error(result.error || 'Não foi possível consultar a agenda.');
+                const slots = Array.isArray(result.slots) ? result.slots : [];
+                timeSelect.replaceChildren(new Option('Selecione', ''));
+                slots.forEach(slot => timeSelect.add(new Option(slot, slot)));
+                if (previousTime && slots.includes(previousTime)) timeSelect.value = previousTime;
+                else if (previousTime) {
+                    timeSelect.add(new Option(previousTime + ' · Indisponível', previousTime, true, true));
+                    timeSelect.options[timeSelect.options.length - 1].disabled = true;
+                }
+                timeSelect.disabled = false;
+                if (slotMessage) slotMessage.textContent = slots.length ? '' : 'Nenhum horário com profissional livre nesta data.';
+                if (staffSection) {
+                    staffSection.hidden = !timeSelect.value;
+                    const available = new Map((result.staff || []).map(item => [String(item.id), ['true', 't', '1'].includes(String(item.available).toLowerCase())]));
+                    const radios = [...staffSection.querySelectorAll('input[name="staff_id"]')];
+                    radios.forEach(radio => {
+                        const free = radio.value === '' ? slots.includes(timeSelect.value) : available.get(radio.value) === true;
+                        radio.disabled = !free;
+                        radio.checked = free && radio.value === preferredStaff;
+                        const card = radio.closest('.staff-card');
+                        card?.classList.toggle('unavailable', !free);
+                        card?.querySelector('.staff-unavailable-badge')?.toggleAttribute('hidden', free);
+                        card?.classList.toggle('selected', radio.checked);
+                    });
+                    const chosen = staffSection.querySelector('input[name="staff_id"]:checked');
+                    const chosenSpecific = staffSection.querySelectorAll('input[name="staff_id"]');
+                    if (staffMessage) {
+                        const prior = preferredStaff && available.get(preferredStaff) === false;
+                        staffMessage.textContent = !timeSelect.value ? 'Selecione um horário para consultar os profissionais.' :
+                            (prior ? 'O profissional escolhido está Indisponível neste horário. Escolha outra opção.' :
+                                (!chosen && chosenSpecific.length ? 'Escolha um profissional livre ou selecione sem preferência.' : ''));
+                    }
+                }
+                availabilityPending = false;
+                if (nextButton) nextButton.disabled = false;
+            } catch (error) {
+                if (revision !== availabilityRevision) return;
+                timeSelect.replaceChildren(new Option('Disponibilidade indisponível', ''));
+                timeSelect.disabled = true;
+                availabilityPending = false;
+                if (slotMessage) slotMessage.textContent = error.message || 'Erro ao consultar os horários. Tente novamente.';
+            }
+        };
+        if (dateInput && timeSelect) {
+            dateInput.addEventListener('change', () => {
+                timeSelect.value = '';
+                refreshAvailability(false);
+            });
+            timeSelect.addEventListener('change', () => refreshAvailability(true));
+            refreshAvailability(true);
+        }
+        bookingForm.querySelectorAll('input[name="staff_id"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                preferredStaff = radio.value;
+                if (staffMessage) staffMessage.textContent = '';
+                bookingForm.querySelectorAll('.staff-card').forEach(card => card.classList.toggle('selected', card.querySelector('input[name="staff_id"]')?.checked === true));
+            });
         });
     }
 });

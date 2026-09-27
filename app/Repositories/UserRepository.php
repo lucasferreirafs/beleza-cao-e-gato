@@ -103,6 +103,13 @@ final class UserRepository
 
     public function allStaff(): array
     {
-        return Database::connection()->query("SELECT id,name,email,phone,status FROM users WHERE role='staff' AND status='active' ORDER BY name")->fetchAll();
+        return Database::connection()->query("SELECT id,name,avatar_path FROM users WHERE role='staff' AND status='active' ORDER BY name,id")->fetchAll();
+    }
+
+    public function findActiveStaff(int $id): ?array
+    {
+        $s = Database::connection()->prepare("SELECT id,name,avatar_path FROM users WHERE id=:id AND role='staff' AND status='active'");
+        $s->execute(['id' => $id]);
+        return $s->fetch() ?: null;
     }
 }

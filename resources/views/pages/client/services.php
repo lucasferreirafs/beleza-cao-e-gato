@@ -51,7 +51,7 @@ $getServiceIcon = static function (string $name): string {
                 </span>
             </div>
 
-            <a class="service-catalog-btn" href="/cliente/agendamento/1">Agendar Serviço</a>
+            <a class="service-catalog-btn" href="/cliente/agendamento/servico">Agendar Serviço</a>
         </article>
     <?php endforeach; ?>
 </div>

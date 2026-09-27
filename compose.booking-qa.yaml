@@ -1,0 +1,39 @@
+name: beleza-booking-qa
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: beleza-booking-qa-db
+    environment:
+      POSTGRES_DB: booking_qa
+      POSTGRES_PASSWORD: booking-qa-only
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d booking_qa']
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  app:
+    build: .
+    container_name: beleza-booking-qa-app
+    ports:
+      - '127.0.0.1:18080:80'
+    volumes:
+      - .:/var/www/html
+    tmpfs:
+      - /var/www/html/storage:mode=1777
+    environment:
+      APP_ENV: testing
+      APP_DEBUG: 'false'
+      APP_URL: http://localhost
+      SESSION_SECURE: 'false'
+      AUTH_BYPASS: 'false'
+      DB_HOST: beleza-booking-qa-db
+      DB_PORT: '5432'
+      DB_DATABASE: booking_qa
+      DB_USERNAME: postgres
+      DB_PASSWORD: booking-qa-only
+      DB_SSLMODE: disable
+      BOOKING_TEST_URL: http://localhost
+      BOOKING_QA_ALLOW_RESET: '1'
+    depends_on:
+      db:
+        condition: service_healthy

@@ -7,12 +7,6 @@ use DateTimeImmutable;
 
 final class PetHelper
 {
-    private const KNOWN_PHOTOS = [
-        'Luna' => 'pet-luna.png',
-        'Mel' => 'pet-mel.png',
-        'Toddy' => 'pet-toddy.png',
-    ];
-
     public static function age(?string $birthDate): ?string
     {
         if (!$birthDate) {
@@ -47,16 +41,10 @@ final class PetHelper
 
     public static function photo(array $pet): string
     {
-        $species = mb_strtolower(trim((string) ($pet['species'] ?? '')));
-        $breed = mb_strtolower(trim((string) ($pet['breed'] ?? '')));
-        $name = trim((string) ($pet['name'] ?? ''));
-
-        if (str_contains($species, 'gato') || str_contains($species, 'cat')) {
-            return '/assets/images/pet-luna.png';
+        if (!empty($pet['photo_path'])) {
+            return '/cliente/pets/' . (int) $pet['id'] . '/foto';
         }
-
-        // Cães / Golden Retriever utilizam a imagem do Golden (pet-mel.png)
-        return '/assets/images/pet-mel.png';
+        return '/assets/images/pet.webp';
     }
 
     public static function genderLabel(string $sex): string
