@@ -16,6 +16,7 @@ use App\Repositories\{
 };
 use App\Services\BookingService;
 use App\Services\SupabaseStorageService;
+use App\Support\PrivateImageResponse;
 use App\Validation\Validator;
 use DomainException;
 use InvalidArgumentException;
@@ -138,13 +139,12 @@ final class ClientController
     {
         $pet = $this->ownedPet((int) $r->param('id'));
         if (empty($pet['photo_path'])) { http_response_code(404); return; }
+        if (PrivateImageResponse::isNotModified(SupabaseStorageService::PET_BUCKET, $pet['photo_path'])) return;
         try {
             $bytes = (new SupabaseStorageService())->download(SupabaseStorageService::PET_BUCKET, $pet['photo_path']);
             $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
             if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) throw new RuntimeException('Formato de imagem inválido.');
-            header('Content-Type: ' . $mime);
-            header('Cache-Control: private, no-store');
-            echo $bytes;
+            PrivateImageResponse::send($bytes, $mime, SupabaseStorageService::PET_BUCKET, $pet['photo_path']);
         } catch (Throwable) { http_response_code(503); }
     }
 
@@ -258,13 +258,12 @@ final class ClientController
     {
         $staff = (new UserRepository())->findActiveStaff((int) $r->param('id'));
         if (!$staff || empty($staff['avatar_path'])) { http_response_code(404); return; }
+        if (PrivateImageResponse::isNotModified(SupabaseStorageService::USER_BUCKET, $staff['avatar_path'])) return;
         try {
             $bytes = (new SupabaseStorageService())->download(SupabaseStorageService::USER_BUCKET, $staff['avatar_path']);
             $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
             if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) throw new RuntimeException('Formato inválido.');
-            header('Content-Type: ' . $mime);
-            header('Cache-Control: private, no-store');
-            echo $bytes;
+            PrivateImageResponse::send($bytes, $mime, SupabaseStorageService::USER_BUCKET, $staff['avatar_path']);
         } catch (Throwable) { http_response_code(503); }
     }
 

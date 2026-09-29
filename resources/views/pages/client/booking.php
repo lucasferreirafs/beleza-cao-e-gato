@@ -82,7 +82,7 @@ $formatDuration = static function (int $minutes): string {
                     <label class="service-card staff-card staff-card--person <?= $checked ? 'selected' : '' ?>">
                         <span class="staff-avatar">
                             <?php if (!empty($member['avatar_path'])): ?>
-                                <img src="/cliente/profissionais/<?= (int) $member['id'] ?>/foto" alt="">
+                                <img src="/cliente/profissionais/<?= (int) $member['id'] ?>/foto?v=<?= $e(rawurlencode((string) $member['avatar_path'])) ?>" alt="">
                             <?php else: ?>
                                 <i class="fa-solid fa-user" aria-hidden="true"></i>
                             <?php endif; ?>
@@ -134,7 +134,7 @@ $formatDuration = static function (int $minutes): string {
                     ?>
                         <label class="service-card staff-card staff-card--person <?= $isSelected && $isAvailable ? 'selected' : '' ?> <?= $isAvailable ? '' : 'unavailable' ?>" data-staff-option data-staff-id="<?= $memberId ?>">
                             <span class="staff-avatar">
-                                <?php if (!empty($member['avatar_path'])): ?><img src="/cliente/profissionais/<?= $memberId ?>/foto" alt="">
+                                <?php if (!empty($member['avatar_path'])): ?><img src="/cliente/profissionais/<?= $memberId ?>/foto?v=<?= $e(rawurlencode((string) $member['avatar_path'])) ?>" alt="">
                                 <?php else: ?><i class="fa-solid fa-user" aria-hidden="true"></i><?php endif; ?>
                             </span>
                             <span class="staff-name"><?= $e($member['name']) ?></span>

@@ -7,6 +7,7 @@ use App\Core\{Database, Env, Request, Response, Session, View};
 use App\Repositories\{RememberTokenRepository, UserRepository};
 use App\Services\{ProfileService, RememberMeService, SupabaseStorageService};
 use App\Support\Navigation;
+use App\Support\PrivateImageResponse;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -76,13 +77,12 @@ final class ProfileController
     {
         $path = Session::user()['avatar_path'] ?? null;
         if (!$path) { http_response_code(404); return; }
+        if (PrivateImageResponse::isNotModified(SupabaseStorageService::USER_BUCKET, $path)) return;
         try {
             $bytes = (new SupabaseStorageService())->download(SupabaseStorageService::USER_BUCKET, $path);
             $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
             if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) throw new RuntimeException('Formato inválido.');
-            header('Content-Type: ' . $mime);
-            header('Cache-Control: private, no-store');
-            echo $bytes;
+            PrivateImageResponse::send($bytes, $mime, SupabaseStorageService::USER_BUCKET, $path);
         } catch (\Throwable) { http_response_code(503); }
     }
 }
