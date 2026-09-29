@@ -1,7 +1,6 @@
 <?php
 require dirname(__DIR__) . '/vendor/autoload.php';
 use App\Core\Env;
-use App\Security\JwtService;
 use App\Security\Csrf;
 use App\Validation\Validator;
 use App\Core\Router;
@@ -11,23 +10,6 @@ $failed = [];
 if (!preg_match('/--orange-500:\s*#e8612d/i', (string) file_get_contents(dirname(__DIR__) . '/public/assets/css/auth/login.css')))
     $failed[] = 'token';
 try {
-    $jwt = new JwtService();
-    $claims = $jwt->validate($jwt->issue(['sub' => '1']));
-    if ($claims['sub'] !== '1')
-        $failed[] = 'jwt';
-} catch (Throwable $e) {
-    $failed[] = $e->getMessage();
-}
-try {
-    $jwt = new JwtService();
-    $token = $jwt->issue(['sub' => '1']);
-    $parts = explode('.', $token);
-    $parts[1] = rtrim(strtr(base64_encode('{"sub":"2","exp":9999999999}'), '+/', '-_'), '=');
-    try {
-        $jwt->validate(implode('.', $parts));
-        $failed[] = 'jwt-tamper';
-    } catch (Throwable) {
-    }
     if (Validator::email('  TEST@example.com ') !== 'test@example.com') $failed[] = 'email-normalization';
     if (Validator::cpf('529.982.247-25') !== '52998224725') $failed[] = 'cpf';
     Validator::password('Senha123!');

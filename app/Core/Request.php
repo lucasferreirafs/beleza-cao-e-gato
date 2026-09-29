@@ -35,8 +35,4 @@ final class Request
         return $this->routeParams[$key] ?? null;
     }
     
-    public function bearerToken(): ?string
-    {
-        return preg_match('/^Bearer\s+(.+)$/i', $_SERVER['HTTP_AUTHORIZATION'] ?? '', $m) ? $m[1] : null;
-    }
 }

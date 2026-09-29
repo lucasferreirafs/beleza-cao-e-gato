@@ -10,7 +10,6 @@ use App\Core\{
     Env
 };
 use App\Security\{
-    JwtService,
     Csrf,
     RateLimiter
 };
@@ -89,20 +88,6 @@ final class AuthController
         (new \App\Services\RememberMeService())->forget();
         Session::logout();
         Response::redirect('/login');
-    }
-
-    public function token(Request $r): void
-    {
-        $user = Session::user();
-        try {
-            Response::json([
-                'token' => (new JwtService())->issue(['sub' => (string) $user['id'], 'role' => $user['role']]),
-                'token_type' => 'Bearer',
-                'expires_in' => (int) \App\Core\Env::get('JWT_EXPIRATION', 3600)
-            ]);
-        } catch (\Throwable $e) {
-            Response::json(['error' => 'JWT indisponível.'], 503);
-        }
     }
 
     public function registerForm(Request $r): void

@@ -111,7 +111,7 @@ O arquivo `.env.example` lista as variáveis principais. `MAIL_FROM` é opcional
 | --- | --- |
 | `APP_ENV` | Ambiente. O atalho de autenticação só é aceito quando o valor é `development`. |
 | `APP_DEBUG` | Modo de depuração da aplicação. Desative em produção. |
-| `APP_URL` | URL-base pública usada, entre outros pontos, nos links de recuperação e no emissor JWT. |
+| `APP_URL` | URL-base pública usada, entre outros pontos, nos links de recuperação de senha. |
 | `APP_TIMEZONE` | Fuso horário da conexão PostgreSQL e das datas da aplicação. Exemplo: `America/Sao_Paulo`. |
 | `SESSION_SECURE` | Define cookie de sessão seguro; em produção HTTPS o código também exige `Secure`. |
 | `SESSION_IDLE_TIMEOUT` | Limite de inatividade em segundos; o padrão no middleware é 7200. |
@@ -124,14 +124,7 @@ O arquivo `.env.example` lista as variáveis principais. `MAIL_FROM` é opcional
 | `SUPABASE_URL` | URL HTTPS do projeto Supabase, sem `/storage/v1`. |
 | `SUPABASE_ANON_KEY` | Reservada para integrações que usem RLS; não é usada nos uploads atuais. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave privilegiada usada pelo PHP para operações Storage. Nunca exponha ao browser. |
-| `JWT_SECRET`, `JWT_EXPIRATION` | Segredo de pelo menos 32 caracteres e duração, em segundos, de tokens da API. |
 | `MAIL_FROM` | Remetente usado por `mail()` para verificação e recuperação de senha. |
-
-Gere um segredo JWT aleatório em um terminal com PHP:
-
-```sh
-php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
-```
 
 O serviço de e-mail usa a função nativa `mail()`. O ambiente precisa ter um MTA ou transporte de e-mail configurado; `MAIL_FROM` sozinho não configura a entrega.
 
@@ -193,7 +186,7 @@ Implementação central: `app/Services/BookingService.php`, `app/Repositories/Ap
 - Senhas são guardadas com `password_hash()` e verificadas com `password_verify()`.
 - Tokens de e-mail, recuperação e “Lembrar de mim” são de uso limitado, guardados com proteção e/ou revogáveis conforme o fluxo.
 - Saídas HTML são escapadas; consultas SQL usam PDO e parâmetros preparados.
-- A chave `service_role`, credenciais do banco e `JWT_SECRET` ficam somente no ambiente do servidor.
+- A chave `service_role` e as credenciais do banco ficam somente no ambiente do servidor.
 - `AUTH_BYPASS=true` permite entrar sem autenticação real em `development`. Nunca use esse modo publicamente ou em produção.
 
 ## Testes e verificações
@@ -251,7 +244,7 @@ Antes de publicar:
 2. Use credenciais PostgreSQL com SSL e permissões mínimas necessárias.
 3. Configure `SUPABASE_URL` e uma `SUPABASE_SERVICE_ROLE_KEY` no ambiente do servidor; confirme que os dois buckets existem.
 4. Configure um MTA/transporte de e-mail para `mail()` e preencha `MAIL_FROM`.
-5. Gere um `JWT_SECRET` aleatório forte, não reutilize o valor de exemplo e não armazene `.env` no Git.
+5. Não armazene `.env` no Git; mantenha segredos somente no ambiente do servidor.
 6. Faça backup do PostgreSQL antes de migrações e nunca rode o reset `bin/migrate.php` sobre dados que precisam ser preservados.
 7. Revise os cabeçalhos e a Content Security Policy em `docker/apache.conf` se mudar os hosts externos usados pela interface.
 

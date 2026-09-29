@@ -23,7 +23,6 @@ $router->post('/recuperar-senha', [AuthController::class, 'sendRecovery'], [$csr
 $router->post('/verificar-email', [AuthController::class, 'verify'], [$csrf]);
 $router->post('/verificar-email/reenviar', [AuthController::class, 'resendVerification'], [$csrf]);
 $router->post('/redefinir-senha', [AuthController::class, 'resetPassword'], [$csrf]);
-$router->post('/api/token', [AuthController::class, 'token'], [$auth, $csrf]);
 $router->post('/api/password-strength', [AuthController::class, 'passwordStrength'], [$csrf]);
 
 // Perfil e configurações pessoais, antes das rotas genéricas de admin/staff.
