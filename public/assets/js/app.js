@@ -4,7 +4,60 @@ document.addEventListener("DOMContentLoaded", () => {
     const sidebarBackdrop = document.querySelector('[data-sidebar-backdrop]');
     const mobileQuery = window.matchMedia('(max-width: 1000px)');
     const syncOverlayLock = () => document.body.classList.toggle('overlay-open',
-        !!document.querySelector('dialog[open], [data-sidebar].open'));
+        !!document.querySelector('dialog[open]:not([data-request-loading]), [data-sidebar].open'));
+
+    const requestLoading = document.querySelector('[data-request-loading]');
+    const pendingRequests = new Set();
+    let navigationPending = false;
+    const stopRequestLoading = () => {
+        if (requestLoading?.open) requestLoading.close();
+        document.body.classList.remove('request-loading-active');
+    };
+    const showRequestLoading = () => {
+        if (requestLoading && !requestLoading.open) {
+            requestLoading.showModal();
+            document.body.classList.add('request-loading-active');
+        }
+    };
+    const beginRequestLoading = () => {
+        const token = Symbol('request');
+        pendingRequests.add(token);
+        showRequestLoading();
+        return () => {
+            pendingRequests.delete(token);
+            if (!navigationPending && pendingRequests.size === 0) stopRequestLoading();
+        };
+    };
+    const beginFormNavigation = () => {
+        if (navigationPending) return false;
+        navigationPending = true;
+        showRequestLoading();
+        return true;
+    };
+    requestLoading?.addEventListener('cancel', event => event.preventDefault());
+    // On a history restore the old request no longer exists.
+    window.addEventListener('pageshow', event => {
+        if (!event.persisted) return;
+        navigationPending = false;
+        pendingRequests.clear();
+        stopRequestLoading();
+    });
+    document.addEventListener('submit', event => {
+        if (event.defaultPrevented || !(event.target instanceof HTMLFormElement)) return;
+        if (!beginFormNavigation()) event.preventDefault();
+    });
+    document.addEventListener('click', event => {
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+        if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+
+        let destination;
+        try { destination = new URL(link.href, window.location.href); }
+        catch { return; }
+        if (!['http:', 'https:'].includes(destination.protocol) || destination.origin !== window.location.origin) return;
+        if (destination.pathname === window.location.pathname && destination.search === window.location.search) return;
+        if (!beginFormNavigation()) event.preventDefault();
+    });
     const setSidebar = (open, restoreFocus = true) => {
         if (!sidebar) return;
         const visible = open && mobileQuery.matches;
@@ -234,6 +287,13 @@ document.addEventListener("DOMContentLoaded", () => {
             submit.disabled = true;
             submit.textContent = 'Salvando…';
         });
+        const petSubmit = petForm.querySelector('button[type="submit"]');
+        const petSubmitLabel = petSubmit?.textContent;
+        window.addEventListener('pageshow', event => {
+            if (!event.persisted || !petSubmit) return;
+            petSubmit.disabled = false;
+            petSubmit.textContent = petSubmitLabel;
+        });
     }
 
     document.querySelectorAll("[data-password-toggle]").forEach((button) =>
@@ -312,7 +372,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     btnConfirm.addEventListener("click", () => {
         if (currentFormToSubmit) {
-            currentFormToSubmit.submit();
+            const form = currentFormToSubmit;
+            closeConfirmModal();
+            if (beginFormNavigation()) HTMLFormElement.prototype.submit.call(form);
         }
     });
 
@@ -739,6 +801,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let availabilityRevision = 0;
         const refreshAvailability = async (includeTime = true) => {
             if (!dateInput || !timeSelect) return;
+            const endLoading = beginRequestLoading();
             const revision = ++availabilityRevision;
             availabilityPending = true;
             if (nextButton) nextButton.disabled = true;
@@ -795,6 +858,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 timeSelect.disabled = true;
                 availabilityPending = false;
                 if (slotMessage) slotMessage.textContent = error.message || 'Erro ao consultar os horários. Tente novamente.';
+            } finally {
+                endLoading();
             }
         };
         if (dateInput && timeSelect) {

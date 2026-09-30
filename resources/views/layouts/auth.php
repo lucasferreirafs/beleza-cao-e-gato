@@ -13,9 +13,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/auth.css">
     <link rel="stylesheet" href="/assets/css/errors/errors.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/errors/errors.css') ?>">
+    <link rel="stylesheet" href="/assets/css/request-loading.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/request-loading.css') ?>">
 </head>
 
 <body class="auth-body <?= $pageClass ?? '' ?>"><?= $content ?>
+    <?php require dirname(__DIR__) . '/partials/request-loading.php'; ?>
     <script src="/assets/js/app.js?v=<?= time() ?>" defer></script>
     <!-- GSAP via CDN — se falhar, auth-animations.js detecta e não executa (graceful degradation) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>

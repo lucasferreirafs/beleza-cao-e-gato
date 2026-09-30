@@ -20,6 +20,7 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
     <link rel="stylesheet" href="/assets/css/main.css">
     <link rel="stylesheet" href="/assets/css/account.css">
     <link rel="stylesheet" href="/assets/css/errors/errors.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/errors/errors.css') ?>">
+    <link rel="stylesheet" href="/assets/css/request-loading.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/request-loading.css') ?>">
 </head>
 
 <body class="app-body <?= $pageClass ?? '' ?>">
@@ -85,6 +86,7 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
         <form method="post" action="/logout"><?= \App\Security\Csrf::field() ?><button type="submit"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair da Conta</button></form>
     </dialog>
     <button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="Fechar menu de navegação" hidden></button>
+    <?php require dirname(__DIR__) . '/partials/request-loading.php'; ?>
     <script src="/assets/js/app.js?v=<?= time() ?>" defer></script>
 </body>
 

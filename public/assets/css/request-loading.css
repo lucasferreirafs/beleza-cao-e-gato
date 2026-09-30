@@ -1,0 +1,104 @@
+dialog.request-loading {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    width: min(216px, 72vw);
+    height: min(196px, 48vh);
+    max-width: none;
+    max-height: none;
+    margin: auto;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    color: #fff5f1;
+}
+
+dialog.request-loading[open] {
+    display: grid;
+    place-items: center;
+}
+
+dialog.request-loading::backdrop {
+    background: rgba(15, 44, 53, 0.48);
+}
+
+.request-loading__trail {
+    position: relative;
+    width: min(180px, 62vw);
+    aspect-ratio: 1;
+}
+
+.request-loading__symbols {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.request-loading__center,
+.request-loading__step {
+    position: absolute;
+    display: block;
+    fill: currentColor;
+}
+
+.request-loading__center {
+    left: 50%;
+    top: 59%;
+    width: 76px;
+    height: 76px;
+    color: #e8612d;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 3px 8px rgba(15, 44, 53, 0.24));
+}
+
+.request-loading__step {
+    width: 28px;
+    height: 28px;
+    opacity: 0;
+    animation-duration: 2.6s;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+.request-loading__step--1 { left: 2%; top: 56%; transform: rotate(-32deg); animation-name: request-paw-step-1; }
+.request-loading__step--2 { left: 13%; top: 27%; transform: rotate(-18deg); animation-name: request-paw-step-2; }
+.request-loading__step--3 { left: 39%; top: 8%; transform: rotate(0deg); animation-name: request-paw-step-3; }
+.request-loading__step--4 { right: 13%; top: 27%; transform: rotate(18deg); animation-name: request-paw-step-4; }
+.request-loading__step--5 { right: 2%; top: 56%; transform: rotate(32deg); animation-name: request-paw-step-5; }
+
+@keyframes request-paw-step-1 {
+    0%, 2% { opacity: 0; }
+    10%, 68% { opacity: 1; }
+    80%, 100% { opacity: 0; }
+}
+
+@keyframes request-paw-step-2 {
+    0%, 12% { opacity: 0; }
+    20%, 68% { opacity: 1; }
+    80%, 100% { opacity: 0; }
+}
+
+@keyframes request-paw-step-3 {
+    0%, 22% { opacity: 0; }
+    30%, 68% { opacity: 1; }
+    80%, 100% { opacity: 0; }
+}
+
+@keyframes request-paw-step-4 {
+    0%, 32% { opacity: 0; }
+    40%, 68% { opacity: 1; }
+    80%, 100% { opacity: 0; }
+}
+
+@keyframes request-paw-step-5 {
+    0%, 42% { opacity: 0; }
+    50%, 68% { opacity: 1; }
+    80%, 100% { opacity: 0; }
+}
+
+body.request-loading-active {
+    overflow: hidden;
+}
+
