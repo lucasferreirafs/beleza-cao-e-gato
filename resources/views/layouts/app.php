@@ -18,6 +18,9 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
+    <?php if (($pageClass ?? '') === 'page-staff-dashboard'): ?>
+        <link rel="stylesheet" href="/assets/css/staff/dashboard.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/dashboard.css') ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/account.css">
     <link rel="stylesheet" href="/assets/css/errors/errors.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/errors/errors.css') ?>">
     <link rel="stylesheet" href="/assets/css/request-loading.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/request-loading.css') ?>">

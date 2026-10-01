@@ -3,6 +3,9 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Core\Database;
+use App\Core\Env;
+use DateTimeImmutable;
+use DateTimeZone;
 
 final class DashboardRepository
 {
@@ -14,14 +17,14 @@ final class DashboardRepository
         $upcoming = current(
             array_filter(
                 array_reverse($appointments),
-                static fn(array $a): bool => strtotime($a['scheduled_at']) >= time() && !in_array($a['status'], ['cancelled', 'canceled'], true)
+                static fn(array $a): bool => strtotime($a['scheduled_at']) >= time() && $a['status'] === 'pending'
             )
         ) ?: null;
 
         $history = array_values(
             array_filter(
                 $appointments,
-                static fn(array $a): bool => in_array($a['status'], ['completed', 'done'], true)
+                static fn(array $a): bool => $a['status'] === 'completed'
             )
         );
         return compact('pets', 'appointments', 'upcoming', 'history');
@@ -56,25 +59,27 @@ final class DashboardRepository
         return compact('counts', 'recent', 'serviceStats');
     }
 
-    public function staff(int $staffId): array
+    public function staff(int $staffId, string $period = 'today'): array
     {
-        $appointments = (new AppointmentRepository())->allForStaff($staffId, true);
+        $period = $period === 'week' ? 'week' : 'today';
+        $repository = new AppointmentRepository();
+        $appointments = $repository->pendingTodayForStaff($staffId);
+        $inProgressAppointments = $repository->inProgressTodayForStaff($staffId);
         usort($appointments, static fn(array $a, array $b): int => strtotime($a['scheduled_at']) <=> strtotime($b['scheduled_at']));
-        $counts = [
-            'total' => count($appointments),
-            'completed' => 0,
-            'pending' => 0,
-            'cancelled' => 0
-        ];
-
-        foreach ($appointments as $a) {
-            if (in_array($a['status'], ['completed', 'done'], true))
-                $counts['completed']++;
-            elseif (in_array($a['status'], ['cancelled', 'canceled'], true))
-                $counts['cancelled']++;
-            else
-                $counts['pending']++;
-        }
-        return compact('appointments', 'counts');
+        $nextAppointment = $repository->nextPendingForStaff($staffId);
+        $pdo = Database::connection();
+        $now = (new DateTimeImmutable($pdo->query('SELECT clock_timestamp()')->fetchColumn()))
+            ->setTimezone(new DateTimeZone((string) Env::get('APP_TIMEZONE', 'America/Sao_Paulo')));
+        $periodStart = $now->setTime(0, 0);
+        if ($period === 'week') $periodStart = $periodStart->modify('-' . ((int) $now->format('N') - 1) . ' days');
+        $periodEnd = $periodStart->modify($period === 'week' ? '+7 days' : '+1 day');
+        $query = $pdo->prepare("SELECT count(*) total,
+            count(*) FILTER (WHERE status='completed') completed,
+            count(*) FILTER (WHERE status='pending') pending,
+            count(*) FILTER (WHERE status='cancelled') cancelled
+            FROM appointments WHERE staff_id=:staff AND scheduled_at>=:start AND scheduled_at<:end");
+        $query->execute(['staff' => $staffId, 'start' => $periodStart->format('c'), 'end' => $periodEnd->format('c')]);
+        $counts = array_map('intval', $query->fetch());
+        return compact('appointments', 'inProgressAppointments', 'counts', 'nextAppointment', 'period', 'periodStart', 'periodEnd', 'now');
     }
 }

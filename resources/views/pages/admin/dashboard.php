@@ -9,27 +9,51 @@
 
 <section class="metric-grid four">
     <article class="metric-card featured">
-        <small>CLIENTES</small>
-        <strong><?= (int) ($counts['clients'] ?? 0) ?></strong>
-        <p>Contas cadastradas</p>
+        <div>
+            <small>TOTAL DE CLIENTES</small>
+            <strong><?= (int) ($counts['clients'] ?? 0) ?> Clientes</strong>
+            <p>Contas cadastradas no sistema</p>
+        </div>
+
+        <span>
+            <i class="fa-solid fa-users"></i>
+        </span>
     </article>
 
     <article class="metric-card">
-        <small>PETS CADASTRADOS</small>
-        <strong><?= (int) ($counts['pets'] ?? 0) ?></strong>
-        <p>Registros ativos</p>
+        <div>
+            <small>PETS CADASTRADOS</small>
+            <strong><?= (int) ($counts['pets'] ?? 0) ?> Pets</strong>
+            <p>Registros ativos</p>
+        </div>
+
+        <span>
+            <i class="fa-solid fa-paw"></i>
+        </span>
     </article>
 
     <article class="metric-card">
-        <small>FUNCIONÁRIOS</small>
-        <strong><?= (int) ($counts['staff'] ?? 0) ?></strong>
-        <p>Profissionais ativos</p>
+        <div>
+            <small>FUNCIONÁRIOS</small>
+            <strong><?= (int) ($counts['staff'] ?? 0) ?> Funcionário</strong>
+            <p>Profissionais ativos</p>
+        </div>
+
+        <span>
+            <i class="fa-solid fa-users-line"></i>
+        </span>
     </article>
 
     <article class="metric-card">
-        <small>AGENDAMENTOS HOJE</small>
-        <strong><?= (int) ($counts['appointments_today'] ?? 0) ?></strong>
-        <p>Todos os estados</p>
+        <div>
+            <small>AGENDAMENTOS HOJE</small>
+            <strong><?= (int) ($counts['appointments_today'] ?? 0) ?> Agendamentos</strong>
+            <p>Todos os agendamentos do dia</p>
+        </div>
+
+        <span>
+            <i class="fa-regular fa-calendar-days"></i>
+        </span>
     </article>
 </section>
 
@@ -40,7 +64,7 @@
         <?php
         $max = max(1, ...array_map(static fn(array $row): int => (int) $row['total'], $serviceStats));
         foreach ($serviceStats as $i => $row):
-            ?>
+        ?>
             <div class="progress">
                 <span>
                     <b><?= $i + 1 ?>. <?= $e($row['name']) ?></b>

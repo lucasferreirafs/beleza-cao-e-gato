@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let navigationPending = false;
     const stopRequestLoading = () => {
         if (requestLoading?.open) requestLoading.close();
+        requestLoading?.removeAttribute('data-suspended');
         document.body.classList.remove('request-loading-active');
     };
     const showRequestLoading = () => {
@@ -19,6 +20,8 @@ document.addEventListener("DOMContentLoaded", () => {
             document.body.classList.add('request-loading-active');
         }
     };
+    document.addEventListener('request-loading:show', showRequestLoading);
+    document.addEventListener('request-loading:hide', stopRequestLoading);
     const beginRequestLoading = () => {
         const token = Symbol('request');
         pendingRequests.add(token);
@@ -795,7 +798,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (availabilityPending || timeSelect.disabled || !timeSelect.value ||
                 !staffSection?.querySelector('input[name="staff_id"]:checked:not(:disabled)')) {
                 event.preventDefault();
-                if (staffMessage) staffMessage.textContent = 'Selecione um horário e um profissional disponível para continuar.';
+                if (staffMessage) staffMessage.textContent = 'Selecione data, horário e uma opção de profissional disponível para continuar.';
             }
         });
         let availabilityRevision = 0;

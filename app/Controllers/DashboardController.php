@@ -24,7 +24,9 @@ final class DashboardController
     }
     public function staff(Request $r): void
     {
-        View::render('pages/staff/dashboard', $this->data('Dashboard', 'dashboard') + (new DashboardRepository())->staff((int) Session::user()['id']));
+        $period = $r->input('period', 'today');
+        View::render('pages/staff/dashboard', $this->data('Dashboard', 'dashboard')
+            + (new DashboardRepository())->staff((int) Session::user()['id'], is_string($period) ? $period : 'today'));
     }
     public function admin(Request $r): void
     {

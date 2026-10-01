@@ -67,6 +67,7 @@ dialog.request-loading::backdrop {
 .request-loading__step--3 { left: 39%; top: 8%; transform: rotate(0deg); animation-name: request-paw-step-3; }
 .request-loading__step--4 { right: 13%; top: 27%; transform: rotate(18deg); animation-name: request-paw-step-4; }
 .request-loading__step--5 { right: 2%; top: 56%; transform: rotate(32deg); animation-name: request-paw-step-5; }
+.request-loading[data-suspended] .request-loading__trail { visibility: hidden; }
 
 @keyframes request-paw-step-1 {
     0%, 2% { opacity: 0; }
