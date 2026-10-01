@@ -121,33 +121,42 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
             <?php endif; ?>
         </article>
 
-        <article class="panel">
+        <article class="panel appointment-history">
             <h2>Histórico Recente de Agendamentos</h2>
 
             <div class="table-wrap">
-                <table>
+                <table id="appointment-history-table" class="appointment-history-table" role="table" aria-label="Histórico recente de agendamentos">
                     <thead>
-                        <tr>
-                            <th>Pet</th>
-                            <th>Serviço</th>
-                            <th>Data</th>
-                            <th>Horário</th>
-                            <th>Status</th>
+                        <tr role="row">
+                            <th scope="col">Pet</th>
+                            <th scope="col">Serviço</th>
+                            <th scope="col">Data</th>
+                            <th scope="col">Horário</th>
+                            <th scope="col">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach (array_slice($history, 0, 5) as $item): ?>
-                            <tr>
-                                <td><?= $e($item['pet_name']) ?></td>
-                                <td><?= $e($item['service_name']) ?></td>
-                                <td><?= date('d/m/Y', strtotime($item['scheduled_at'])) ?></td>
-                                <td><?= date('H:i', strtotime($item['scheduled_at'])) ?></td>
-                                <td><span class="badge <?= \App\Support\StatusBadge::class($item['status']) ?>"><?= $e(\App\Support\AppointmentStatus::label($item['status'])) ?></span></td>
+                            <tr role="row">
+                                <td role="cell" data-label="Pet"><?= $e($item['pet_name']) ?></td>
+                                <td role="cell" data-label="Serviço"><?= $e($item['service_name']) ?></td>
+                                <td role="cell" data-label="Data"><?= date('d/m/Y', strtotime($item['scheduled_at'])) ?></td>
+                                <td role="cell" data-label="Horário"><?= date('H:i', strtotime($item['scheduled_at'])) ?></td>
+                                <td role="cell" data-label="Status"><span class="badge <?= \App\Support\StatusBadge::class($item['status']) ?>"><?= $e(\App\Support\AppointmentStatus::label($item['status'])) ?></span></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
+
+            <nav class="appointment-history-pagination" aria-label="Paginação do histórico recente" data-history-pagination hidden>
+                <div class="appointment-history-pagination-controls">
+                    <button type="button" data-history-previous aria-label="Página anterior" aria-controls="appointment-history-table">‹</button>
+                    <span data-history-pages></span>
+                    <button type="button" data-history-next aria-label="Próxima página" aria-controls="appointment-history-table">›</button>
+                </div>
+                <small data-history-page-status role="status" aria-live="polite" aria-atomic="true"></small>
+            </nav>
 
             <?php if (!$history): ?>
                 <div class="empty-state">
@@ -193,3 +202,4 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
         <?php endif; ?>
     </aside>
 </div>
+<script src="/assets/js/client-dashboard.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/client-dashboard.js') ?>" defer></script>

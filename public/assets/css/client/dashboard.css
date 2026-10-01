@@ -403,7 +403,15 @@ body.page-client-dashboard {
 }
 
 .page-client-dashboard .metric-grid.three {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.page-client-dashboard .content-grid > *,
+.page-client-dashboard .panel,
+.page-client-dashboard .metric-card > div,
+.page-client-dashboard .pet-row span {
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .page-client-dashboard .metric-card {
@@ -492,18 +500,23 @@ body.page-client-dashboard {
 .page-client-dashboard .appointment-info img {
     width: 86px;
     height: 86px;
+    flex-shrink: 0;
 }
 
 .page-client-dashboard .appointment-info dl {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
     gap: 25px;
     flex: 1;
+    min-width: 0;
+    margin: 0;
 }
 
 .page-client-dashboard .appointment-info dl div {
     display: grid;
     gap: 5px;
+    min-width: 0;
+    align-content: start;
 }
 
 .page-client-dashboard .appointment-info dt {
@@ -521,6 +534,66 @@ body.page-client-dashboard {
     gap: 12px;
     border-top: 1px solid #e5e7eb;
     padding-top: 18px;
+}
+
+.page-client-dashboard .appointment-highlight header {
+    flex-wrap: wrap;
+}
+
+.page-client-dashboard .appointment-history-pagination {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.page-client-dashboard .appointment-history-pagination-controls,
+.page-client-dashboard [data-history-pages] {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.page-client-dashboard .appointment-history-pagination button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--teal-500);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.page-client-dashboard .appointment-history-pagination button[aria-current="page"] {
+    background: var(--orange-500);
+    border-color: var(--orange-500);
+    color: #fff;
+}
+
+.page-client-dashboard .appointment-history-pagination button:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+.page-client-dashboard .appointment-history-pagination button:focus-visible {
+    outline: 2px solid var(--orange-700);
+    outline-offset: 2px;
+}
+
+.page-client-dashboard .appointment-history-pagination small {
+    color: var(--gray-500);
+    line-height: 1.5;
+}
+
+.page-client-dashboard .appointment-history-table {
+    table-layout: fixed;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .page-client-dashboard .pets-mini header a {
@@ -919,7 +992,7 @@ body.page-client-dashboard {
     }
 
     .page-client-dashboard .appointment-info dl {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -966,7 +1039,7 @@ body.page-client-dashboard {
 
     .page-client-dashboard .appointment-info {
         display: grid;
-        grid-template-columns: 56px minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         align-items: start;
         gap: 14px;
     }
@@ -1009,11 +1082,69 @@ body.page-client-dashboard {
     }
 
     .page-client-dashboard .appointment-highlight footer {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .page-client-dashboard .appointment-highlight footer .button {
-        flex: 1 1 130px;
+        width: 100%;
+        min-height: 44px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .page-client-dashboard .appointment-highlight footer form {
+        min-width: 0;
+        margin: 0;
+    }
+
+    .page-client-dashboard .appointment-history-table,
+    .page-client-dashboard .appointment-history-table tbody {
+        display: block;
+    }
+
+    /* Keep column headings accessible while displaying each appointment as a card. */
+    .page-client-dashboard .appointment-history-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .page-client-dashboard .appointment-history-table tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 12px;
+        padding: 14px;
+        border: 1px solid var(--gray-300);
+        border-radius: 12px;
+        background: var(--gray-50);
+    }
+
+    .page-client-dashboard .appointment-history-table td {
+        display: block;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .page-client-dashboard .appointment-history-table td:first-child,
+    .page-client-dashboard .appointment-history-table td:nth-child(2),
+    .page-client-dashboard .appointment-history-table td:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .page-client-dashboard .appointment-history-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--gray-500);
     }
 
     .page-client-dashboard .table-wrap {
