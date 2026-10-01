@@ -1,7 +1,7 @@
 <?php
 $e = static fn(mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-$stepNames = ['Serviços', 'Pet', 'Profissional', 'Data e Horário', 'Confirmação'];
-$stepSlugs = ['servico', 'escolha-pet', 'profissional', 'data-e-horario', 'confirmacao'];
+$stepNames = ['Serviços', 'Pet', 'Data e Horário', 'Confirmação'];
+$stepSlugs = ['servico', 'escolha-pet', 'data-e-horario', 'confirmacao'];
 $serviceIds = array_map('intval', $state['service_ids'] ?? []);
 $selectedPet = current(array_filter($pets, static fn(array $pet): bool => (int) $pet['id'] === (int) ($state['pet_id'] ?? 0))) ?: null;
 $selectedStaff = current(array_filter($staff, static fn(array $member): bool => (int) $member['id'] === (int) ($state['staff_id'] ?? 0))) ?: null;
@@ -69,34 +69,8 @@ $formatDuration = static function (int $minutes): string {
             <?php endif; ?>
 
         <?php elseif ($step === 3): ?>
-            <h2 class="step-title">Tem preferência por algum profissional?</h2>
-            <p class="step-subtitle">A escolha é opcional. Caso não tenha preferência, atribuiremos o melhor profissional disponível.</p>
-            <div class="service-list staff-list" role="radiogroup" aria-label="Profissional">
-                <label class="service-card staff-card staff-card--preference <?= empty($state['staff_id']) ? 'selected' : '' ?>">
-                    <span class="staff-avatar default"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
-                    <span class="service-info"><strong>Sem preferência (recomendado)</strong><span>Atribuiremos o melhor profissional qualificado disponível para o seu pet no horário agendado.</span></span>
-                    <input type="radio" name="staff_id" value="" <?= empty($state['staff_id']) ? 'checked' : '' ?>>
-                    <span class="radio-indicator" aria-hidden="true"></span>
-                </label>
-                <?php foreach ($staff as $member): $checked = (int) ($state['staff_id'] ?? 0) === (int) $member['id']; ?>
-                    <label class="service-card staff-card staff-card--person <?= $checked ? 'selected' : '' ?>">
-                        <span class="staff-avatar">
-                            <?php if (!empty($member['avatar_path'])): ?>
-                                <img src="/cliente/profissionais/<?= (int) $member['id'] ?>/foto?v=<?= $e(rawurlencode((string) $member['avatar_path'])) ?>" alt="">
-                            <?php else: ?>
-                                <i class="fa-solid fa-user" aria-hidden="true"></i>
-                            <?php endif; ?>
-                        </span>
-                        <span class="staff-name"><?= $e($member['name']) ?></span>
-                        <input type="radio" name="staff_id" value="<?= (int) $member['id'] ?>" <?= $checked ? 'checked' : '' ?>>
-                        <span class="radio-indicator" aria-hidden="true"></span>
-                    </label>
-                <?php endforeach; ?>
-            </div>
-
-        <?php elseif ($step === 4): ?>
-            <h2 class="step-title">Data e horário</h2>
-            <p class="step-subtitle">Os horários exibidos consideram a duração total e a disponibilidade real da equipe.</p>
+            <h2 class="step-title">Data, horário e profissional</h2>
+            <p class="step-subtitle">Escolha o horário para consultar a disponibilidade da equipe e, se quiser, selecione um profissional.</p>
             <div class="form-grid booking-date-grid">
                 <label>Data
                     <input type="date" name="date" value="<?= $e($date) ?>" min="<?= date('Y-m-d') ?>" data-booking-date required>
@@ -145,7 +119,7 @@ $formatDuration = static function (int $minutes): string {
                     <?php endforeach; ?>
                 </div>
             </section>
-            <p class="booking-buffer-note">Reservamos um intervalo de 1 hora entre os atendimentos do mesmo profissional ou pet.</p>
+            <p class="booking-buffer-note">Mantemos 30 minutos de intervalo entre atendimentos do mesmo profissional ou pet.</p>
             <label class="booking-notes">Observações
                 <textarea name="notes" maxlength="1000" rows="3" placeholder="Cuidados ou informações importantes"><?= $e($state['notes'] ?? '') ?></textarea>
             </label>
@@ -178,7 +152,7 @@ $formatDuration = static function (int $minutes): string {
         <footer class="booking-actions">
             <?php if ($step > 1): ?><a class="button ghost" href="/cliente/agendamento/<?= $stepSlugs[$step - 2] ?>">Voltar</a><?php else: ?><span></span><?php endif; ?>
             <?php if ($step !== 2 || $pets): ?>
-                <button class="button primary <?= $step === 5 ? 'success' : '' ?>" type="submit"><?= $step < 5 ? 'Próximo' : 'Confirmar Agendamento' ?></button>
+                <button class="button primary <?= $step === 4 ? 'success' : '' ?>" type="submit"><?= $step < 4 ? 'Próximo' : 'Confirmar Agendamento' ?></button>
             <?php endif; ?>
         </footer>
     </form>

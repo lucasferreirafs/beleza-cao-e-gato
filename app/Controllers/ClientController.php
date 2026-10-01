@@ -205,7 +205,7 @@ final class ClientController
         $staff = (new UserRepository())->allStaff();
         $serviceIds = $state['service_ids'] ?? [];
         $selectedServices = (new ServiceRepository())->findActiveMany($serviceIds);
-        if ($step === 5 && isset($state['quote'])) $selectedServices = $state['quote'];
+        if ($step === 4 && isset($state['quote'])) $selectedServices = $state['quote'];
         $totalPriceCents = array_sum(array_map(static fn(array $service): int => (int) round((float) $service['price'] * 100), $selectedServices));
         $totalPrice = $totalPriceCents / 100;
         $totalDuration = array_sum(array_map(static fn(array $service): int => (int) $service['duration_minutes'], $selectedServices));
@@ -213,11 +213,11 @@ final class ClientController
         $time = $r->input('time', $state['time'] ?? '');
         $date = is_string($date) ? $date : '';
         $time = is_string($time) ? $time : '';
-        $slots = $step === 4
+        $slots = $step === 3
             ? (new AppointmentRepository())->availableSlots($date, $serviceIds, null, isset($state['pet_id']) ? (int) $state['pet_id'] : null)
             : [];
         $staffAvailability = [];
-        if ($step === 4 && $time !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        if ($step === 3 && $time !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             $staffAvailability = (new AppointmentRepository())->staffAvailability($date . ' ' . $time, $serviceIds, (int) $state['pet_id']);
         }
 
@@ -233,7 +233,7 @@ final class ClientController
     public function bookingAvailability(Request $r): void
     {
         $state = (new BookingService())->state();
-        if (empty($state['service_ids']) || empty($state['pet_id']) || !array_key_exists('staff_id', $state)) {
+        if (empty($state['service_ids']) || empty($state['pet_id'])) {
             Response::json(['error' => 'Complete as etapas anteriores.'], 409);
         }
         $date = $r->input('date');
@@ -282,7 +282,7 @@ final class ClientController
 
             Response::redirect('/cliente/agendamento/' . BookingService::stepSlug($next));
         } catch (DomainException $e) {
-            if ($step === 5) {
+            if ($step === 4) {
                 $state = (new BookingService())->state();
                 $state['schedule_validated'] = false;
                 Session::put('booking', $state);

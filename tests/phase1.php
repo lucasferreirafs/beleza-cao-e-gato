@@ -198,7 +198,7 @@ try {
     $crumbs = Navigation::breadcrumbs('/cliente/pets/42/editar?tab=a', 'client', 'Editar Pet');
     check(array_column($crumbs, 'label') === ['Início', 'Meus pets', 'Editar Pet'], 'Breadcrumb de edição incorreto.');
     check(Navigation::breadcrumbs('/cliente', 'client', 'Início')[0]['url'] === null, 'Início duplicado.');
-    check(str_contains(Navigation::breadcrumbs('/cliente/agendamento/profissional', 'client', 'Novo')[2]['label'], 'Profissional'), 'Etapa do agendamento incorreta.');
+    check(str_contains(Navigation::breadcrumbs('/cliente/agendamento/profissional', 'client', 'Novo')[2]['label'], 'Data e horário'), 'Etapa antiga não foi normalizada no breadcrumb.');
     echo "Fase 1: {$checks} verificações de integração OK.\n";
 } finally {
     if (is_string($png) && is_file($png)) unlink($png);

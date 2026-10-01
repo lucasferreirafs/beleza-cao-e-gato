@@ -596,7 +596,7 @@ body.page-client-booking {
 
 .page-client-booking .stepper {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     margin-bottom: 32px;
     background: white;
     border: 1px solid #e5e7eb;
@@ -1200,7 +1200,7 @@ body.page-client-booking {
 @media (max-width: 1000px) {
     .page-client-booking .stepper {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         align-items: start;
         overflow: visible;
         padding: 14px 10px 42px;

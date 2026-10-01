@@ -34,9 +34,8 @@ final class Navigation
             $stepLabel = match ($segments[2] ?? '') {
                 'servico', '1' => 'Serviços',
                 'escolha-pet', '2' => 'Pet',
-                'profissional', '3' => 'Profissional',
-                'data-e-horario', '4' => 'Data e horário',
-                'confirmacao', '5' => 'Confirmação',
+                'profissional', 'data-e-horario', '3' => 'Data e horário',
+                'confirmacao', '4' => 'Confirmação',
                 default => 'Agendamento',
             };
             $crumbs[] = ['label' => 'Novo agendamento · ' . $stepLabel, 'url' => null];
