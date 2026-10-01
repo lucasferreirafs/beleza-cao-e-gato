@@ -93,7 +93,7 @@ final class PetHelper
 
     public static function statusLabel(string $status): string
     {
-        if (in_array($status, ['completed', 'done'], true)) {
+        if ($status === 'completed') {
             return 'Realizado';
         }
 

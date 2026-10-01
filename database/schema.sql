@@ -132,7 +132,8 @@ CREATE TABLE appointments (
    service_id BIGINT NOT NULL REFERENCES services(id),
    staff_id BIGINT REFERENCES users(id),
    scheduled_at TIMESTAMPTZ NOT NULL,
-   status VARCHAR(30) NOT NULL,
+   status VARCHAR(30) NOT NULL DEFAULT 'pending'
+      CONSTRAINT appointments_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
    price NUMERIC(10, 2) NOT NULL,
    notes TEXT,
    duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
@@ -194,10 +195,13 @@ CREATE INDEX idx_appointments_staff_date ON appointments (staff_id, scheduled_at
 CREATE INDEX idx_appointments_status_date ON appointments (status, scheduled_at);
 CREATE INDEX appointments_staff_schedule_active_idx
    ON appointments (staff_id, scheduled_at)
-   WHERE staff_id IS NOT NULL AND status NOT IN ('cancelled', 'canceled');
+   WHERE staff_id IS NOT NULL AND status <> 'cancelled';
 CREATE INDEX appointments_unassigned_schedule_active_idx
    ON appointments (scheduled_at)
-   WHERE staff_id IS NULL AND status NOT IN ('cancelled', 'canceled');
+   WHERE staff_id IS NULL AND status <> 'cancelled';
+CREATE INDEX appointments_pending_expiry_idx
+   ON appointments (scheduled_at)
+   WHERE status = 'pending';
 CREATE INDEX idx_account_tokens_lookup ON account_tokens (user_id, purpose, expires_at DESC);
 CREATE UNIQUE INDEX uq_users_email_lower ON users (lower(email));
 CREATE UNIQUE INDEX uq_users_cpf ON users (cpf) WHERE cpf IS NOT NULL;

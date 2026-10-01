@@ -229,7 +229,7 @@ final class ManagementRepository
             return $s->rowCount() === 1;
         }
 
-        if ($section === 'agendamentos' && in_array($status, ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'], true)) {
+        if ($section === 'agendamentos' && in_array($status, ['pending', 'in_progress', 'completed', 'cancelled'], true)) {
             return (new AppointmentRepository())->changeStatus($id, $status);
         }
         return false;
@@ -237,7 +237,7 @@ final class ManagementRepository
 
     public function setStaffAppointmentStatus(int $id, int $staffId, string $status): bool
     {
-        if (!in_array($status, ['confirmed', 'in_progress', 'completed', 'cancelled'], true))
+        if (!in_array($status, ['pending', 'in_progress', 'completed', 'cancelled'], true))
             return false;
         return (new AppointmentRepository())->changeStatus($id, $status, $staffId);
     }

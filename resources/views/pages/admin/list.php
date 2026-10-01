@@ -103,7 +103,7 @@ $singular = match ($section) {
                                     <form method="post" action="/admin/agendamentos/<?= (int) $row['id'] ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
                                         <select name="status" aria-label="Novo status">
-                                            <?php foreach (\App\Support\AppointmentStatus::editable() as $value => $label): ?>
+                                            <?php foreach (\App\Support\AppointmentStatus::optionsFor($row['status']) as $value => $label): ?>
                                                 <option value="<?= $e($value) ?>" <?= $row['status'] === $value ? 'selected' : '' ?>><?= $e($label) ?></option>
                                             <?php endforeach; ?>
                                         </select>

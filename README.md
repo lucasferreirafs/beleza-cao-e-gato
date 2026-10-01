@@ -260,3 +260,4 @@ docker compose down
 
 - [Levantamento de requisitos](docs/levantamento-de-requisitos.md): requisitos observados no código, regras de negócio, critérios transversais e questões pendentes de elicitação.
 - [Backlog do projeto](docs/backlog.md): funcionalidades já representadas na aplicação e propostas futuras ainda sujeitas à priorização/aprovação.
+- [Ciclo de vida dos agendamentos](docs/agendamentos-status.md): status, cancelamento automático após 30 minutos, migração sem perda de dados e execução periódica.

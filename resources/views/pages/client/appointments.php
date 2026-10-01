@@ -10,12 +10,12 @@
 </header>
 <section class="panel">
     <?php
-        $cancelledStatuses = ['cancelled', 'canceled'];
-        $completedStatuses = ['completed', 'done'];
+        $cancelledStatuses = ['cancelled'];
+        $completedStatuses = ['completed'];
 
         $isCancelledFn  = static fn(array $a): bool => in_array($a['status'], $cancelledStatuses, true);
         $isCompletedFn  = static fn(array $a): bool => in_array($a['status'], $completedStatuses, true);
-        $isUpcomingFn   = static fn(array $a): bool => strtotime($a['scheduled_at']) >= time() && !$isCancelledFn($a);
+        $isUpcomingFn   = static fn(array $a): bool => in_array($a['status'], ['pending', 'in_progress'], true);
 
         $upcoming  = array_filter($appointments, $isUpcomingFn);
         $completed = array_filter($appointments, $isCompletedFn);
@@ -104,7 +104,7 @@
                                 class="badge <?= \App\Support\StatusBadge::class($a['status']) ?>"><?= htmlspecialchars($statusLabel) ?></span>
                         </td>
                         <td>
-                            <?php if ($isUpcoming): ?>
+                            <?php if ($a['status'] === 'pending' && strtotime($a['scheduled_at']) > time()): ?>
                                 <form method="post" action="/cliente/agendamentos/<?= (int) $a['id'] ?>/cancelar" data-confirm="Cancelar este agendamento?">
                                     <?= \App\Security\Csrf::field() ?>
                                     <button class="button ghost danger">Cancelar</button>

@@ -49,7 +49,7 @@
                                     <form method="post" action="/staff/agendamentos/<?= (int) $row['id'] ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
                                         <select name="status" aria-label="Novo status">
-                                            <?php foreach (array_diff_key(\App\Support\AppointmentStatus::editable(), ['pending' => true]) as $value => $label): ?>
+                                            <?php foreach (\App\Support\AppointmentStatus::optionsFor($row['status']) as $value => $label): ?>
                                                 <option value="<?= $e($value) ?>" <?= ($row['status'] ?? null) === $value ? 'selected' : '' ?>><?= $e($label) ?></option>
                                             <?php endforeach; ?>
                                         </select>

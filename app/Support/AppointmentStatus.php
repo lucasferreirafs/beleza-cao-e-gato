@@ -7,7 +7,6 @@ final class AppointmentStatus
 {
     private const LABELS = [
         'pending' => 'Pendente',
-        'confirmed' => 'Confirmado',
         'in_progress' => 'Em andamento',
         'completed' => 'Concluído',
         'cancelled' => 'Cancelado'
@@ -21,12 +20,21 @@ final class AppointmentStatus
     /** @return array<string, string> */
     public static function editable(): array
     {
-        return array_intersect_key(self::LABELS, array_flip([
-            'pending',
-            'confirmed',
-            'in_progress',
-            'completed',
-            'cancelled',
-        ]));
+        return self::LABELS;
+    }
+
+    public static function canTransition(string $from, string $to): bool
+    {
+        return isset(self::LABELS[$from], self::LABELS[$to]) && ($from === $to || in_array($to, match ($from) {
+            'pending' => ['in_progress', 'cancelled'],
+            'in_progress' => ['completed'],
+            default => [],
+        }, true));
+    }
+
+    /** Current state and legal next states; terminal appointments cannot be reopened. */
+    public static function optionsFor(string $status): array
+    {
+        return array_filter(self::LABELS, static fn(string $target): bool => self::canTransition($status, $target), ARRAY_FILTER_USE_KEY);
     }
 }

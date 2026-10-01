@@ -5,6 +5,8 @@ namespace App\Repositories;
 
 use App\Core\Database;
 use App\Services\BookingService;
+use App\Services\AppointmentLifecycleService;
+use App\Support\AppointmentStatus;
 use DateTimeImmutable;
 use DomainException;
 use PDO;
@@ -14,7 +16,10 @@ final class AppointmentRepository
     private function rows(string $condition = 'true', array $params = [], string $order = 'a.scheduled_at DESC'): array
     {
         $pdo = Database::connection();
-        $s = $pdo->prepare("SELECT a.*,p.name pet_name,c.name client_name,s.name service_name,
+        AppointmentLifecycleService::cancelExpiredPending($pdo);
+        $s = $pdo->prepare("SELECT a.*,p.name pet_name,p.weight pet_weight,p.coat_color pet_coat_color,
+            p.allergies pet_allergies,p.special_needs pet_special_needs,p.behavior pet_behavior,p.notes pet_notes,
+            c.name client_name,s.name service_name,
             s.duration_minutes legacy_duration,u.name staff_name
             FROM appointments a JOIN pets p ON p.id=a.pet_id JOIN users c ON c.id=p.owner_id
             JOIN services s ON s.id=a.service_id LEFT JOIN users u ON u.id=a.staff_id
@@ -30,6 +35,25 @@ final class AppointmentRepository
         return $this->rows('a.staff_id=:staff' . ($today ? ' AND a.scheduled_at::date=current_date' : ''), ['staff' => $id]);
     }
     public function allForAdmin(bool $recent = false): array { return $this->rows('true', [], $recent ? 'a.created_at DESC LIMIT 8' : 'a.scheduled_at DESC'); }
+
+    public function nextPendingForStaff(int $staffId): ?array
+    {
+        return $this->rows("a.staff_id=:staff AND a.status='pending'
+            AND a.scheduled_at >= clock_timestamp() - INTERVAL '30 minutes'",
+            ['staff' => $staffId], 'a.scheduled_at ASC, a.id ASC LIMIT 1')[0] ?? null;
+    }
+
+    public function pendingTodayForStaff(int $staffId): array
+    {
+        return $this->rows("a.staff_id=:staff AND a.status='pending' AND a.scheduled_at::date=current_date",
+            ['staff' => $staffId], 'a.scheduled_at ASC, a.id ASC');
+    }
+
+    public function inProgressTodayForStaff(int $staffId): array
+    {
+        return $this->rows("a.staff_id=:staff AND a.status='in_progress' AND a.scheduled_at::date=current_date",
+            ['staff' => $staffId], 'a.scheduled_at ASC, a.id ASC');
+    }
 
     public static function parseSchedule(string $value): ?DateTimeImmutable
     {
@@ -57,7 +81,7 @@ final class AppointmentRepository
     private function reservations(DateTimeImmutable $day): array
     {
         // Include earlier bookings that could extend into this day. Services are limited to 1440 minutes.
-        return $this->rows("a.status NOT IN ('cancelled','canceled') AND a.scheduled_at>=:from_time AND a.scheduled_at<:until_time", [
+        return $this->rows("a.status <> 'cancelled' AND a.scheduled_at>=:from_time AND a.scheduled_at<:until_time", [
             'from_time' => $day->setTime(0, 0)->modify('-' . (BookingService::MAX_SERVICES + 1) . ' days')->format('c'),
             'until_time' => $day->setTime(0, 0)->modify('+2 days')->format('c'),
         ]);
@@ -190,7 +214,7 @@ final class AppointmentRepository
 
     public function changeStatus(int $id, string $status, ?int $staffId = null, ?int $ownerId = null): bool
     {
-        if (!in_array($status, ['pending','confirmed','in_progress','completed','cancelled'], true)) return false;
+        if (!isset(AppointmentStatus::editable()[$status])) return false;
         $pdo = Database::connection();
         $pdo->beginTransaction();
         try {
@@ -200,14 +224,30 @@ final class AppointmentRepository
             $s->execute(['id' => $id]);
             $row = $s->fetch();
             if (!$row || ($staffId !== null && (int) $row['staff_id'] !== $staffId)
-                || ($ownerId !== null && ((int) $row['owner_id'] !== $ownerId || $status !== 'cancelled'
-                    || !in_array($row['status'], ['pending','confirmed','scheduled'], true) || strtotime($row['scheduled_at']) <= time()))
-                || (in_array($row['status'], ['cancelled','canceled'], true) && $status !== 'cancelled')) {
+                || ($ownerId !== null && ((int) $row['owner_id'] !== $ownerId || $status !== 'cancelled'))) {
                 $pdo->rollBack();
-                return false; // Cancelled slots may have been reused; create a new booking instead.
+                return false;
+            }
+            // Read the database clock AFTER waiting for locks, not transaction-start now().
+            $now = new DateTimeImmutable($pdo->query('SELECT clock_timestamp()')->fetchColumn());
+            if (AppointmentLifecycleService::isExpiredPending($row, $now)) {
+                $pdo->prepare("UPDATE appointments SET status='cancelled',updated_at=clock_timestamp() WHERE id=:id AND status='pending'")
+                    ->execute(['id' => $id]);
+                $pdo->commit(); // Persist expiration even when rejecting a late start.
+                return $status === 'cancelled';
+            }
+            if (!AppointmentStatus::canTransition($row['status'], $status)
+                || ($ownerId !== null && $row['status'] !== 'cancelled'
+                    && ($row['status'] !== 'pending' || new DateTimeImmutable($row['scheduled_at']) <= $now))) {
+                $pdo->rollBack();
+                return false;
+            }
+            if ($row['status'] === $status) {
+                $pdo->commit();
+                return true; // Duplicate requests must not rewrite completed_at.
             }
             $s = $pdo->prepare("UPDATE appointments SET status=:status,
-                completed_at=CASE WHEN CAST(:completed AS boolean) THEN now() ELSE completed_at END,updated_at=now() WHERE id=:id");
+                completed_at=CASE WHEN CAST(:completed AS boolean) THEN clock_timestamp() ELSE completed_at END,updated_at=clock_timestamp() WHERE id=:id");
             $s->execute(['status' => $status, 'completed' => $status === 'completed' ? 'true' : 'false', 'id' => $id]);
             $pdo->commit();
             return true;

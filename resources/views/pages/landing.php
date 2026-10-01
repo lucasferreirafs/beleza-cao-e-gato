@@ -190,7 +190,7 @@
                             </div>
                             <div class="lp-booking-row">
                                 <span>Status</span>
-                                <em class="lp-badge-confirmed">✓ Confirmado</em>
+                                <em class="lp-badge-booked">✓ Agendado</em>
                             </div>
                         </div>
                     </div>
