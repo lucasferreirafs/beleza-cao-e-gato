@@ -24,7 +24,7 @@ As consultas de agendamentos e disponibilidade executam essa manutenção antes 
 
 A decisão utiliza o relógio do PostgreSQL após aguardar os bloqueios. A manutenção, a reserva e a mudança manual de status compartilham o bloqueio transacional já utilizado pelo motor de agendamentos. O cancelamento nunca atinge `in_progress` ou `completed` e não altera `completed_at`.
 
-**Não confundir:** os 30 minutos são o prazo para iniciar o atendimento. O intervalo de 60 minutos usado para evitar conflito entre reservas permanece inalterado.
+**Não confundir:** os 30 minutos após o horário marcado são o prazo para iniciar o atendimento. O intervalo operacional entre reservas também é de 30 minutos, mas é uma regra distinta.
 
 ## Atualizar um banco existente sem apagar dados
 
@@ -72,4 +72,4 @@ O destaque independe do filtro de métricas. A tabela continua exibindo a agenda
 
 Validação específica: `docker compose -f compose.booking-qa.yaml exec -T app php tests/staff-dashboard.php`. Esse teste também utiliza exclusivamente o banco descartável de QA.
 
-As ações rápidas, a tabela filtrada, o resumo do pet e os cartões de agendamento mobile pertencem às próximas fases.
+As ações rápidas, a tabela filtrada, o resumo do pet e os cartões de agendamento mobile já estão representados no dashboard do funcionário.

@@ -34,7 +34,7 @@ Os critérios abaixo descrevem o que a implementação deve permitir conforme as
 | RF-07 | Exibir o catálogo de serviços ativos com preço e duração. | Implementado |
 | RF-08 | Permitir criar agendamento para um pet selecionando um ou mais serviços, profissional específico ou sem preferência, data/horário e observações. | Implementado |
 | RF-09 | Consultar disponibilidade antes da confirmação e impedir conflitos incompatíveis de profissional/pet. | Implementado no fluxo de booking; disponibilidade é revalidada no servidor |
-| RF-10 | Aplicar intervalo de segurança de 60 minutos entre atendimentos conforme as regras do motor de agendamento. | Implementado |
+| RF-10 | Aplicar intervalo de segurança de 30 minutos entre atendimentos conforme as regras do motor de agendamento. | Implementado |
 | RF-11 | Atribuir profissional livre no servidor quando a escolha for “sem preferência”. | Implementado |
 | RF-12 | Exibir ao cliente seus agendamentos e permitir cancelamento conforme regras aplicáveis. | Implementado |
 | RF-13 | Permitir à equipe acompanhar a operação e alterar status de atendimento. | Implementado |
@@ -46,7 +46,7 @@ Os critérios abaixo descrevem o que a implementação deve permitir conforme as
 
 - O agendamento percorre etapas nomeadas: `servico`, `escolha-pet`, `profissional`, `data-e-horario` e `confirmacao`.
 - Um agendamento aceita até 10 serviços. O banco armazena a composição em `appointment_services`, preservando nome, preço e duração associados ao agendamento.
-- A duração total é derivada dos serviços selecionados; as operações de disponibilidade e confirmação verificam a duração e o intervalo de 60 minutos.
+- A duração total é derivada dos serviços selecionados; as operações de disponibilidade e confirmação verificam a duração e o intervalo de 30 minutos.
 - A grade de horários observada usa intervalos de 30 minutos, início entre 08:00 e 17:30 e término do atendimento até 18:00.
 - A confirmação revalida disponibilidade no servidor em transação; não deve confiar apenas no horário exibido anteriormente no navegador.
 - A opção “sem preferência” não deixa o profissional indefinido: a atribuição ocorre no backend, condicionada à disponibilidade.

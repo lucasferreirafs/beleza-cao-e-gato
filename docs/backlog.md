@@ -20,7 +20,7 @@ Este backlog separa funcionalidades já visíveis no código de oportunidades ai
 | BGC-005 | Pets | Upload/recuperação de fotos no bucket `img-pets` e fallback `pet.webp`. | Concluído |
 | BGC-006 | Catálogo | Consulta de serviços com preço e duração. | Concluído |
 | BGC-007 | Agendamento | Fluxo nomeado por etapas, seleção de pet e múltiplos serviços, escolha de profissional/preferência, horário e observação. | Concluído |
-| BGC-008 | Agendamento | Consulta de disponibilidade, tolerância de 60 minutos, autoatribuição de profissional e revalidação no backend ao confirmar. | Concluído |
+| BGC-008 | Agendamento | Consulta de disponibilidade, intervalo de 30 minutos, autoatribuição de profissional e revalidação no backend ao confirmar. | Concluído |
 | BGC-009 | Agendamento | Persistência do total e composição de serviços no agendamento; consulta e cancelamento pelo cliente. | Concluído |
 | BGC-010 | Operação | Área de funcionário para consultar páginas operacionais e atualizar status de atendimento. | Concluído |
 | BGC-011 | Administração | Seções administrativas para manutenção dos registros e status previstos no sistema. | Concluído |

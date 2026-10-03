@@ -171,7 +171,7 @@ Detalhes de validação e respostas HTTP estão implementados em `app/Services/S
 - Fluxo nomeado: `servico` → `escolha-pet` → `profissional` → `data-e-horario` → `confirmacao`. URLs numéricas antigas são normalizadas para as etapas nomeadas.
 - Cada reserva aceita de 1 a 10 serviços ativos e distintos. O backend calcula preço e duração total; a confirmação compara os valores atuais com o resumo apresentado.
 - Os horários começam a cada 30 minutos entre 08:00 e 17:30, e todos os serviços precisam terminar até 18:00. A disponibilidade é calculada diariamente; não há escala semanal por profissional.
-- Existe um intervalo de 60 minutos ao redor da reserva entre atendimentos do mesmo profissional ou pet. O limite exato é considerado livre.
+- Existe um intervalo de 30 minutos ao redor da reserva entre atendimentos do mesmo profissional ou pet. O limite exato é considerado livre.
 - A seleção de profissional precede data e horário. Na etapa do horário, profissionais ocupados continuam visíveis e desabilitados. “Sem preferência” seleciona no servidor um profissional ativo e livre.
 - A disponibilidade é verificada novamente ao confirmar. A gravação usa transação, lock consultivo compartilhado com mudanças de status e locks de linha para reduzir colisões concorrentes.
 - Agendamentos cancelados liberam a agenda e não podem ser reabertos diretamente.
