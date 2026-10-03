@@ -177,40 +177,9 @@ final class ManagementRepository
 
     public function staffRows(string $section, string $staffId): array
     {
-        $pdo = Database::connection();
-        if (in_array($section, ['agenda', 'atendimentos', 'historico'], true)) {
+        if (in_array($section, ['agenda', 'atendimentos'], true)) {
             $rows = (new AppointmentRepository())->allForStaff($staffId, $section === 'agenda');
-            if ($section === 'historico') $rows = array_values(array_filter($rows, static fn(array $a): bool => strtotime($a['scheduled_at']) < time()));
             return array_map(static fn(array $a): array => $a + ['schedule' => date('d/m H:i', strtotime($a['scheduled_at']))], $rows);
-        }
-        if ($section === 'clientes') {
-            $s = $pdo->prepare('
-                SELECT DISTINCT c.id,c.name client_name,c.email schedule,p.name pet_name,\'Cliente atendido\' service_name,c.status 
-                FROM appointments a 
-                JOIN pets p 
-                ON p.id=a.pet_id 
-                JOIN users c 
-                ON c.id=p.owner_id 
-                WHERE a.staff_id=:staff 
-                ORDER BY c.name
-            ');
-
-            $s->execute(['staff' => $staffId]);
-            return $s->fetchAll();
-        }
-
-        if ($section === 'pets') {
-            $s = $pdo->prepare('
-                SELECT DISTINCT p.id,p.name pet_name,c.name client_name,p.breed service_name,p.species schedule,\'active\' status 
-                FROM appointments a 
-                JOIN pets p ON p.id=a.pet_id 
-                JOIN users c 
-                ON c.id=p.owner_id 
-                WHERE a.staff_id=:staff 
-                ORDER BY p.name
-            ');
-            $s->execute(['staff' => $staffId]);
-            return $s->fetchAll();
         }
         return [];
     }

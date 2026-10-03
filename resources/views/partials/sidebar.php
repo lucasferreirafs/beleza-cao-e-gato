@@ -10,7 +10,6 @@ $items = match ($role) {
         'funcionarios' => ['Funcionários',   '/admin/funcionarios',  '<i class="fa-solid fa-users-line"></i>'],
         'servicos'     => ['Serviços',       '/admin/servicos',      '<i class="fa-solid fa-scissors"></i>'],
         'relatorios'   => ['Relatórios',     '/admin/relatorios',    '<i class="fa-solid fa-chart-simple"></i>'],
-        'configuracoes'=> ['Configurações',  '/admin/configuracoes', '<i class="fa-solid fa-gear"></i>'],
     ],
     'staff' => [
         'dashboard'    => ['Dashboard',     '/staff',               '<i class="fa-solid fa-chart-pie"></i>'],
@@ -18,7 +17,6 @@ $items = match ($role) {
         'atendimentos' => ['Atendimentos',  '/staff/atendimentos',  '<i class="fa-solid fa-dog"></i>'],
         'clientes'     => ['Clientes',      '/staff/clientes',      '<i class="fa-solid fa-users"></i>'],
         'pets'         => ['Pets',          '/staff/pets',          '<i class="fa-solid fa-paw"></i>'],
-        'historico'    => ['Histórico',     '/staff/historico',     '<i class="fa-solid fa-clock-rotate-left"></i>'],
     ],
     default => [
         'dashboard'    => ['Início',        '/cliente',             '<i class="fa-solid fa-house"></i>'],

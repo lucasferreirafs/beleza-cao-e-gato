@@ -25,6 +25,9 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
         <link rel="stylesheet" href="/assets/css/staff/dashboard.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/dashboard.css') ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/account.css">
+    <?php if (($pageClass ?? '') === 'page-staff-page' && in_array(($section ?? ''), ['clientes', 'pets'], true)): ?>
+        <link rel="stylesheet" href="/assets/css/staff/clients.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/clients.css') ?>">
+    <?php endif; ?>
     <?php if (($pageClass ?? '') === 'page-staff-page' && ($section ?? '') === 'agenda'): ?>
         <link rel="stylesheet" href="/assets/css/staff/agenda.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/agenda.css') ?>">
     <?php endif; ?>

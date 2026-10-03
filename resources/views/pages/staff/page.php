@@ -1,6 +1,16 @@
 <?php $e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8'); ?>
 <?php if ($section === 'agenda') { require __DIR__ . '/agenda.php'; return; } ?>
 <?php if ($section === 'atendimentos') { require __DIR__ . '/appointments.php'; return; } ?>
+<?php if ($section === 'clientes') {
+    require __DIR__ . '/' . match ($clientView ?? 'list') {
+        'profile' => 'client-profile.php', 'pet' => 'client-pet-profile.php', default => 'clients.php',
+    };
+    return;
+} ?>
+<?php if ($section === 'pets') {
+    require __DIR__ . '/' . (($petView ?? 'list') === 'profile' ? 'client-pet-profile.php' : 'staff-pets.php');
+    return;
+} ?>
 
 <header class="page-heading">
     <div>

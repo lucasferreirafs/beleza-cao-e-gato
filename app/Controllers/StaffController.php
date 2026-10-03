@@ -14,16 +14,110 @@ use App\Support\AppointmentStatus;
 use App\Support\PrivateImageResponse;
 use App\Support\Uuid;
 use App\Services\StaffAgendaService;
+use App\Services\StaffClientService;
+use App\Services\StaffPetService;
 use App\Services\SupabaseStorageService;
 use RuntimeException;
 use Throwable;
 final class StaffController
 {
+    public function clients(Request $r): void
+    {
+        $this->renderClients($r, 'list', 'Clientes', (new StaffClientService())->listing($r->input('q'), $r->input('page')));
+    }
+
+    public function clientProfile(Request $r): void
+    {
+        $data = (new StaffClientService())->profile($r->param('clientId'));
+        if ($data === null) { $this->notFound(); return; }
+        $this->renderClients($r, 'profile', 'Perfil do cliente', $data);
+    }
+
+    public function clientPet(Request $r): void
+    {
+        $data = (new StaffClientService())->pet($r->param('clientId'), $r->param('petId'));
+        if ($data === null) { $this->notFound(); return; }
+        $this->renderClients($r, 'pet', 'Perfil do pet', $data);
+    }
+
+    private function renderClients(Request $r, string $clientView, string $title, array $data): void
+    {
+        $selection = StaffClientService::selection($r->input('q'), $r->input('page'));
+        $returnQuery = http_build_query(array_filter(['q' => $data['search'] ?? $selection['search'], 'page' => $data['page'] ?? $selection['page']], static fn($v) => $v !== '' && $v !== 1));
+        View::render('pages/staff/page', $data + [
+            'title' => $title, 'active' => 'clientes', 'section' => 'clientes',
+            'clientView' => $clientView, 'returnQuery' => $returnQuery, 'user' => Session::user(),
+        ]);
+    }
+
+    public function clientPhoto(Request $r): void
+    {
+        $client = (new StaffClientService())->client($r->param('clientId'));
+        $this->directoryPhoto(SupabaseStorageService::USER_BUCKET, $client['avatar_path'] ?? null);
+    }
+
+    public function clientPetPhoto(Request $r): void
+    {
+        $data = (new StaffClientService())->pet($r->param('clientId'), $r->param('petId'));
+        $this->directoryPhoto(SupabaseStorageService::PET_BUCKET, $data['pet']['photo_path'] ?? null);
+    }
+
+    public function petsDirectory(Request $r): void
+    {
+        $data = (new StaffPetService())->listing($r->input('q'), $r->input('page'));
+        $returnQuery = http_build_query(array_filter([
+            'q' => $data['search'], 'page' => $data['page'],
+        ], static fn($value) => $value !== '' && $value !== 1));
+        View::render('pages/staff/page', $data + [
+            'title' => 'Pets', 'active' => 'pets', 'section' => 'pets',
+            'petView' => 'list', 'returnQuery' => $returnQuery,
+            'user' => Session::user(),
+        ]);
+    }
+
+    public function petProfile(Request $r): void
+    {
+        $data = (new StaffPetService())->profile($r->param('petId'));
+        if ($data === null) { $this->notFound(); return; }
+        $returnQuery = http_build_query(array_filter([
+            'q' => is_string($r->input('q')) ? mb_substr(trim($r->input('q')), 0, 100) : '',
+            'page' => StaffPetService::selection('', $r->input('page'))['page'],
+        ], static fn($value) => $value !== '' && $value !== 1));
+        View::render('pages/staff/page', $data + [
+            'title' => 'Perfil do pet', 'active' => 'pets', 'section' => 'pets',
+            'petView' => 'profile', 'fromPetDirectory' => true,
+            'returnQuery' => $returnQuery, 'user' => Session::user(),
+        ]);
+    }
+
+    public function petPhoto(Request $r): void
+    {
+        $data = (new StaffPetService())->profile($r->param('petId'));
+        $this->directoryPhoto(SupabaseStorageService::PET_BUCKET, $data['pet']['photo_path'] ?? null);
+    }
+
+    /** Chamado somente após autorização do cliente e do vínculo tutor/pet. */
+    private function directoryPhoto(string $bucket, ?string $path): void
+    {
+        if (!$path) { http_response_code(404); return; }
+        if (PrivateImageResponse::isNotModified($bucket, $path)) return;
+        try {
+            $bytes = (new SupabaseStorageService())->download($bucket, $path);
+            $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
+            if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) throw new RuntimeException('Imagem inválida.');
+            PrivateImageResponse::send($bytes, $mime, $bucket, $path);
+        } catch (Throwable) {
+            header_remove('ETag');
+            header('Cache-Control: no-store');
+            http_response_code(503);
+        }
+    }
+
     public function page(Request $r): void
     {
         $section = $r->param('section') ?? 'agenda';
-        $allowed = ['agenda','atendimentos','clientes','pets','historico','perfil'];
-        if (!in_array($section, $allowed, true)) $section = 'agenda';
+        $allowed = ['agenda','atendimentos','perfil'];
+        if (!in_array($section, $allowed, true)) { $this->notFound(); return; }
         if ($section === 'agenda') {
             $agenda = (new StaffAgendaService())->data(Session::user()['id'], $r->input('date'), $r->input('view'));
             View::render('pages/staff/page', ['title' => 'Minha Agenda', 'active' => 'agenda', 'section' => 'agenda', 'agenda' => $agenda, 'user' => Session::user()]);

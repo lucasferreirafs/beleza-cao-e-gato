@@ -63,6 +63,14 @@ $router->post('/cliente/agendamentos/{id}/cancelar', [ClientController::class, '
 $router->delete('/cliente/pets/{id}', [ClientController::class, 'deletePet'], [$auth, RoleMiddleware::class . ':client', $csrf]);
 
 // GET - FUNCIONARIO
+$router->get('/staff/pets', [StaffController::class, 'petsDirectory'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/pets/{petId}/foto', [StaffController::class, 'petPhoto'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/pets/{petId}', [StaffController::class, 'petProfile'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/clientes', [StaffController::class, 'clients'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/clientes/{clientId}/foto', [StaffController::class, 'clientPhoto'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/clientes/{clientId}/pets/{petId}/foto', [StaffController::class, 'clientPetPhoto'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/clientes/{clientId}/pets/{petId}', [StaffController::class, 'clientPet'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/clientes/{clientId}', [StaffController::class, 'clientProfile'], [$auth, RoleMiddleware::class . ':staff']);
 $router->get('/staff/atendimentos/{id}/foto', [StaffController::class, 'appointmentPetPhoto'], [$auth, RoleMiddleware::class . ':staff']);
 $router->get('/staff/atendimentos/{id}', [StaffController::class, 'appointmentDetail'], [$auth, RoleMiddleware::class . ':staff']);
 $router->get('/staff/{section}', [StaffController::class, 'page'], [$auth, RoleMiddleware::class . ':staff']);

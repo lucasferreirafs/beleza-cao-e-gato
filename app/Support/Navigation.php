@@ -22,11 +22,18 @@ final class Navigation
         }
         $segments = explode('/', trim($path, '/'));
         $section = $segments[1] ?? '';
+        if ($role === 'staff' && $section === 'clientes' && ($segments[3] ?? '') === 'pets' && Uuid::parse($segments[2] ?? null)) {
+            return [...$crumbs,
+                ['label' => 'Clientes', 'url' => '/staff/clientes'],
+                ['label' => 'Perfil do cliente', 'url' => '/staff/clientes/' . $segments[2]],
+                ['label' => $title, 'url' => null],
+            ];
+        }
         $label = match ($section) {
             'pets' => $role === 'client' ? 'Meus pets' : 'Pets', 'agendamentos' => 'Agendamentos',
             'agendamento' => 'Agendamentos', 'perfil' => 'Meu Perfil', 'configuracoes' => 'Configurações',
             'servicos' => 'Serviços', 'clientes' => 'Clientes', 'funcionarios' => 'Funcionários',
-            'agenda' => 'Minha Agenda', 'atendimentos' => 'Atendimentos', 'historico' => 'Histórico',
+            'agenda' => 'Minha Agenda', 'atendimentos' => 'Atendimentos',
             'relatorios' => 'Relatórios', default => $title,
         };
         $crumbs[] = ['label' => $label, 'url' => count($segments) > 2 ? $home . '/' . ($section === 'agendamento' ? 'agendamentos' : $section) : null];
