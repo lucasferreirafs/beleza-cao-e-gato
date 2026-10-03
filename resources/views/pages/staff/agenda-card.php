@@ -18,7 +18,9 @@ if (!empty($row['pet_birth_date'])) {
         <span class="agenda-service-name"><?= $e($row['service_name']) ?></span>
         <span class="agenda-tutor">Tutor: <?= $e($row['client_name']) ?></span>
         <span class="agenda-duration"><?= $e($formatDuration((int) $row['duration_minutes'])) ?></span>
-        <span class="agenda-status-label"><?= $e($label) ?></span><span class="agenda-chevron" aria-hidden="true">⌄</span>
+        <span class="agenda-status-label"><?= $e($label) ?></span>
+        <i class="fa-solid fa-angle-down agenda-chevron agenda-chevron-down" aria-hidden="true"></i>
+        <i class="fa-solid fa-angle-up agenda-chevron agenda-chevron-up" aria-hidden="true"></i>
     </summary>
     <div class="agenda-card-details">
         <p class="agenda-service-time">Horário previsto: <?= $item['start']->format('H:i') ?>–<?= $item['end']->format('H:i') ?></p>

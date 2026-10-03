@@ -27,10 +27,11 @@ $query = http_build_query(array_filter(['q' => $search, 'date' => $date], static
                 <details class="staff-appointment-item">
                     <summary>
                         <span class="staff-appointment-date"><small>Data / horário</small><strong><?= $scheduled->format('d/m/Y · H:i') ?></strong></span>
-                        <span><small>Pet</small><strong><?= $e($row['pet_name']) ?></strong></span>
-                        <span><small>Tutor</small><strong><?= $e($row['client_name']) ?></strong></span>
-                        <span><small>Status</small><span class="badge <?= $e(\App\Support\StatusBadge::class($status)) ?>"><?= $e(\App\Support\AppointmentStatus::label($status)) ?></span></span>
-                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        <span class="staff-appointment-pet"><small>Pet</small><strong><?= $e($row['pet_name']) ?></strong></span>
+                        <span class="staff-appointment-tutor"><small>Tutor</small><strong><?= $e($row['client_name']) ?></strong></span>
+                        <span class="staff-appointment-status"><small>Status</small><span class="badge <?= $e(\App\Support\StatusBadge::class($status)) ?>"><?= $e(\App\Support\AppointmentStatus::label($status)) ?></span></span>
+                        <i class="fa-solid fa-angle-down staff-appointment-chevron staff-appointment-chevron-down" aria-hidden="true"></i>
+                        <i class="fa-solid fa-angle-up staff-appointment-chevron staff-appointment-chevron-up" aria-hidden="true"></i>
                     </summary>
                     <div class="staff-appointment-expanded">
                         <div><strong>Serviços contratados</strong><ul>
