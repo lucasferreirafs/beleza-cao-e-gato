@@ -10,6 +10,7 @@ use App\Core\{
 };
 use App\Repositories\ManagementRepository;
 use App\Support\AppointmentStatus;
+use App\Services\StaffAgendaService;
 final class StaffController
 {
     public function page(Request $r): void
@@ -17,6 +18,11 @@ final class StaffController
         $section = $r->param('section') ?? 'agenda';
         $allowed = ['agenda','atendimentos','clientes','pets','historico','perfil'];
         if (!in_array($section, $allowed, true)) $section = 'agenda';
+        if ($section === 'agenda') {
+            $agenda = (new StaffAgendaService())->data((int) Session::user()['id'], $r->input('date'), $r->input('view'));
+            View::render('pages/staff/page', ['title' => 'Minha Agenda', 'active' => 'agenda', 'section' => 'agenda', 'agenda' => $agenda, 'user' => Session::user()]);
+            return;
+        }
         $rows = (new ManagementRepository())->staffRows($section, (int) Session::user()['id']);
         View::render('pages/staff/page', ['title' => ucfirst($section), 'active' => $section, 'section' => $section, 'rows' => $rows, 'user' => Session::user()]);
     }
@@ -33,6 +39,10 @@ final class StaffController
             ], $ok ? 200 : 409);
         }
         Session::flash($ok ? 'success' : 'error', $ok ? 'Atendimento atualizado.' : 'Atualização inválida ou não autorizada.');
+        if ($r->input('source') === 'agenda') {
+            $selection = StaffAgendaService::selection($r->input('date'), $r->input('view'));
+            Response::redirect('/staff/agenda?' . http_build_query(['date' => $selection['selected']->format('Y-m-d'), 'view' => $selection['view']]));
+        }
         $period = $r->input('period', 'today');
         Response::redirect('/staff?period=' . ($period === 'week' ? 'week' : 'today'));
     }
