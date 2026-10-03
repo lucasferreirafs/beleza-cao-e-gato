@@ -2,9 +2,9 @@
 $e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $petsById = [];
 foreach ($pets as $pet) {
-    $petsById[(int) ($pet['id'] ?? 0)] = $pet;
+    $petsById[$pet['id']] = $pet;
 }
-$upcomingPet = $upcoming ? ($petsById[(int) ($upcoming['pet_id'] ?? 0)] ?? null) : null;
+$upcomingPet = $upcoming ? ($petsById[$upcoming['pet_id'] ?? ''] ?? null) : null;
 $petPhoto = static fn(array $pet): string => !empty($pet['photo_path'])
     ? \App\Support\PetHelper::photo($pet)
     : '/assets/images/pet.webp';
@@ -107,7 +107,7 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
 
                 <footer>
                     <a class="button primary" href="/cliente/agendamentos">Ver Detalhes</a>
-                    <form method="post" action="/cliente/agendamentos/<?= (int) $upcoming['id'] ?>/cancelar"
+                    <form method="post" action="/cliente/agendamentos/<?= $e($upcoming['id']) ?>/cancelar"
                         data-confirm="Cancelar este agendamento?">
                         <?= \App\Security\Csrf::field() ?>
                         <button class="button ghost danger">Cancelar</button>
@@ -189,7 +189,7 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
                     <small><?= $e($pet['species']) ?> • <?= $e($pet['breed']) ?></small>
                 </span>
 
-                <a href="/cliente/pets/<?= (int) $pet['id'] ?>" aria-label="Ver <?= $e($pet['name']) ?>">
+                <a href="/cliente/pets/<?= $e($pet['id']) ?>" aria-label="Ver <?= $e($pet['name']) ?>">
                     <i class="fa-solid fa-eye"></i>
                 </a>
             </div>

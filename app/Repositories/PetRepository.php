@@ -7,14 +7,14 @@ use PDOException;
 
 final class PetRepository
 {
-    public function allForUser(int $userId): array
+    public function allForUser(string $userId): array
     {
         $s = Database::connection()->prepare('SELECT * FROM pets WHERE owner_id=:owner ORDER BY name');
         $s->execute(['owner' => $userId]);
         return $s->fetchAll();
     }
 
-    public function create(int $ownerId, array $data): int
+    public function create(string $ownerId, array $data): string
     {
         $sql = '
             INSERT INTO pets (owner_id,name,species,breed,sex,birth_date,weight,allergies,neutered,behavior,special_needs,notes,coat_color,photo_path)
@@ -23,17 +23,17 @@ final class PetRepository
         ';
         $s = Database::connection()->prepare($sql);
         $s->execute($this->params($ownerId, $data));
-        return (int) $s->fetchColumn();
+        return (string) $s->fetchColumn();
     }
 
-    public function findForUser(int $id, int $ownerId): ?array
+    public function findForUser(string $id, string $ownerId): ?array
     {
         $s = Database::connection()->prepare('SELECT * FROM pets WHERE id=:id AND owner_id=:owner');
         $s->execute(['id' => $id, 'owner' => $ownerId]);
         return $s->fetch() ?: null;
     }
 
-    public function update(int $id, int $ownerId, array $data): bool
+    public function update(string $id, string $ownerId, array $data): bool
     {
         $sql = '
             UPDATE pets 
@@ -48,7 +48,7 @@ final class PetRepository
         return $s->rowCount() === 1;
     }
 
-    public function delete(int $id, int $ownerId): bool
+    public function delete(string $id, string $ownerId): bool
     {
         try {
             $s = Database::connection()->prepare('DELETE FROM pets WHERE id=:id AND owner_id=:owner');
@@ -61,7 +61,7 @@ final class PetRepository
         }
     }
 
-    private function params(int $ownerId, array $data): array
+    private function params(string $ownerId, array $data): array
     {
         $nullable = static fn(string $key): mixed => ($data[$key] ?? '') !== '' ? $data[$key] : null;
         return [

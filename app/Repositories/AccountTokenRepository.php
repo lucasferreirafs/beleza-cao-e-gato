@@ -6,7 +6,7 @@ use App\Core\Database;
 
 final class AccountTokenRepository
 {
-    public function issue(int $userId, string $purpose, string $plainToken, int $ttlSeconds): void
+    public function issue(string $userId, string $purpose, string $plainToken, int $ttlSeconds): void
     {
         $pdo = Database::connection();
         $pdo->prepare('
@@ -35,7 +35,7 @@ final class AccountTokenRepository
         );
     }
 
-    public function consume(int $userId, string $purpose, string $plainToken): bool
+    public function consume(string $userId, string $purpose, string $plainToken): bool
     {
         $pdo = Database::connection();
         $s = $pdo->prepare('

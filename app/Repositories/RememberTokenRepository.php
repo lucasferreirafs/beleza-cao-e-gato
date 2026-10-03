@@ -7,7 +7,7 @@ use App\Core\Database;
 
 final class RememberTokenRepository
 {
-    public function issue(int $userId, int $expires): string
+    public function issue(string $userId, int $expires): string
     {
         $selector = bin2hex(random_bytes(16));
         $validator = bin2hex(random_bytes(32));
@@ -30,7 +30,7 @@ final class RememberTokenRepository
                 (previous_valid_until>now()) AS previous_valid FROM remember_tokens WHERE selector=:selector FOR UPDATE');
             $s->execute(['selector' => $parts[1]]);
             $token = $s->fetch();
-            $user = $token ? (new UserRepository())->findById((int) $token['user_id']) : null;
+            $user = $token ? (new UserRepository())->findById($token['user_id']) : null;
             $hash = hash('sha256', $parts[2]);
             $current = $token && hash_equals($token['token_hash'], $hash);
             $previous = $token && $token['previous_valid'] && is_string($token['previous_hash']) && hash_equals($token['previous_hash'], $hash);
@@ -62,7 +62,7 @@ final class RememberTokenRepository
         Database::connection()->prepare('DELETE FROM remember_tokens WHERE selector=:selector')->execute(['selector' => $parts[1]]);
     }
 
-    public function revokeAll(int $userId): void
+    public function revokeAll(string $userId): void
     {
         Database::connection()->prepare('DELETE FROM remember_tokens WHERE user_id=:id')->execute(['id' => $userId]);
     }

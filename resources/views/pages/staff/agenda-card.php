@@ -12,7 +12,7 @@ if (!empty($row['pet_birth_date'])) {
     }
 }
 ?>
-<details class="agenda-card agenda-status-<?= $e($status) ?>" data-appointment="<?= (int) $row['id'] ?>">
+<details class="agenda-card agenda-status-<?= $e($status) ?>" data-appointment="<?= $e($row['id']) ?>">
     <summary>
         <strong class="agenda-pet-name"><?= $e($row['pet_name']) ?><?php if ($allergies !== '' || $needs !== ''): ?><span class="agenda-health-alert" aria-label="Alerta de saúde"> ⚠</span><?php endif; ?></strong>
         <span class="agenda-service-name"><?= $e($row['service_name']) ?></span>
@@ -46,7 +46,7 @@ if (!empty($row['pet_birth_date'])) {
             <?php if (!empty($row['client_phone'])): ?><span>Telefone: <?= $e($row['client_phone']) ?></span><?php endif; ?>
             <?php if (!empty($row['client_email'])): ?><span>E-mail: <?= $e($row['client_email']) ?></span><?php endif; ?></p>
         <?php if (in_array($status, ['pending', 'in_progress'], true)): ?>
-            <form method="post" action="/staff/agendamentos/<?= (int) $row['id'] ?>/status" data-agenda-status-form>
+            <form method="post" action="/staff/agendamentos/<?= $e($row['id']) ?>/status" data-agenda-status-form>
                 <?= \App\Security\Csrf::field() ?>
                 <input type="hidden" name="source" value="agenda">
                 <input type="hidden" name="date" value="<?= $agenda['selected']->format('Y-m-d') ?>">

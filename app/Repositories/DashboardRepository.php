@@ -9,7 +9,7 @@ use DateTimeZone;
 
 final class DashboardRepository
 {
-    public function client(int $userId): array
+    public function client(string $userId): array
     {
         $pdo = Database::connection();
         $pets = (new PetRepository())->allForUser($userId);
@@ -47,7 +47,7 @@ final class DashboardRepository
         $totals = [];
         foreach ($repository->allForAdmin() as $appointment) {
             foreach ($appointment['services'] as $service) {
-                $id = (int) $service['id'];
+                $id = $service['id'];
                 $totals[$id] ??= ['name' => $service['name'], 'total' => 0];
                 $totals[$id]['total']++;
             }
@@ -59,7 +59,7 @@ final class DashboardRepository
         return compact('counts', 'recent', 'serviceStats');
     }
 
-    public function staff(int $staffId, string $period = 'today'): array
+    public function staff(string $staffId, string $period = 'today'): array
     {
         $period = $period === 'week' ? 'week' : 'today';
         $repository = new AppointmentRepository();

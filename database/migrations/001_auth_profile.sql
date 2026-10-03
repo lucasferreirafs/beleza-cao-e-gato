@@ -7,7 +7,7 @@ ALTER TABLE public.users
 
 CREATE TABLE IF NOT EXISTS public.remember_tokens (
    selector VARCHAR(32) PRIMARY KEY,
-   user_id BIGINT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
    token_hash VARCHAR(64) NOT NULL,
    previous_hash VARCHAR(64),
    previous_valid_until TIMESTAMPTZ,

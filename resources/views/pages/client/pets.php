@@ -1,3 +1,4 @@
+<?php $e = static fn(mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); ?>
 <header class="page-heading">
     <div>
         <h1>Meus Pets</h1>
@@ -12,7 +13,7 @@
     <?php
     foreach ($pets as $pet): ?>
         <article class="panel pet-card pet-card--managed">
-            <form class="pet-card-delete" method="post" action="/cliente/pets/<?= (int) $pet['id'] ?>" data-confirm="Excluir este pet?">
+            <form class="pet-card-delete" method="post" action="/cliente/pets/<?= $e($pet['id']) ?>" data-confirm="Excluir este pet?">
                 <?= \App\Security\Csrf::field() ?>
                 <input type="hidden" name="_method" value="DELETE">
                 <button type="submit" class="pet-delete-icon" aria-label="Excluir <?= htmlspecialchars($pet['name'], ENT_QUOTES, 'UTF-8') ?>" title="Excluir pet"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
@@ -46,11 +47,11 @@
 
             <footer>
 
-                <a class="button muted" href="/cliente/pets/<?= (int) $pet['id'] ?>">
+                <a class="button muted" href="/cliente/pets/<?= $e($pet['id']) ?>">
                     <i class="fa-solid fa-eye"></i>
                     Ver Perfil
                 </a>
-                <a class="button secondary" href="/cliente/pets/<?= (int) $pet['id'] ?>/editar">
+                <a class="button secondary" href="/cliente/pets/<?= $e($pet['id']) ?>/editar">
                     <i class="fa-solid fa-pen"></i>
                     Editar
                 </a>

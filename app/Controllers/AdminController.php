@@ -10,6 +10,7 @@ use App\Core\{
 };
 use App\Repositories\ManagementRepository;
 use InvalidArgumentException;
+use App\Support\Uuid;
 
 final class AdminController
 {
@@ -40,7 +41,7 @@ final class AdminController
         $section = (string) $r->param('section');
         $ok = (new ManagementRepository())->setAdminStatus(
             $section,
-            (int) $r->param('id'),
+            Uuid::route($r->param('id')),
             (string) $r->input('status')
         );
 
@@ -54,7 +55,7 @@ final class AdminController
         if (!in_array($section, ['clientes', 'pets', 'funcionarios', 'servicos'], true))
             Response::redirect('/admin/' . rawurlencode($section));
 
-        $id = $r->param('id') !== null ? (int) $r->param('id') : null;
+        $id = $r->param('id') !== null ? Uuid::route($r->param('id')) : null;
         $repository = new ManagementRepository();
         $record = $id ? $repository->findEditable($section, $id) : null;
 
@@ -79,7 +80,7 @@ final class AdminController
     public function save(Request $r): void
     {
         $section = (string) $r->param('section');
-        $id = $r->param('id') !== null ? (int) $r->param('id') : null;
+        $id = $r->param('id') !== null ? Uuid::route($r->param('id')) : null;
 
         try {
             (new ManagementRepository())->save($section, $id, $r->all());

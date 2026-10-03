@@ -12,6 +12,7 @@ use App\Repositories\ManagementRepository;
 use App\Repositories\AppointmentRepository;
 use App\Support\AppointmentStatus;
 use App\Support\PrivateImageResponse;
+use App\Support\Uuid;
 use App\Services\StaffAgendaService;
 use App\Services\SupabaseStorageService;
 use RuntimeException;
@@ -24,7 +25,7 @@ final class StaffController
         $allowed = ['agenda','atendimentos','clientes','pets','historico','perfil'];
         if (!in_array($section, $allowed, true)) $section = 'agenda';
         if ($section === 'agenda') {
-            $agenda = (new StaffAgendaService())->data((int) Session::user()['id'], $r->input('date'), $r->input('view'));
+            $agenda = (new StaffAgendaService())->data(Session::user()['id'], $r->input('date'), $r->input('view'));
             View::render('pages/staff/page', ['title' => 'Minha Agenda', 'active' => 'agenda', 'section' => 'agenda', 'agenda' => $agenda, 'user' => Session::user()]);
             return;
         }
@@ -35,7 +36,7 @@ final class StaffController
             $date = $r->input('date', '');
             $date = is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)
                 && checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4)) ? $date : '';
-            $rows = (new ManagementRepository())->staffRows($section, (int) Session::user()['id']);
+            $rows = (new ManagementRepository())->staffRows($section, Session::user()['id']);
             $rows = array_values(array_filter($rows, static function (array $row) use ($search, $date): bool {
                 if ($date !== '' && (new \DateTimeImmutable($row['scheduled_at']))->format('Y-m-d') !== $date) return false;
                 return $search === '' || mb_stripos(implode(' ', [$row['pet_name'], $row['client_name'], $row['service_name']]), $search) !== false;
@@ -44,14 +45,14 @@ final class StaffController
                 'section' => $section, 'rows' => $rows, 'search' => $search, 'date' => $date, 'user' => Session::user()]);
             return;
         }
-        $rows = (new ManagementRepository())->staffRows($section, (int) Session::user()['id']);
+        $rows = (new ManagementRepository())->staffRows($section, Session::user()['id']);
         View::render('pages/staff/page', ['title' => ucfirst($section), 'active' => $section, 'section' => $section, 'rows' => $rows, 'user' => Session::user()]);
     }
     public function appointmentDetail(Request $r): void
     {
-        $row = (new AppointmentRepository())->findForStaff((int) $r->param('id'), (int) Session::user()['id']);
+        $row = (new AppointmentRepository())->findForStaff(Uuid::route($r->param('id')), Session::user()['id']);
         if (!$row) { $this->notFound(); return; }
-        $lastGrooming = (new AppointmentRepository())->lastGroomingForPet((int) $row['pet_id'], (int) $row['id']);
+        $lastGrooming = (new AppointmentRepository())->lastGroomingForPet($row['pet_id'], $row['id']);
         View::render('pages/staff/appointment-detail', ['title' => 'Detalhes do atendimento',
             'active' => 'atendimentos', 'section' => 'atendimentos', 'appointment' => $row,
             'lastGrooming' => $lastGrooming, 'user' => Session::user()]);
@@ -59,7 +60,7 @@ final class StaffController
 
     public function appointmentPetPhoto(Request $r): void
     {
-        $row = (new AppointmentRepository())->findForStaff((int) $r->param('id'), (int) Session::user()['id']);
+        $row = (new AppointmentRepository())->findForStaff(Uuid::route($r->param('id')), Session::user()['id']);
         if (!$row || empty($row['pet_photo_path'])) { http_response_code(404); return; }
         $path = (string) $row['pet_photo_path'];
         if (PrivateImageResponse::isNotModified(SupabaseStorageService::PET_BUCKET, $path)) return;
@@ -79,7 +80,7 @@ final class StaffController
     public function appointmentStatus(Request $r): void
     {
         $status = (string) $r->input('status');
-        $ok = (new ManagementRepository())->setStaffAppointmentStatus((int) $r->param('id'), (int) Session::user()['id'], $status);
+        $ok = (new ManagementRepository())->setStaffAppointmentStatus(Uuid::route($r->param('id')), Session::user()['id'], $status);
         if (strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest') {
             Response::json([
                 'ok' => $ok,
@@ -94,7 +95,7 @@ final class StaffController
             Response::redirect('/staff/agenda?' . http_build_query(['date' => $selection['selected']->format('Y-m-d'), 'view' => $selection['view']]));
         }
         if ($r->input('source') === 'atendimento') {
-            Response::redirect('/staff/atendimentos/' . (int) $r->param('id'));
+            Response::redirect('/staff/atendimentos/' . Uuid::route($r->param('id')));
         }
         $period = $r->input('period', 'today');
         Response::redirect('/staff?period=' . ($period === 'week' ? 'week' : 'today'));

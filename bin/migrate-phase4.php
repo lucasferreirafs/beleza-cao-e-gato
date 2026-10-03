@@ -21,7 +21,7 @@ try {
         $payload = \App\Repositories\AppointmentStorage::decode($row['notes']);
         if ($payload === null) continue;
         $pdo->prepare('DELETE FROM appointment_services WHERE appointment_id=:id')->execute(['id' => $row['id']]);
-        $storage->writeItems((int) $row['id'], $payload['services']);
+        $storage->writeItems((string) $row['id'], $payload['services']);
         $pdo->prepare('UPDATE appointments SET duration_minutes=:duration WHERE id=:id')->execute([
             'id' => $row['id'], 'duration' => array_sum(array_column($payload['services'], 'duration_minutes')),
         ]);

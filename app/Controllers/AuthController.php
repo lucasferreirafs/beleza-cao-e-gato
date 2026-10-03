@@ -76,7 +76,7 @@ final class AuthController
         $limiter->clear($limitKey);
         $remember = $r->input('remember') === '1';
         $persistence = new \App\Services\RememberMeService();
-        if ($remember) $persistence->issue((int) $user['id']);
+        if ($remember) $persistence->issue($user['id']);
         else $persistence->forget();
         Session::login($user, $remember);
         Csrf::regenerate();

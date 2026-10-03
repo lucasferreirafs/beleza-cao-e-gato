@@ -11,7 +11,7 @@ final class ServiceRepository
         return Database::connection()->query('SELECT id,name,description,duration_minutes,price FROM services WHERE active=true ORDER BY name')->fetchAll();
     }
 
-    public function findActive(int $id): ?array
+    public function findActive(string $id): ?array
     {
         $s = Database::connection()->prepare('SELECT id,name,description,duration_minutes,price FROM services WHERE id=:id AND active=true');
         $s->execute(['id' => $id]);
@@ -26,16 +26,16 @@ final class ServiceRepository
         foreach (array_values($ids) as $index => $id) {
             $key = 'service_' . $index;
             $placeholders[] = ':' . $key;
-            $params[$key] = (int) $id;
+            $params[$key] = (string) $id;
         }
         $s = Database::connection()->prepare(
             'SELECT id,name,description,duration_minutes,price FROM services WHERE active=true AND id IN (' . implode(',', $placeholders) . ')'
         );
         $s->execute($params);
         $rows = [];
-        foreach ($s->fetchAll() as $row) $rows[(int) $row['id']] = $row;
+        foreach ($s->fetchAll() as $row) $rows[$row['id']] = $row;
         $ordered = [];
-        foreach ($ids as $id) if (isset($rows[(int) $id])) $ordered[] = $rows[(int) $id];
+        foreach ($ids as $id) if (isset($rows[$id])) $ordered[] = $rows[$id];
         return $ordered;
     }
 }

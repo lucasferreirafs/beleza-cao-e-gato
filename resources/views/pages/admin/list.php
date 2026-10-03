@@ -77,8 +77,8 @@ $singular = match ($section) {
                             <td>
                                 <?php if (in_array($section, ['clientes', 'funcionarios'], true)): ?>
                                     <a class="button ghost"
-                                        href="/admin/<?= $e($section) ?>/<?= (int) $row['id'] ?>/editar">Editar</a>
-                                    <form method="post" action="/admin/<?= $e($section) ?>/<?= (int) $row['id'] ?>/status">
+                                        href="/admin/<?= $e($section) ?>/<?= $e($row['id']) ?>/editar">Editar</a>
+                                    <form method="post" action="/admin/<?= $e($section) ?>/<?= $e($row['id']) ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
                                         <input type="hidden" name="status"
                                             value="<?= $row['status'] === 'active' ? 'blocked' : 'active' ?>">
@@ -87,8 +87,8 @@ $singular = match ($section) {
                                     </form>
 
                                 <?php elseif ($section === 'servicos'): ?>
-                                    <a class="button ghost" href="/admin/servicos/<?= (int) $row['id'] ?>/editar">Editar</a>
-                                    <form method="post" action="/admin/servicos/<?= (int) $row['id'] ?>/status">
+                                    <a class="button ghost" href="/admin/servicos/<?= $e($row['id']) ?>/editar">Editar</a>
+                                    <form method="post" action="/admin/servicos/<?= $e($row['id']) ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
                                         <input type="hidden" name="status"
                                             value="<?= $row['status'] === 'active' ? 'inactive' : 'active' ?>">
@@ -97,10 +97,10 @@ $singular = match ($section) {
                                     </form>
 
                                 <?php elseif ($section === 'pets'): ?>
-                                    <a class="button ghost" href="/admin/pets/<?= (int) $row['id'] ?>/editar">Editar</a>
+                                    <a class="button ghost" href="/admin/pets/<?= $e($row['id']) ?>/editar">Editar</a>
 
                                 <?php elseif ($section === 'agendamentos'): ?>
-                                    <form method="post" action="/admin/agendamentos/<?= (int) $row['id'] ?>/status">
+                                    <form method="post" action="/admin/agendamentos/<?= $e($row['id']) ?>/status">
                                         <?= \App\Security\Csrf::field() ?>
                                         <select name="status" aria-label="Novo status">
                                             <?php foreach (\App\Support\AppointmentStatus::optionsFor($row['status']) as $value => $label): ?>

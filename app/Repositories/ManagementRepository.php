@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Core\Database;
 use App\Validation\Validator;
 use InvalidArgumentException;
+use App\Support\Uuid;
 
 final class ManagementRepository
 {
@@ -16,7 +17,7 @@ final class ManagementRepository
         ];
     }
 
-    public function findEditable(string $section, int $id): ?array
+    public function findEditable(string $section, string $id): ?array
     {
         $definition = match ($section) {
             'clientes' => ["SELECT id,name,email,phone,cpf,birth_date,status FROM users WHERE id=:id AND role='client'", null],
@@ -32,7 +33,7 @@ final class ManagementRepository
         return $s->fetch() ?: null;
     }
 
-    public function save(string $section, ?int $id, array $input): int
+    public function save(string $section, ?string $id, array $input): string
     {
         $pdo = Database::connection();
         if (in_array($section, ['clientes', 'funcionarios'], true)) {
@@ -74,7 +75,7 @@ final class ManagementRepository
             ");
 
             $s->execute($data + ['password_hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => $role]);
-            return (int) $s->fetchColumn();
+            return (string) $s->fetchColumn();
         }
 
         if ($section === 'servicos') {
@@ -103,11 +104,12 @@ final class ManagementRepository
             ');
 
             $s->execute(compact('name', 'description', 'duration', 'price'));
-            return (int) $s->fetchColumn();
+            return (string) $s->fetchColumn();
         }
 
         if ($section === 'pets') {
-            $owner = filter_var($input['owner_id'] ?? null, FILTER_VALIDATE_INT);
+            $owner = Uuid::parse($input['owner_id'] ?? null);
+            if (!$owner) throw new InvalidArgumentException('Selecione um cliente válido.');
             $ownerCheck = $pdo->prepare("SELECT 1 FROM users WHERE id=:id AND role='client'");
             $ownerCheck->execute(['id' => $owner]);
 
@@ -131,14 +133,14 @@ final class ManagementRepository
                 if (!$current)
                     throw new InvalidArgumentException('Pet não encontrado.');
 
-                (new PetRepository())->update($id, (int) $current['owner_id'], $data);
+                (new PetRepository())->update($id, $current['owner_id'], $data);
 
-                if ((int) $current['owner_id'] !== (int) $owner)
+                if ($current['owner_id'] !== $owner)
                     $pdo->prepare('UPDATE pets SET owner_id=:owner WHERE id=:id')->execute(['owner' => $owner, 'id' => $id]);
 
                 return $id;
             }
-            return (new PetRepository())->create((int) $owner, $data);
+            return (new PetRepository())->create($owner, $data);
         }
         throw new InvalidArgumentException('Tipo de cadastro inválido.');
     }
@@ -173,7 +175,7 @@ final class ManagementRepository
         return $sql ? Database::connection()->query($sql)->fetchAll() : [];
     }
 
-    public function staffRows(string $section, int $staffId): array
+    public function staffRows(string $section, string $staffId): array
     {
         $pdo = Database::connection();
         if (in_array($section, ['agenda', 'atendimentos', 'historico'], true)) {
@@ -213,7 +215,7 @@ final class ManagementRepository
         return [];
     }
 
-    public function setAdminStatus(string $section, int $id, string $status): bool
+    public function setAdminStatus(string $section, string $id, string $status): bool
     {
         $pdo = Database::connection();
         if (in_array($section, ['clientes', 'funcionarios'], true) && in_array($status, ['active', 'blocked'], true)) {
@@ -235,7 +237,7 @@ final class ManagementRepository
         return false;
     }
 
-    public function setStaffAppointmentStatus(int $id, int $staffId, string $status): bool
+    public function setStaffAppointmentStatus(string $id, string $staffId, string $status): bool
     {
         if (!in_array($status, ['pending', 'in_progress', 'completed', 'cancelled'], true))
             return false;

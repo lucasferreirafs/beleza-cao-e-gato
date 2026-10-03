@@ -24,13 +24,13 @@ function check(bool $condition, string $message): void {
 $pdo = Database::connection();
 try {
     $pdo->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
-    $staff = (int) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
-    $pet = (int) $pdo->query('SELECT id FROM pets LIMIT 1')->fetchColumn();
+    $staff = (string) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
+    $pet = (string) $pdo->query('SELECT id FROM pets LIMIT 1')->fetchColumn();
     $pdo->prepare("UPDATE pets SET weight=7.2,coat_color='Caramelo',allergies='Frango & leite',special_needs='Evitar piso molhado',behavior='Ansioso durante a secagem',notes='<script>alert(1)</script>' WHERE id=:id")->execute(['id' => $pet]);
     $services = $pdo->query('SELECT id,name,price,duration_minutes FROM services ORDER BY id LIMIT 2')->fetchAll();
     $pdo->prepare("UPDATE users SET email='staff-dashboard@example.invalid',password_hash=:hash,email_verified_at=now() WHERE id=:id")
         ->execute(['hash' => password_hash('Dashboard-qa-only1!', PASSWORD_DEFAULT), 'id' => $staff]);
-    $other = (int) $pdo->query("INSERT INTO users(name,email,password_hash,role) VALUES ('Outro profissional','other-dashboard@example.invalid','unused','staff') RETURNING id")->fetchColumn();
+    $other = (string) $pdo->query("INSERT INTO users(name,email,password_hash,role) VALUES ('Outro profissional','other-dashboard@example.invalid','unused','staff') RETURNING id")->fetchColumn();
     $repository = new DashboardRepository();
     $empty = $repository->staff($staff);
     check($empty['nextAppointment'] === null && $empty['counts']['total'] === 0, 'Estado vazio incorreto.');
@@ -38,10 +38,10 @@ try {
     $today = $now->setTime(0, 0);
     $monday = $today->modify('-' . ((int) $now->format('N') - 1) . ' days');
     $fixtures = [];
-    $insert = function (DateTimeImmutable $at, string $status, ?int $assigned = null) use ($pdo, $staff, $pet, $services, &$fixtures): int {
+    $insert = function (DateTimeImmutable $at, string $status, ?string $assigned = null) use ($pdo, $staff, $pet, $services, &$fixtures): string {
         $s = $pdo->prepare('INSERT INTO appointments(pet_id,service_id,staff_id,scheduled_at,status,price,duration_minutes) VALUES (:pet,:service,:staff,:at,:status,50,60) RETURNING id');
         $s->execute(['pet' => $pet, 'service' => $services[0]['id'], 'staff' => $assigned ?? $staff, 'at' => $at->format('c'), 'status' => $status]);
-        $id = (int) $s->fetchColumn();
+        $id = (string) $s->fetchColumn();
         $fixtures[] = ['at' => $at, 'status' => $status, 'staff' => $assigned ?? $staff];
         return $id;
     };
@@ -66,7 +66,7 @@ try {
             if (isset($expected[$fixture['status']])) $expected[$fixture['status']]++;
         }
         check($result['counts'] === $expected, 'Contadores/filtro incorretos: ' . $period);
-        check((int) $result['nextAppointment']['id'] === $hero, 'Destaque ignorou atraso tolerado ou isolamento do funcionário.');
+        check($result['nextAppointment']['id'] === $hero, 'Destaque ignorou atraso tolerado ou isolamento do funcionário.');
         check(count($result['nextAppointment']['services']) === 2, 'Destaque perdeu serviços.');
         check($result['nextAppointment']['duration_minutes'] === array_sum(array_column($services, 'duration_minutes')), 'Duração não foi somada.');
         check($result['periodStart'] == $start && $result['periodEnd'] == $end, 'Limites de período incorretos.');

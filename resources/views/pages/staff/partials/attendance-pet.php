@@ -2,7 +2,7 @@
 $pet = $appointment;
 $petAge = \App\Support\PetHelper::age($pet['pet_birth_date'] ?? null);
 $petPhoto = !empty($pet['pet_photo_path'])
-    ? '/staff/atendimentos/' . (int) $pet['id'] . '/foto?v=' . rawurlencode((string) $pet['pet_photo_path'])
+    ? '/staff/atendimentos/' . rawurlencode((string) $pet['id']) . '/foto?v=' . rawurlencode((string) $pet['pet_photo_path'])
     : '/assets/images/pet.webp';
 $value = static fn(mixed $v): string => trim((string) $v) !== '' ? (string) $v : 'Não informado';
 ?>

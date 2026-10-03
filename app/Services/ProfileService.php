@@ -15,7 +15,7 @@ use Throwable;
 
 final class ProfileService
 {
-    public function update(int $userId, array $input, ?array $file = null): array
+    public function update(string $userId, array $input, ?array $file = null): array
     {
         $users = new UserRepository();
         $current = $users->findById($userId);

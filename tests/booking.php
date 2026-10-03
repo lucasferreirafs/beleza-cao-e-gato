@@ -138,6 +138,11 @@ function race(array $requests): array
 try {
     foreach (['legacy', 'duration-only', 'items-only', 'modern'] as $mode) {
         $pdo->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
+        $uuidColumns = $pdo->query("SELECT table_name,column_name FROM information_schema.columns
+            WHERE table_schema='public' AND udt_name='uuid'")->fetchAll();
+        check(count($uuidColumns) === 13, 'Chaves primárias ou estrangeiras não foram convertidas para UUID.');
+        check($pdo->query("SELECT current_setting('TimeZone')")->fetchColumn() === 'America/Sao_Paulo', 'Conexão fora do fuso brasileiro.');
+        check((bool) $pdo->query('SELECT public.brazil_timestamp() IS NOT NULL')->fetchColumn(), 'Função de timestamp indisponível.');
         if (in_array($mode, ['legacy','duration-only'], true)) $pdo->exec('DROP TABLE appointment_services');
         if (in_array($mode, ['legacy','items-only'], true)) $pdo->exec('ALTER TABLE appointments DROP COLUMN duration_minutes');
         $schema = (new AppointmentStorage($pdo))->capabilities();
@@ -151,20 +156,20 @@ try {
                 VALUES (:name,:email,:hash,:role,'active',now()) RETURNING id");
             $s->execute(['name' => 'QA ' . $i, 'email' => 'qa' . $i . '@example.invalid',
                 'hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => $role]);
-            $people[] = (int) $s->fetchColumn();
+            $people[] = (string) $s->fetchColumn();
         }
         [$owner,$staff1,$staff2,$admin,$otherOwner] = $people;
         $pets = [];
         for ($i = 0; $i < 5; $i++) {
             $s = $pdo->prepare("INSERT INTO pets(owner_id,name,species,breed,sex) VALUES (:owner,:name,'Cachorro','Teste','Macho') RETURNING id");
             $s->execute(['owner' => $owner, 'name' => 'Pet QA ' . $i]);
-            $pets[] = (int) $s->fetchColumn();
+            $pets[] = (string) $s->fetchColumn();
         }
         $services = [];
         foreach ([[60,'71.25'],[30,'15.00']] as $i => [$duration,$price]) {
             $s = $pdo->prepare("INSERT INTO services(name,description,duration_minutes,price) VALUES (:name,'Serviço QA',:duration,:price) RETURNING id");
             $s->execute(['name' => 'Serviço QA ' . $i,'duration' => $duration,'price' => $price]);
-            $services[] = (int) $s->fetchColumn();
+            $services[] = (string) $s->fetchColumn();
         }
         $repo = new AppointmentRepository();
         $date = (new DateTimeImmutable('+60 days'))->format('Y-m-d');
@@ -233,13 +238,13 @@ try {
         check(str_contains(page(4)['body'], 'summary-notes">0'), 'Observação zero foi ocultada.');
         submit(4, [], '/cliente/agendamentos');
         $rows = $repo->allForUser($owner);
-        $automatic = current(array_filter($rows, fn(array $a): bool => (int) $a['pet_id'] === $pets[1]));
-        check((int) $automatic['staff_id'] === $staff2, 'Sem preferência não atribuiu o profissional livre.');
+        $automatic = current(array_filter($rows, fn(array $a): bool => $a['pet_id'] === $pets[1]));
+        check($automatic['staff_id'] === $staff2, 'Sem preferência não atribuiu o profissional livre.');
         check(!in_array('10:00', $repo->availableSlots($date, $services), true), 'Horário sem equipe livre foi oferecido.');
 
         // Changing a service must not change already booked durations/prices.
         $pdo->prepare('UPDATE services SET duration_minutes=120,price=99 WHERE id=:id')->execute(['id' => $services[0]]);
-        $snapshot = current(array_filter($repo->allForUser($owner), fn(array $a): bool => (int) $a['pet_id'] === $pets[0]));
+        $snapshot = current(array_filter($repo->allForUser($owner), fn(array $a): bool => $a['pet_id'] === $pets[0]));
         check($snapshot['duration_minutes'] === 90 && (float) $snapshot['price'] === 86.25, 'Alterar catálogo modificou reserva existente.');
         $pdo->prepare('UPDATE services SET duration_minutes=60,price=71.25 WHERE id=:id')->execute(['id' => $services[0]]);
 
@@ -262,23 +267,23 @@ try {
         check(count($management->adminRows('agendamentos')) === 2, 'Listagem admin falhou.');
         check(count($management->staffRows('atendimentos',$staff1)) === 1, 'Listagem staff falhou.');
         $management->adminRows('servicos');
-        check($repo->cancelForUser((int) $snapshot['id'],$owner), 'Cancelamento falhou.');
-        check(!$management->setAdminStatus('agendamentos',(int) $snapshot['id'],'pending'), 'Reabertura de cancelado ocupou um slot liberado.');
+        check($repo->cancelForUser($snapshot['id'],$owner), 'Cancelamento falhou.');
+        check(!$management->setAdminStatus('agendamentos',$snapshot['id'],'pending'), 'Reabertura de cancelado ocupou um slot liberado.');
         check(in_array('10:00',$repo->availableSlots($date,$services,$staff1),true), 'Cancelamento não liberou a agenda.');
 
         if (in_array($mode,['legacy','modern'],true)) {
             $raceDate = (new DateTimeImmutable('+65 days'))->format('Y-m-d');
             $base = array_replace($data, ['scheduled_at' => $raceDate . ' 10:00']);
-            $requests = array_map(fn(int $pet): array => ['owner'=>$owner,'booking'=>array_replace($base,['pet_id'=>$pet])], [$pets[2],$pets[3]]);
+            $requests = array_map(fn(string $pet): array => ['owner'=>$owner,'booking'=>array_replace($base,['pet_id'=>$pet])], [$pets[2],$pets[3]]);
             $result = race($requests);
             check(count(array_filter($result,fn(array $r): bool=>$r['ok'])) === 1, 'Concorrência duplicou o profissional.');
             $autoDate = (new DateTimeImmutable('+66 days'))->format('Y-m-d');
             $base = array_replace($data,['scheduled_at'=>$autoDate . ' 10:00','staff_id'=>null]);
-            $requests = array_map(fn(int $pet): array => ['owner'=>$owner,'booking'=>array_replace($base,['pet_id'=>$pet])], [$pets[2],$pets[3],$pets[4]]);
+            $requests = array_map(fn(string $pet): array => ['owner'=>$owner,'booking'=>array_replace($base,['pet_id'=>$pet])], [$pets[2],$pets[3],$pets[4]]);
             $result = race($requests);
             check(count(array_filter($result,fn(array $r): bool=>$r['ok'])) === 2, 'Concorrência sem preferência excedeu ou perdeu capacidade.');
             $petDate = (new DateTimeImmutable('+67 days'))->format('Y-m-d');
-            $requests = array_map(fn(int $staff): array => ['owner'=>$owner,'booking'=>array_replace($data,['pet_id'=>$pets[4],'staff_id'=>$staff,'scheduled_at'=>$petDate . ' 10:00'])],[$staff1,$staff2]);
+            $requests = array_map(fn(string $staff): array => ['owner'=>$owner,'booking'=>array_replace($data,['pet_id'=>$pets[4],'staff_id'=>$staff,'scheduled_at'=>$petDate . ' 10:00'])],[$staff1,$staff2]);
             check(count(array_filter(race($requests),fn(array $r): bool=>$r['ok'])) === 1, 'Concorrência reservou o mesmo pet duas vezes.');
         }
         // Upgrade compatibility records and run the migration twice to verify idempotence.
@@ -294,6 +299,22 @@ try {
             check((int)$s->fetchColumn()===2,'Migração perdeu serviços da reserva compatível.');
             check($repo->allForUser($owner)[0]['duration_minutes']===90,'Migração alterou a duração.');
         }
+        // UUIDs must survive the admin CRUD and the client URLs without numeric casts.
+        $newService = $management->save('servicos', null, [
+            'name' => 'Serviço UUID', 'description' => 'Serviço de teste para UUID',
+            'duration_minutes' => '30', 'price' => '12.50',
+        ]);
+        check(\App\Support\Uuid::parse($newService) === $newService
+            && $management->findEditable('servicos', $newService)['name'] === 'Serviço UUID', 'CRUD de serviço não preservou UUID.');
+        $newPet = $management->save('pets', null, [
+            'owner_id' => $owner, 'name' => 'Pet UUID', 'species' => 'Gato', 'breed' => 'SRD',
+            'sex' => 'Fêmea', 'birth_date' => '2023-01-01',
+        ]);
+        check(\App\Support\Uuid::parse($newPet) === $newPet
+            && $management->findEditable('pets', $newPet)['owner_id'] === $owner, 'CRUD de pet não preservou UUID.');
+        login('qa0@example.invalid', $password);
+        check(request('GET', '/cliente/pets/' . $newPet)['status'] === 200, 'Rota do pet com UUID não abriu.');
+        check(request('GET', '/cliente/pets/1')['status'] === 404, 'Rota de pet inválida não respondeu 404.');
         echo "OK: {$mode} — login, dashboards, etapas, CSRF, snapshots e agenda.\n";
     }
     echo "SUCESSO: {$checks} verificações; concorrência real executada nos schemas antigo e novo.\n";

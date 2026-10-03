@@ -36,7 +36,7 @@ $query = http_build_query(array_filter(['q' => $search, 'date' => $date], static
                         <div><strong>Serviços contratados</strong><ul>
                             <?php foreach ($row['services'] as $service): ?><li><?= $e($service['name']) ?></li><?php endforeach; ?>
                         </ul></div>
-                        <a class="button primary" href="/staff/atendimentos/<?= (int) $row['id'] ?><?= $query !== '' ? '?' . $e($query) : '' ?>">Ver detalhes do atendimento</a>
+                        <a class="button primary" href="/staff/atendimentos/<?= $e($row['id']) ?><?= $query !== '' ? '?' . $e($query) : '' ?>">Ver detalhes do atendimento</a>
                     </div>
                 </details>
                 <?php endforeach; ?>

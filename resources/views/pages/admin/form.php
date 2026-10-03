@@ -1,7 +1,7 @@
 <?php
 $e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $value = static fn(string $key, mixed $default = ''): string => $e($record[$key] ?? $default);
-$action = '/admin/' . $section . (!empty($record['id']) ? '/' . (int) $record['id'] : '');
+$action = '/admin/' . $section . (!empty($record['id']) ? '/' . rawurlencode((string) $record['id']) : '');
 ?>
 
 <header class="page-heading">
@@ -42,7 +42,7 @@ $action = '/admin/' . $section . (!empty($record['id']) ? '/' . (int) $record['i
                 <select name="owner_id" required>
                     <option value="">Selecione</option>
                     <?php foreach ($options['clients'] as $client): ?>
-                        <option value="<?= (int) $client['id'] ?>" <?= (int) ($record['owner_id'] ?? 0) === (int) $client['id'] ? 'selected' : '' ?>>
+                        <option value="<?= $e($client['id']) ?>" <?= ($record['owner_id'] ?? null) === $client['id'] ? 'selected' : '' ?>>
                             <?= $e($client['name']) ?>
                         </option>
                     <?php endforeach; ?>

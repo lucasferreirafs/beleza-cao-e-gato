@@ -91,7 +91,7 @@ Para inicializar um banco vazio com schema, índices e dados de demonstração:
 docker compose exec app php bin/migrate.php
 ```
 
-**Atenção:** `database/schema.sql`, chamado por `bin/migrate.php`, remove objetos do schema `public` e os recria. Isso apaga os dados existentes desse schema. Use somente em banco novo ou descartável.
+**Atenção:** `database/schema.sql`, chamado por `bin/migrate.php`, remove e recria somente as tabelas da aplicação em `public`. Isso apaga seus usuários, pets, serviços, agendamentos e tokens. Outros schemas do Supabase, inclusive Storage, não são reinicializados. O comando também define o fuso padrão do banco conectado como `America/Sao_Paulo`. Use somente quando a perda dos dados da aplicação for intencional.
 
 Para atualizar um banco existente, não execute o reset. Use as migrações incrementais correspondentes, na raiz do projeto:
 
@@ -101,7 +101,7 @@ docker compose exec app php bin/migrate-phase2.php
 docker compose exec app php bin/migrate-phase4.php
 ```
 
-Esses comandos aplicam as migrações 001, 002 e 003; a migração 003 também importa para `appointment_services` os snapshots versionados que ainda estejam em `appointments.notes`. A migração 004 adiciona a flag gerada de alergias: execute o conteúdo de `database/migrations/004_pet_allergy_flag.sql` no SQL Editor do Supabase ou por uma conexão PostgreSQL autorizada. Faça backup e confirme o ambiente antes de qualquer migração em produção.
+Esses comandos aplicam as migrações 001, 002 e 003; a migração 003 também importa para `appointment_services` os snapshots versionados que ainda estejam em `appointments.notes`. A migração 004 adiciona a flag gerada de alergias: execute o conteúdo de `database/migrations/004_pet_allergy_flag.sql` no SQL Editor do Supabase ou por uma conexão PostgreSQL autorizada. **Essas migrações incrementais não convertem IDs inteiros existentes em UUID.** A versão atual do código exige o schema UUID completo; não implante sobre uma base BIGINT sem uma migração de dados planejada. Faça backup e confirme o ambiente antes de qualquer migração em produção.
 
 ## Configuração de ambiente
 
@@ -130,7 +130,7 @@ O serviço de e-mail usa a função nativa `mail()`. O ambiente precisa ter um M
 
 ## Banco de dados
 
-O schema completo está em [`database/schema.sql`](../database/schema.sql). Tabelas principais:
+O schema completo está em [`database/schema.sql`](database/schema.sql). Tabelas principais:
 
 | Tabela | Conteúdo |
 | --- | --- |
@@ -140,9 +140,11 @@ O schema completo está em [`database/schema.sql`](../database/schema.sql). Tabe
 | `appointments` | Pet, profissional atribuído, data, status, preço e duração total do atendimento. `service_id` mantém compatibilidade com o modelo anterior. |
 | `appointment_services` | Serviços e snapshots de nome, preço, duração e ordem no agendamento. |
 | `account_tokens` | Tokens de uso único para verificação de e-mail e redefinição de senha. |
-| `remember_tokens` | Tokens revogáveis para “Lembrar de mim”; RLS ativado e acesso público revogado. |
+| `remember_tokens` | Tokens revogáveis para “Lembrar de mim”; o seletor aleatório é a chave primária. |
 
 Os caminhos `avatar_path` e `photo_path` guardam o nome aleatório do objeto, não URLs assinadas. A flag `pets.has_allergies` é calculada pelo PostgreSQL a partir de `allergies`, que guarda a descrição integral.
+As chaves primárias de `users`, `pets`, `services`, `appointments` e `account_tokens` são UUIDs gerados por `gen_random_uuid()`; as chaves estrangeiras também são UUID. `appointment_services` mantém a chave composta `(appointment_id, service_id)`. O schema ativa RLS e revoga o acesso da Data API às tabelas da aplicação; o PHP acessa o banco pelo servidor.
+Os campos `TIMESTAMPTZ` armazenam instantes absolutos. `public.brazil_timestamp()` fornece o relógio usado nos defaults e `public.update_timestamp_brazil()` atualiza `updated_at` via trigger. `bin/migrate.php` configura o fuso padrão do banco e da role de conexão em `America/Sao_Paulo`, além do fuso aplicado pela conexão PDO. Não some ou subtraia três horas manualmente dos horários gravados.
 
 Migrações disponíveis:
 
@@ -168,11 +170,11 @@ Detalhes de validação e respostas HTTP estão implementados em `app/Services/S
 
 ## Regras de agendamento
 
-- Fluxo nomeado: `servico` → `escolha-pet` → `profissional` → `data-e-horario` → `confirmacao`. URLs numéricas antigas são normalizadas para as etapas nomeadas.
+- Fluxo nomeado: `servico` → `escolha-pet` → `data-e-horario` → `confirmacao`. A escolha do profissional faz parte da etapa de data e horário; URLs antigas são normalizadas.
 - Cada reserva aceita de 1 a 10 serviços ativos e distintos. O backend calcula preço e duração total; a confirmação compara os valores atuais com o resumo apresentado.
 - Os horários começam a cada 30 minutos entre 08:00 e 17:30, e todos os serviços precisam terminar até 18:00. A disponibilidade é calculada diariamente; não há escala semanal por profissional.
 - Existe um intervalo de 30 minutos ao redor da reserva entre atendimentos do mesmo profissional ou pet. O limite exato é considerado livre.
-- A seleção de profissional precede data e horário. Na etapa do horário, profissionais ocupados continuam visíveis e desabilitados. “Sem preferência” seleciona no servidor um profissional ativo e livre.
+- Na etapa de data e horário, profissionais ocupados continuam visíveis e desabilitados. “Sem preferência” seleciona no servidor um profissional ativo e livre.
 - A disponibilidade é verificada novamente ao confirmar. A gravação usa transação, lock consultivo compartilhado com mudanças de status e locks de linha para reduzir colisões concorrentes.
 - Agendamentos cancelados liberam a agenda e não podem ser reabertos diretamente.
 - Em schemas antigos sem a tabela/coluna da Fase 4, `AppointmentStorage` guarda temporariamente snapshots dos serviços e a observação em JSON versionado no campo `notes`. Nenhuma requisição web altera o schema. A migração 003 converte esses registros para `appointment_services`.

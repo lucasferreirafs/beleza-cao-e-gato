@@ -67,9 +67,9 @@ final class AccountService
         $pdo->beginTransaction();
 
         try {
-            $valid = (new AccountTokenRepository())->consume((int) $user['id'], 'verify_email', $code);
+            $valid = (new AccountTokenRepository())->consume($user['id'], 'verify_email', $code);
             if ($valid)
-                (new UserRepository())->activate((int) $user['id']);
+                (new UserRepository())->activate($user['id']);
 
             $pdo->commit();
             return $valid;
@@ -88,7 +88,7 @@ final class AccountService
             return ['sent' => true, 'code' => null];
 
         $code = (string) random_int(100000, 999999);
-        (new AccountTokenRepository())->issue((int) $user['id'], 'verify_email', $code, 900);
+        (new AccountTokenRepository())->issue($user['id'], 'verify_email', $code, 900);
 
         return ['sent' => (new EmailService())->verification($user['email'], $user['name'], $code), 'code' => $code];
     }
@@ -102,7 +102,7 @@ final class AccountService
             return null;
 
         $token = bin2hex(random_bytes(32));
-        (new AccountTokenRepository())->issue((int) $user['id'], 'reset_password', $token, 1800);
+        (new AccountTokenRepository())->issue($user['id'], 'reset_password', $token, 1800);
 
         $url = rtrim((string) Env::get('APP_URL', ''), '/') . '/redefinir-senha?email=' . rawurlencode($email) . '&token=' . rawurlencode($token);
         (new EmailService())->passwordReset($email, $user['name'], $url);
@@ -125,9 +125,9 @@ final class AccountService
         $pdo->beginTransaction();
 
         try {
-            $valid = (new AccountTokenRepository())->consume((int) $user['id'], 'reset_password', (string) ($input['token'] ?? ''));
+            $valid = (new AccountTokenRepository())->consume($user['id'], 'reset_password', (string) ($input['token'] ?? ''));
             if ($valid)
-                (new UserRepository())->updatePassword((int) $user['id'], $password);
+                (new UserRepository())->updatePassword($user['id'], $password);
 
             $pdo->commit();
             return $valid;

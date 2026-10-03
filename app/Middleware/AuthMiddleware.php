@@ -21,13 +21,13 @@ final class AuthMiddleware
             Env::bool('AUTH_BYPASS')
         ) {
             if (!Session::user()) {
-                Session::login([
-                    'id' => 1,
-                    'name' => 'Usuário de Desenvolvimento',
-                    'email' => 'dev@local.test',
-                    'role' => Env::get('AUTH_BYPASS_ROLE', 'client'),
-                    'status' => 'active',
-                ]);
+                $email = match (Env::get('AUTH_BYPASS_ROLE', 'client')) {
+                    'staff' => 'staff@demo.local',
+                    'admin' => 'admin@demo.local',
+                    default => 'cliente@demo.local',
+                };
+                $demo = (new \App\Repositories\UserRepository())->findByEmail($email);
+                if ($demo && $demo['status'] === 'active') Session::login($demo);
             }
 
             return;
@@ -38,7 +38,7 @@ final class AuthMiddleware
             Response::redirect('/login');
         }
 
-        $fresh = (new \App\Repositories\UserRepository())->findById((int) Session::user()['id']);
+        $fresh = (new \App\Repositories\UserRepository())->findById(\App\Support\Uuid::route(Session::user()['id'] ?? null));
         if (!$fresh || $fresh['status'] !== 'active'
             || (int) $fresh['auth_version'] !== (int) (Session::user()['auth_version'] ?? 0)) {
             (new \App\Services\RememberMeService())->forget();

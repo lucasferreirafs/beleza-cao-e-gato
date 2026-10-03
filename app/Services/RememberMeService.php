@@ -13,7 +13,7 @@ final class RememberMeService
     public const COOKIE = 'beleza_remember';
     public const TTL = 30 * 86400;
 
-    public function issue(int $userId): void
+    public function issue(string $userId): void
     {
         $this->forget();
         $expires = time() + self::TTL;

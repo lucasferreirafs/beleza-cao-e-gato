@@ -1,3 +1,4 @@
+<?php $e = static fn(mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); ?>
 <header class="page-heading">
     <div>
         <h1>Meus Agendamentos</h1>
@@ -105,7 +106,7 @@
                         </td>
                         <td>
                             <?php if ($a['status'] === 'pending' && strtotime($a['scheduled_at']) > time()): ?>
-                                <form method="post" action="/cliente/agendamentos/<?= (int) $a['id'] ?>/cancelar" data-confirm="Cancelar este agendamento?">
+                                <form method="post" action="/cliente/agendamentos/<?= $e($a['id']) ?>/cancelar" data-confirm="Cancelar este agendamento?">
                                     <?= \App\Security\Csrf::field() ?>
                                     <button class="button ghost danger">Cancelar</button>
                                 </form>

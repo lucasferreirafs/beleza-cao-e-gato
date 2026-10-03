@@ -64,7 +64,7 @@ function login(string $email, string $password, bool $remember = false): array {
     return request('POST', '/login', ['_token' => csrf($page), 'email' => $email, 'password' => $password,
         'remember' => $remember ? '1' : '0']);
 }
-function freshProfile(int $id, array $extra = []): array {
+function freshProfile(string $id, array $extra = []): array {
     global $users;
     $u = $users->findById($id);
     return $extra + ['name' => $u['name'], 'email' => $u['email'], 'cpf' => $u['cpf'] ?? '',
@@ -81,7 +81,7 @@ function cpfFixture(): string {
     }
     return implode('', $digits);
 }
-function saveProfile(int $id, array $extra = [], bool $multipart = false): array {
+function saveProfile(string $id, array $extra = [], bool $multipart = false): array {
     $page = request('GET', '/cliente/perfil');
     return request('POST', '/cliente/perfil', ['_token' => csrf($page)] + freshProfile($id, $extra), $multipart);
 }
@@ -92,7 +92,7 @@ try {
             VALUES (:name,:email,:hash,:role,'active',now()) RETURNING id");
         $s->execute(['name' => 'QA Fase Um ' . $index, 'email' => $tag . '-' . $index . '@example.invalid',
             'hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => $role]);
-        $ids[] = (int) $s->fetchColumn();
+        $ids[] = (string) $s->fetchColumn();
     }
     $email = $tag . '-0@example.invalid';
     $page = request('GET', '/login');

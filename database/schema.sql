@@ -1,82 +1,37 @@
--- ATENÇÃO: este script apaga e recria os objetos do schema public.
--- Execute somente quando for apropriado reinicializar o banco.
+-- ATENÇÃO: apaga todos os dados das tabelas da aplicação. Não altera outros
+-- schemas do Supabase nem objetos de terceiros em public.
 
--- 1. Remove views, rotinas, índices, tabelas e tipos existentes.
-DO $$
-DECLARE
-   object_record RECORD;
+-- 1. Remove os objetos da aplicação na ordem das dependências.
+DROP TABLE IF EXISTS public.appointment_services CASCADE;
+DROP TABLE IF EXISTS public.remember_tokens CASCADE;
+DROP TABLE IF EXISTS public.account_tokens CASCADE;
+DROP TABLE IF EXISTS public.appointments CASCADE;
+DROP TABLE IF EXISTS public.pets CASCADE;
+DROP TABLE IF EXISTS public.services CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+DROP FUNCTION IF EXISTS public.update_timestamp_brazil();
+DROP FUNCTION IF EXISTS public.brazil_timestamp();
+
+-- 2. Cria tabelas.
+-- TIMESTAMPTZ guarda um instante absoluto; a conexão/banco define a exibição em São Paulo.
+-- clock_timestamp() (ao contrário de now()) reflete a hora real após esperas por locks.
+CREATE FUNCTION public.brazil_timestamp() RETURNS TIMESTAMPTZ
+LANGUAGE sql VOLATILE
+SET timezone = 'America/Sao_Paulo'
+AS $$ SELECT clock_timestamp() $$;
+
+CREATE FUNCTION public.update_timestamp_brazil() RETURNS trigger
+LANGUAGE plpgsql
+SET timezone = 'America/Sao_Paulo'
+AS $$
 BEGIN
-   FOR object_record IN
-      SELECT schemaname, viewname AS object_name
-      FROM pg_views
-      WHERE schemaname = 'public'
-   LOOP
-      EXECUTE format('DROP VIEW IF EXISTS %I.%I CASCADE', object_record.schemaname, object_record.object_name);
-   END LOOP;
-
-   FOR object_record IN
-      SELECT schemaname, matviewname AS object_name
-      FROM pg_matviews
-      WHERE schemaname = 'public'
-   LOOP
-      EXECUTE format('DROP MATERIALIZED VIEW IF EXISTS %I.%I CASCADE', object_record.schemaname, object_record.object_name);
-   END LOOP;
-
-   FOR object_record IN
-      SELECT
-         n.nspname AS schema_name,
-         p.proname AS routine_name,
-         p.prokind AS routine_kind,
-         pg_get_function_identity_arguments(p.oid) AS identity_arguments
-      FROM pg_proc p
-      JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public'
-         AND p.prokind IN ('f', 'p')
-   LOOP
-      EXECUTE format(
-         'DROP %s IF EXISTS %I.%I(%s) CASCADE',
-         CASE WHEN object_record.routine_kind = 'p' THEN 'PROCEDURE' ELSE 'FUNCTION' END,
-         object_record.schema_name,
-         object_record.routine_name,
-         object_record.identity_arguments
-      );
-   END LOOP;
-
-   FOR object_record IN
-      SELECT n.nspname AS schema_name, index_class.relname AS index_name
-      FROM pg_index i
-      JOIN pg_class index_class ON index_class.oid = i.indexrelid
-      JOIN pg_class table_class ON table_class.oid = i.indrelid
-      JOIN pg_namespace n ON n.oid = table_class.relnamespace
-      WHERE n.nspname = 'public'
-         AND NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.conindid = i.indexrelid)
-   LOOP
-      EXECUTE format('DROP INDEX IF EXISTS %I.%I CASCADE', object_record.schema_name, object_record.index_name);
-   END LOOP;
-
-   FOR object_record IN
-      SELECT tablename AS object_name
-      FROM pg_tables
-      WHERE schemaname = 'public'
-   LOOP
-      EXECUTE format('DROP TABLE IF EXISTS public.%I CASCADE', object_record.object_name);
-   END LOOP;
-
-   FOR object_record IN
-      SELECT t.typname AS object_name
-      FROM pg_type t
-      JOIN pg_namespace n ON n.oid = t.typnamespace
-      WHERE n.nspname = 'public'
-         AND t.typtype IN ('c', 'd', 'e', 'r', 'm')
-   LOOP
-      EXECUTE format('DROP TYPE IF EXISTS public.%I CASCADE', object_record.object_name);
-   END LOOP;
+   NEW.updated_at := public.brazil_timestamp();
+   RETURN NEW;
 END;
 $$;
 
--- 2. Cria tabelas.
 CREATE TABLE users (
-   id BIGSERIAL PRIMARY KEY,
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
    name VARCHAR(120) NOT NULL,
    email VARCHAR(190) NOT NULL UNIQUE,
    password_hash VARCHAR(255) NOT NULL,
@@ -90,13 +45,13 @@ CREATE TABLE users (
    terms_accepted_at TIMESTAMPTZ,
    avatar_path VARCHAR(100),
    auth_version INTEGER NOT NULL DEFAULT 1,
-   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   created_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp()
 );
 
 CREATE TABLE pets (
-   id BIGSERIAL PRIMARY KEY,
-   owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
    name VARCHAR(80) NOT NULL,
    species VARCHAR(40) NOT NULL,
    breed VARCHAR(100) NOT NULL,
@@ -111,26 +66,26 @@ CREATE TABLE pets (
    notes TEXT,
    coat_color VARCHAR(60),
    photo_path VARCHAR(100),
-   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   created_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp()
 );
 
 CREATE TABLE services (
-   id BIGSERIAL PRIMARY KEY,
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
    name VARCHAR(120) NOT NULL,
    description TEXT NOT NULL,
    duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
    active BOOLEAN NOT NULL DEFAULT true,
-   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   created_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp()
 );
 
 CREATE TABLE appointments (
-   id BIGSERIAL PRIMARY KEY,
-   pet_id BIGINT NOT NULL REFERENCES pets(id),
-   service_id BIGINT NOT NULL REFERENCES services(id),
-   staff_id BIGINT REFERENCES users(id),
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   pet_id UUID NOT NULL REFERENCES pets(id),
+   service_id UUID NOT NULL REFERENCES services(id),
+   staff_id UUID REFERENCES users(id),
    scheduled_at TIMESTAMPTZ NOT NULL,
    status VARCHAR(30) NOT NULL DEFAULT 'pending'
       CONSTRAINT appointments_status_check CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),
@@ -138,13 +93,13 @@ CREATE TABLE appointments (
    notes TEXT,
    duration_minutes INTEGER NOT NULL CHECK (duration_minutes > 0),
    completed_at TIMESTAMPTZ,
-   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   created_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp(),
+   updated_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp()
 );
 
 CREATE TABLE appointment_services (
-   appointment_id BIGINT NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
-   service_id BIGINT NOT NULL REFERENCES services(id),
+   appointment_id UUID NOT NULL REFERENCES appointments(id) ON DELETE CASCADE,
+   service_id UUID NOT NULL REFERENCES services(id),
    position SMALLINT NOT NULL CHECK (position > 0),
    service_name VARCHAR(120) NOT NULL,
    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
@@ -154,25 +109,52 @@ CREATE TABLE appointment_services (
 );
 
 CREATE TABLE account_tokens (
-   id BIGSERIAL PRIMARY KEY,
-   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
    purpose VARCHAR(30) NOT NULL CHECK (purpose IN ('verify_email', 'reset_password')),
    token_hash VARCHAR(255) NOT NULL,
    expires_at TIMESTAMPTZ NOT NULL,
    consumed_at TIMESTAMPTZ,
-   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   created_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp()
 );
 
 -- 3. Cria tabelas de autenticação persistente.
 CREATE TABLE remember_tokens (
    selector VARCHAR(32) PRIMARY KEY,
-   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
    token_hash VARCHAR(64) NOT NULL,
    previous_hash VARCHAR(64),
    previous_valid_until TIMESTAMPTZ,
    expires_at TIMESTAMPTZ NOT NULL,
-   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   created_at TIMESTAMPTZ NOT NULL DEFAULT public.brazil_timestamp()
 );
+-- O seletor aleatório já é a chave opaca e revogável de remember_tokens.
+-- O sistema acessa essas tabelas por PDO no servidor; a Data API não as expõe.
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE appointment_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE account_tokens ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON users, pets, services, appointments, appointment_services, account_tokens, remember_tokens FROM PUBLIC;
+DO $$
+BEGIN
+   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+      REVOKE ALL ON users, pets, services, appointments, appointment_services, account_tokens, remember_tokens FROM anon;
+   END IF;
+   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+      REVOKE ALL ON users, pets, services, appointments, appointment_services, account_tokens, remember_tokens FROM authenticated;
+   END IF;
+END;
+$$;
+CREATE TRIGGER users_update_timestamp BEFORE UPDATE ON users
+   FOR EACH ROW EXECUTE FUNCTION public.update_timestamp_brazil();
+CREATE TRIGGER pets_update_timestamp BEFORE UPDATE ON pets
+   FOR EACH ROW EXECUTE FUNCTION public.update_timestamp_brazil();
+CREATE TRIGGER services_update_timestamp BEFORE UPDATE ON services
+   FOR EACH ROW EXECUTE FUNCTION public.update_timestamp_brazil();
+CREATE TRIGGER appointments_update_timestamp BEFORE UPDATE ON appointments
+   FOR EACH ROW EXECUTE FUNCTION public.update_timestamp_brazil();
 ALTER TABLE remember_tokens ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON remember_tokens FROM PUBLIC;
 DO $$

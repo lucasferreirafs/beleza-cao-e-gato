@@ -25,8 +25,8 @@ END;
 $$;
 
 CREATE TABLE IF NOT EXISTS public.appointment_services (
-   appointment_id BIGINT NOT NULL REFERENCES public.appointments(id) ON DELETE CASCADE,
-   service_id BIGINT NOT NULL REFERENCES public.services(id),
+   appointment_id UUID NOT NULL REFERENCES public.appointments(id) ON DELETE CASCADE,
+   service_id UUID NOT NULL REFERENCES public.services(id),
    position SMALLINT NOT NULL CHECK (position > 0),
    service_name VARCHAR(120) NOT NULL,
    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),

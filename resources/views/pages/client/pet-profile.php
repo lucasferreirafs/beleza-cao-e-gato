@@ -69,7 +69,7 @@ $careNotes = !empty($pet['notes'])
         </div>
 
         <div class="pet-profile-header-actions">
-            <a href="/cliente/pets/<?= (int) $pet['id'] ?>/editar" class="pet-profile-btn-outline" title="Editar informações do pet">
+            <a href="/cliente/pets/<?= $e($pet['id']) ?>/editar" class="pet-profile-btn-outline" title="Editar informações do pet">
                 <i class="fa-solid fa-pen"></i>
                 <span>Editar Pet</span>
             </a>

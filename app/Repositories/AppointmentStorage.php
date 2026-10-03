@@ -5,6 +5,7 @@ namespace App\Repositories;
 
 use PDO;
 use RuntimeException;
+use App\Support\Uuid;
 
 /** Detects capabilities before issuing SQL; never changes schema during a request. */
 final class AppointmentStorage
@@ -41,7 +42,7 @@ final class AppointmentStorage
             throw new RuntimeException('Metadados do agendamento inválidos.');
         }
         foreach ($data['services'] as $service) {
-            if (!is_array($service) || (int) ($service['id'] ?? 0) < 1 || !is_string($service['name'] ?? null)
+            if (!is_array($service) || Uuid::parse($service['id'] ?? null) === null || !is_string($service['name'] ?? null)
                 || (int) ($service['duration_minutes'] ?? 0) < 1 || !is_numeric($service['price'] ?? null)) {
                 throw new RuntimeException('Serviços do agendamento inválidos.');
             }
@@ -58,12 +59,12 @@ final class AppointmentStorage
                 $s = $this->pdo->prepare('SELECT appointment_id,service_id id,service_name name,price,duration_minutes
                     FROM appointment_services WHERE appointment_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ') ORDER BY position');
                 $s->execute($ids);
-                foreach ($s->fetchAll() as $item) $items[(int) $item['appointment_id']][] = $item;
+                foreach ($s->fetchAll() as $item) $items[$item['appointment_id']][] = $item;
             }
         }
         foreach ($rows as &$row) {
             $payload = self::decode($row['notes'] ?? null);
-            $services = $payload['services'] ?? $items[(int) $row['id']] ?? [[
+            $services = $payload['services'] ?? $items[$row['id']] ?? [[
                 'id' => $row['service_id'], 'name' => $row['service_name'],
                 'price' => $row['price'], 'duration_minutes' => $row['duration_minutes'] ?? $row['legacy_duration'],
             ]];
@@ -76,10 +77,10 @@ final class AppointmentStorage
         return $rows;
     }
 
-    public function insert(array $params, array $services): int
+    public function insert(array $params, array $services): string
     {
         $schema = $this->capabilities();
-        $params['service'] = (int) $services[0]['id'];
+        $params['service'] = $services[0]['id'];
         // Legacy TEXT holds a versioned envelope, including the unmodified user note.
         // Escape the reserved prefix on modern schemas too: user text is never trusted as metadata.
         if (!$schema['items'] || str_starts_with($params['notes'] ?? '', self::PREFIX)) {
@@ -90,12 +91,12 @@ final class AppointmentStorage
             (pet_id,service_id,staff_id,scheduled_at,status,price,notes" . ($schema['duration'] ? ',duration_minutes' : '') . ")
             VALUES (:pet,:service,:staff,:scheduled_at,'pending',:price,:notes" . ($schema['duration'] ? ',:duration' : '') . ') RETURNING id');
         $s->execute($params);
-        $id = (int) $s->fetchColumn();
+        $id = (string) $s->fetchColumn();
         if ($schema['items']) $this->writeItems($id, $services);
         return $id;
     }
 
-    public function writeItems(int $id, array $services): void
+    public function writeItems(string $id, array $services): void
     {
         $s = $this->pdo->prepare('INSERT INTO appointment_services
             (appointment_id,service_id,position,service_name,price,duration_minutes)

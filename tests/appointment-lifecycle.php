@@ -19,7 +19,7 @@ if (Env::get('APP_ENV') !== 'testing' || Env::get('BOOKING_QA_ALLOW_RESET') !== 
 date_default_timezone_set('America/Sao_Paulo');
 if (($argv[1] ?? '') === '--worker') {
     $result = $argv[2] === 'start'
-        ? (new AppointmentRepository())->changeStatus((int) $argv[3], 'in_progress', (int) $argv[4])
+        ? (new AppointmentRepository())->changeStatus($argv[3], 'in_progress', $argv[4])
         : AppointmentLifecycleService::cancelExpiredPending();
     echo json_encode($result, JSON_THROW_ON_ERROR);
     exit;
@@ -38,15 +38,15 @@ $repo = new AppointmentRepository();
 try {
     $pdo->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
     $pet = $pdo->query('SELECT id,owner_id FROM pets ORDER BY id LIMIT 1')->fetch();
-    $staff = (int) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
-    $service = (int) $pdo->query('SELECT id FROM services LIMIT 1')->fetchColumn();
-    $insert = function (string $status, string $offset) use ($pdo, $pet, $staff, $service): int {
+    $staff = (string) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
+    $service = (string) $pdo->query('SELECT id FROM services LIMIT 1')->fetchColumn();
+    $insert = function (string $status, string $offset) use ($pdo, $pet, $staff, $service): string {
         $s = $pdo->prepare("INSERT INTO appointments(pet_id,service_id,staff_id,scheduled_at,status,price,duration_minutes)
             VALUES (:pet,:service,:staff,clock_timestamp()+CAST(:offset AS interval),:status,50,60) RETURNING id");
         $s->execute(['pet' => $pet['id'], 'service' => $service, 'staff' => $staff, 'offset' => $offset, 'status' => $status]);
-        return (int) $s->fetchColumn();
+        return (string) $s->fetchColumn();
     };
-    $row = function (int $id) use ($pdo): array {
+    $row = function (string $id) use ($pdo): array {
         $s = $pdo->prepare('SELECT * FROM appointments WHERE id=:id');
         $s->execute(['id' => $id]);
         return $s->fetch();
@@ -82,21 +82,21 @@ try {
     }
     check(AppointmentLifecycleService::cancelExpiredPending() === 0, 'Sweep não idempotente.');
     check(!$repo->changeStatus($grace, 'completed', $staff), 'Concluiu sem iniciar.');
-    check(!$repo->changeStatus($grace, 'in_progress', $staff + 1000), 'Funcionário alheio alterou atendimento.');
-    check(!$repo->cancelForUser($future, (int) $pet['owner_id'] + 1000), 'Tutor alheio cancelou atendimento.');
+    check(!$repo->changeStatus($grace, 'in_progress', App\Support\Uuid::NIL), 'Funcionário alheio alterou atendimento.');
+    check(!$repo->cancelForUser($future, App\Support\Uuid::NIL), 'Tutor alheio cancelou atendimento.');
     check($repo->changeStatus($grace, 'in_progress', $staff), 'Não iniciou durante tolerância.');
-    check(!$repo->cancelForUser($grace, (int) $pet['owner_id']), 'Tutor cancelou serviço iniciado.');
+    check(!$repo->cancelForUser($grace, $pet['owner_id']), 'Tutor cancelou serviço iniciado.');
     check($repo->changeStatus($grace, 'completed', $staff), 'Não concluiu serviço iniciado.');
     $completedAt = $row($grace)['completed_at'];
     check($completedAt !== null, 'Não gravou conclusão.');
     check($repo->changeStatus($grace, 'completed', $staff) && $row($grace)['completed_at'] === $completedAt, 'Envio repetido mudou data da conclusão.');
     check(!$repo->changeStatus($grace, 'pending'), 'Reabriu atendimento concluído.');
-    check($repo->cancelForUser($future, (int) $pet['owner_id']), 'Tutor não cancelou reserva futura.');
+    check($repo->cancelForUser($future, $pet['owner_id']), 'Tutor não cancelou reserva futura.');
     check(!$repo->changeStatus($future, 'pending'), 'Reabriu vaga já liberada.');
     $late = $insert('pending', '-31 minutes');
     check(!$repo->changeStatus($late, 'in_progress', $staff) && $row($late)['status'] === 'cancelled', 'Início tardio venceu cancelamento.');
     $lazy = $insert('pending', '-31 minutes');
-    $repo->allForUser((int) $pet['owner_id']);
+    $repo->allForUser($pet['owner_id']);
     check($row($lazy)['status'] === 'cancelled', 'Leitura não aplicou expiração.');
     $counts = (new DashboardRepository())->staff($staff)['counts'];
     check($counts['pending'] === 0, 'Métrica contou em andamento como pendente.');

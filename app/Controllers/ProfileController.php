@@ -15,7 +15,7 @@ final class ProfileController
 {
     public function show(Request $request): void
     {
-        $profile = (new UserRepository())->findById((int) Session::user()['id']);
+        $profile = (new UserRepository())->findById(Session::user()['id']);
         View::render('pages/client/profile', [
             'title' => 'Meu Perfil', 'active' => 'profile', 'profile' => $profile,
             'user' => Session::user(), 'profileUrl' => Navigation::home(Session::user()['role']) . '/perfil',
@@ -27,7 +27,7 @@ final class ProfileController
         try {
             $file = $_FILES['photo'] ?? null;
             if ($file !== null && !is_array($file)) throw new InvalidArgumentException('Upload inválido.');
-            $result = (new ProfileService())->update((int) Session::user()['id'], $request->all(), $file);
+            $result = (new ProfileService())->update(Session::user()['id'], $request->all(), $file);
             if ($result['email_changed']) {
                 (new RememberMeService())->clearCookie();
                 Session::logout();
@@ -54,7 +54,7 @@ final class ProfileController
 
     public function revokeRemembered(Request $request): void
     {
-        $id = (int) Session::user()['id'];
+        $id = Session::user()['id'];
         $pdo = Database::connection();
         $pdo->beginTransaction();
         try {

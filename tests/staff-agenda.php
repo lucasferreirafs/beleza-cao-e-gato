@@ -15,26 +15,26 @@ function check(bool $ok, string $message): void { global $checks; if (!$ok) thro
 try {
     $pdo = Database::connection();
     $pdo->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
-    $staff = (int) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
-    $pet = (int) $pdo->query('SELECT id FROM pets LIMIT 1')->fetchColumn();
-    $service = (int) $pdo->query('SELECT id FROM services ORDER BY duration_minutes LIMIT 1')->fetchColumn();
+    $staff = (string) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
+    $pet = (string) $pdo->query('SELECT id FROM pets LIMIT 1')->fetchColumn();
+    $service = (string) $pdo->query('SELECT id FROM services ORDER BY duration_minutes LIMIT 1')->fetchColumn();
     $pdo->prepare("UPDATE users SET email='agenda-qa@example.invalid',password_hash=:hash,email_verified_at=now() WHERE id=:id")
         ->execute(['hash' => password_hash('Agenda-test-only1!', PASSWORD_DEFAULT), 'id' => $staff]);
-    $other = (int) $pdo->query("INSERT INTO users(name,email,password_hash,role) VALUES ('Outro','other-agenda@example.invalid','unused','staff') RETURNING id")->fetchColumn();
+    $other = (string) $pdo->query("INSERT INTO users(name,email,password_hash,role) VALUES ('Outro','other-agenda@example.invalid','unused','staff') RETURNING id")->fetchColumn();
     $day = (new DateTimeImmutable('+14 days'))->setTime(0, 0);
-    $insert = function (int $assigned, string $time, string $status = 'pending', int $duration = 80) use ($pdo, $day, $pet, $service): int {
+    $insert = function (string $assigned, string $time, string $status = 'pending', int $duration = 80) use ($pdo, $day, $pet, $service): string {
         $s = $pdo->prepare('INSERT INTO appointments(pet_id,service_id,staff_id,scheduled_at,status,price,duration_minutes,notes) VALUES (:pet,:service,:staff,:at,:status,50,:duration,:notes) RETURNING id');
         $s->execute(['pet' => $pet, 'service' => $service, 'staff' => $assigned, 'at' => $day->format('Y-m-d') . ' ' . $time,
             'status' => $status, 'duration' => $duration, 'notes' => '<script>nota</script>']);
-        return (int) $s->fetchColumn();
+        return (string) $s->fetchColumn();
     };
     $first = $insert($staff, '08:00');
     $cancelled = $insert($staff, '11:00', 'cancelled');
     $foreign = $insert($other, '14:00');
     $agenda = (new StaffAgendaService())->data($staff, $day->format('Y-m-d'), 'day');
     $occupied = array_values(array_filter(array_column($agenda['days'][0]['items'], 'row')));
-    check(count($occupied) === 1 && (int) $occupied[0]['id'] === $first, 'Exibiu atendimento de outro funcionário ou cancelado como ocupado.');
-    check((int) $agenda['days'][0]['cancelled'][0]['id'] === $cancelled, 'Cancelamento não preservado.');
+    check(count($occupied) === 1 && $occupied[0]['id'] === $first, 'Exibiu atendimento de outro funcionário ou cancelado como ocupado.');
+    check($agenda['days'][0]['cancelled'][0]['id'] === $cancelled, 'Cancelamento não preservado.');
     $slots = array_merge(...array_column($agenda['days'][0]['items'], 'slots'));
     check(!in_array('09:30', $slots, true) && in_array('10:00', $slots, true), 'Ignorou duração ou intervalo de 30 minutos.');
     check(in_array('11:00', $slots, true), 'Cancelamento não liberou horário.');

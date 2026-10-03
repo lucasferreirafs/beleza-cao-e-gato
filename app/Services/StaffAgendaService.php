@@ -22,7 +22,7 @@ final class StaffAgendaService
         return compact('today', 'selected', 'view', 'start', 'end');
     }
 
-    public function data(int $staffId, mixed $date, mixed $view): array
+    public function data(string $staffId, mixed $date, mixed $view): array
     {
         $selection = self::selection($date, $view);
         $repository = new AppointmentRepository();
@@ -34,7 +34,7 @@ final class StaffAgendaService
         for ($day = $selection['start']; $day < $selection['end']; $day = $day->modify('+1 day')) {
             $daily = array_values(array_filter($rows, static fn(array $row): bool =>
                 (new DateTimeImmutable($row['scheduled_at']))->setTimezone($day->getTimezone())->format('Y-m-d') === $day->format('Y-m-d')));
-            $slots = $shortest ? $repository->availableSlots($day->format('Y-m-d'), [(int) $shortest['id']], $staffId) : [];
+            $slots = $shortest ? $repository->availableSlots($day->format('Y-m-d'), [$shortest['id']], $staffId) : [];
             $days[] = ['date' => $day, 'items' => self::timeline($day, $daily, $slots, (int) ($shortest['duration_minutes'] ?? 0)),
                 'cancelled' => array_values(array_filter($daily, static fn(array $row): bool => $row['status'] === 'cancelled'))];
         }

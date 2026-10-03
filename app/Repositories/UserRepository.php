@@ -13,14 +13,14 @@ final class UserRepository
         return $statement->fetch() ?: null;
     }
 
-    public function findById(int $id, bool $lock = false): ?array
+    public function findById(string $id, bool $lock = false): ?array
     {
         $s = Database::connection()->prepare('SELECT id,name,email,role,status,phone,cpf,birth_date,email_verified_at,created_at,updated_at,auth_version,terms_version,terms_accepted_at,avatar_path FROM users WHERE id=:id' . ($lock ? ' FOR UPDATE' : ''));
         $s->execute(['id' => $id]);
         return $s->fetch() ?: null;
     }
 
-    public function createClient(array $data): int
+    public function createClient(array $data): string
     {
         $sql = '
             INSERT INTO users (name,email,password_hash,role,status,phone,cpf,birth_date,terms_version,terms_accepted_at)
@@ -36,10 +36,10 @@ final class UserRepository
             'birth_date' => $data['birth_date'] ?: null,
             'terms_version' => \App\Services\TermsService::VERSION,
         ]);
-        return (int) $s->fetchColumn();
+        return (string) $s->fetchColumn();
     }
 
-    public function emailExists(string $email, ?int $exceptId = null): bool
+    public function emailExists(string $email, ?string $exceptId = null): bool
     {
         $sql = 'SELECT 1 FROM users WHERE lower(email)=lower(:email)' . ($exceptId ? ' AND id<>:id' : '') . ' LIMIT 1';
         $s = Database::connection()->prepare($sql);
@@ -51,7 +51,7 @@ final class UserRepository
         return (bool) $s->fetchColumn();
     }
 
-    public function cpfExists(string $cpf, ?int $exceptId = null): bool
+    public function cpfExists(string $cpf, ?string $exceptId = null): bool
     {
         if ($cpf === '') return false;
 
@@ -65,20 +65,20 @@ final class UserRepository
         return (bool) $s->fetchColumn();
     }
 
-    public function activate(int $id): void
+    public function activate(string $id): void
     {
         $s = Database::connection()->prepare("UPDATE users SET status='active',email_verified_at=now(),updated_at=now() WHERE id=:id");
         $s->execute(['id' => $id]);
     }
 
-    public function updatePassword(int $id, string $password): void
+    public function updatePassword(string $id, string $password): void
     {
         $s = Database::connection()->prepare('UPDATE users SET password_hash=:hash,auth_version=auth_version+1,updated_at=now() WHERE id=:id');
         $s->execute(['hash' => password_hash($password, PASSWORD_DEFAULT), 'id' => $id]);
         (new RememberTokenRepository())->revokeAll($id);
     }
 
-    public function updateProfile(int $id, array $data): void
+    public function updateProfile(string $id, array $data): void
     {
         $s = Database::connection()->prepare('UPDATE users SET name=:name,phone=:phone,birth_date=:birth_date,
             cpf=:cpf,email=:email,avatar_path=:avatar_path,
@@ -93,7 +93,7 @@ final class UserRepository
         ]);
     }
 
-    public function acceptTerms(int $id): void
+    public function acceptTerms(string $id): void
     {
         $s = Database::connection()->prepare('UPDATE users SET terms_accepted_at=CASE
             WHEN terms_version IS DISTINCT FROM :version OR terms_accepted_at IS NULL THEN now()
@@ -106,7 +106,7 @@ final class UserRepository
         return Database::connection()->query("SELECT id,name,avatar_path FROM users WHERE role='staff' AND status='active' ORDER BY name,id")->fetchAll();
     }
 
-    public function findActiveStaff(int $id): ?array
+    public function findActiveStaff(string $id): ?array
     {
         $s = Database::connection()->prepare("SELECT id,name,avatar_path FROM users WHERE id=:id AND role='staff' AND status='active'");
         $s->execute(['id' => $id]);

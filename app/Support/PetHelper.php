@@ -42,7 +42,7 @@ final class PetHelper
     public static function photo(array $pet): string
     {
         if (!empty($pet['photo_path'])) {
-            return '/cliente/pets/' . (int) $pet['id'] . '/foto?v=' . rawurlencode((string) $pet['photo_path']);
+            return '/cliente/pets/' . rawurlencode((string) $pet['id']) . '/foto?v=' . rawurlencode((string) $pet['photo_path']);
         }
         return '/assets/images/pet.webp';
     }

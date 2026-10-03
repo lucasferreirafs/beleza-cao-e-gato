@@ -9,6 +9,7 @@ use App\Repositories\PetRepository;
 use App\Repositories\ServiceRepository;
 use DateTimeImmutable;
 use DomainException;
+use App\Support\Uuid;
 
 final class BookingService
 {
@@ -40,7 +41,7 @@ final class BookingService
     {
         $state = (array) Session::get('booking', []);
         if (empty($state['service_ids']) && !empty($state['service_id'])) {
-            $state['service_ids'] = [(int) $state['service_id']];
+            $state['service_ids'] = [(string) $state['service_id']];
         }
         return $state;
     }
@@ -54,7 +55,7 @@ final class BookingService
         return 4;
     }
 
-    public function storeStep(int $step, array $input, int $userId): int
+    public function storeStep(int $step, array $input, string $userId): int
     {
         if ($step < 1 || $step > 4 || $step > $this->nextIncompleteStep()) {
             throw new DomainException('Complete as etapas anteriores do agendamento.');
@@ -70,9 +71,9 @@ final class BookingService
             }
             $normalized = [];
             foreach ($serviceIds as $serviceId) {
-                $id = filter_var($serviceId, FILTER_VALIDATE_INT);
-                if (!$id || $id < 1) throw new DomainException('Um dos serviços selecionados é inválido.');
-                $normalized[] = (int) $id;
+                $id = Uuid::parse($serviceId);
+                if ($id === null) throw new DomainException('Um dos serviços selecionados é inválido.');
+                $normalized[] = $id;
             }
             $normalized = array_values(array_unique($normalized));
             if (count($normalized) !== count($serviceIds)) throw new DomainException('Remova serviços duplicados da seleção.');
@@ -83,11 +84,11 @@ final class BookingService
             if (array_key_exists('pet_id', $state)) unset($state['staff_id']);
         } elseif ($step === 2) {
             $this->requirePrevious($state, 'service_ids');
-            $petId = filter_var($input['pet_id'] ?? null, FILTER_VALIDATE_INT);
-            if (!$petId || !(new PetRepository())->findForUser((int) $petId, $userId)) {
+            $petId = Uuid::parse($input['pet_id'] ?? null);
+            if (!$petId || !(new PetRepository())->findForUser($petId, $userId)) {
                 throw new DomainException('Selecione um pet da sua conta.');
             }
-            $state['pet_id'] = (int) $petId;
+            $state['pet_id'] = $petId;
             unset($state['staff_id'], $state['date'], $state['time'], $state['schedule_validated'], $state['quote']);
         } elseif ($step === 3) {
             $this->requirePrevious($state, 'pet_id');
@@ -105,30 +106,30 @@ final class BookingService
             if ($preference !== null && !is_string($preference) && !is_int($preference)) {
                 throw new DomainException('Seleção de profissional inválida.');
             }
-            $staffId = $preference === '' || $preference === null ? null : filter_var($preference, FILTER_VALIDATE_INT);
-            if ($preference !== '' && $preference !== null && (!$staffId || $staffId < 1)) {
+            $staffId = $preference === '' || $preference === null ? null : Uuid::parse((string) $preference);
+            if ($preference !== '' && $preference !== null && !$staffId) {
                 throw new DomainException('Selecione um profissional válido.');
             }
-            if ($staffId !== null && !(new \App\Repositories\UserRepository())->findActiveStaff((int) $staffId)) {
+            if ($staffId !== null && !(new \App\Repositories\UserRepository())->findActiveStaff($staffId)) {
                 throw new DomainException('Este profissional não está disponível.');
             }
             $notes = $input['notes'] ?? '';
             if (!is_string($notes) || preg_match('//u', $notes) !== 1 || preg_match_all('/./us', $notes) > 1000) {
                 throw new DomainException('As observações devem ter até 1000 caracteres.');
             }
-            $state['staff_id'] = $staffId === null ? null : (int) $staffId;
+            $state['staff_id'] = $staffId;
             $state['date'] = $date;
             $state['time'] = $time;
             $state['notes'] = trim($notes);
             $state['schedule_validated'] = false;
             Session::put('booking', $state);
 
-            $freeStaff = $appointments->availableStaff($date . ' ' . $time, $state['service_ids'], (int) $state['pet_id']);
+            $freeStaff = $appointments->availableStaff($date . ' ' . $time, $state['service_ids'], $state['pet_id']);
             if (!$freeStaff) throw new DomainException('Este horário ficou indisponível. Escolha outro.');
-            if ($staffId !== null && !in_array((int) $staffId, array_map(static fn(array $row): int => (int) $row['id'], $freeStaff), true)) {
+            if ($staffId !== null && !in_array($staffId, array_column($freeStaff, 'id'), true)) {
                 throw new DomainException('O profissional selecionado está indisponível neste horário. Escolha outro.');
             }
-            if (!in_array($time, $appointments->availableSlots($date, $state['service_ids'], null, (int) $state['pet_id']), true)) {
+            if (!in_array($time, $appointments->availableSlots($date, $state['service_ids'], null, $state['pet_id']), true)) {
                 throw new DomainException('Este horário não está mais disponível.');
             }
             $state['schedule_validated'] = true;

@@ -13,17 +13,17 @@ function verify(bool $ok, string $message): void { global $checks; if (!$ok) thr
 try {
     $pdo = Database::connection();
     $pdo->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
-    $staff = (int) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
-    $pet = (int) $pdo->query('SELECT id FROM pets LIMIT 1')->fetchColumn();
-    $service = (int) $pdo->query("SELECT id FROM services WHERE name ILIKE '%tosa%' LIMIT 1")->fetchColumn();
+    $staff = (string) $pdo->query("SELECT id FROM users WHERE role='staff' LIMIT 1")->fetchColumn();
+    $pet = (string) $pdo->query('SELECT id FROM pets LIMIT 1')->fetchColumn();
+    $service = (string) $pdo->query("SELECT id FROM services WHERE name ILIKE '%tosa%' LIMIT 1")->fetchColumn();
     $pdo->prepare("UPDATE users SET email='staff-appointments@example.invalid',password_hash=:hash,email_verified_at=now() WHERE id=:id")
         ->execute(['hash' => password_hash('Appointments-only1!', PASSWORD_DEFAULT), 'id' => $staff]);
-    $other = (int) $pdo->query("INSERT INTO users(name,email,password_hash,role) VALUES ('Outro','other-appointments@example.invalid','unused','staff') RETURNING id")->fetchColumn();
+    $other = (string) $pdo->query("INSERT INTO users(name,email,password_hash,role) VALUES ('Outro','other-appointments@example.invalid','unused','staff') RETURNING id")->fetchColumn();
     $at = (new DateTimeImmutable('+14 days'))->setTime(11, 0);
-    $insert = static function (int $assigned, DateTimeImmutable $when, string $status, string $notes) use ($pdo, $pet, $service): int {
+    $insert = static function (string $assigned, DateTimeImmutable $when, string $status, string $notes) use ($pdo, $pet, $service): string {
         $s = $pdo->prepare('INSERT INTO appointments(pet_id,service_id,staff_id,scheduled_at,status,price,duration_minutes,notes) VALUES (:pet,:service,:staff,:at,:status,80,80,:notes) RETURNING id');
         $s->execute(['pet' => $pet, 'service' => $service, 'staff' => $assigned, 'at' => $when->format('c'), 'status' => $status, 'notes' => $notes]);
-        return (int) $s->fetchColumn();
+        return (string) $s->fetchColumn();
     };
     $current = $insert($staff, $at, 'pending', '<script>observação</script>');
     $prior = $insert($staff, $at->modify('-40 days'), 'completed', 'Tosa anterior');

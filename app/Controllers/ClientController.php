@@ -17,6 +17,7 @@ use App\Repositories\{
 use App\Services\BookingService;
 use App\Services\SupabaseStorageService;
 use App\Support\PrivateImageResponse;
+use App\Support\Uuid;
 use App\Validation\Validator;
 use DomainException;
 use InvalidArgumentException;
@@ -32,7 +33,7 @@ final class ClientController
 
     public function pets(Request $r): void
     {
-        $pets = (new PetRepository())->allForUser((int) Session::user()['id']);
+        $pets = (new PetRepository())->allForUser(Session::user()['id']);
         View::render(
             'pages/client/pets',
             $this->base('Meus Pets', 'pets', compact('pets'))
@@ -67,7 +68,7 @@ final class ClientController
                 $upload = $storage->upload(SupabaseStorageService::PET_BUCKET, $file);
                 $uploadedPath = $data['photo_path'] = $upload['path'];
             }
-            (new PetRepository())->create((int) Session::user()['id'], $data);
+            (new PetRepository())->create(Session::user()['id'], $data);
             Session::flash('success', 'Pet cadastrado com sucesso.');
             Response::redirect('/cliente/pets');
         } catch (InvalidArgumentException $e) {
@@ -83,8 +84,8 @@ final class ClientController
 
     public function petProfile(Request $r): void
     {
-        $pet = $this->ownedPet((int) $r->param('id'));
-        $appointments = (new AppointmentRepository())->allForPet((int) $pet['id'], (int) Session::user()['id']);
+        $pet = $this->ownedPet(Uuid::route($r->param('id')));
+        $appointments = (new AppointmentRepository())->allForPet($pet['id'], Session::user()['id']);
         View::render(
             'pages/client/pet-profile',
             $this->base($pet['name'], 'pets', compact('pet', 'appointments'))
@@ -93,7 +94,7 @@ final class ClientController
 
     public function editPet(Request $r): void
     {
-        $pet = $this->ownedPet((int) $r->param('id'));
+        $pet = $this->ownedPet(Uuid::route($r->param('id')));
         View::render(
             'pages/client/pet-form',
             $this->base('Editar Pet', 'pets', ['pet' => $pet, 'formAction' => '/cliente/pets/' . $pet['id']])
@@ -102,7 +103,7 @@ final class ClientController
 
     public function updatePet(Request $r): void
     {
-        $id = (int) $r->param('id');
+        $id = Uuid::route($r->param('id'));
         $current = $this->ownedPet($id);
         $storage = null;
         $uploadedPath = null;
@@ -115,7 +116,7 @@ final class ClientController
                 $upload = $storage->upload(SupabaseStorageService::PET_BUCKET, $file);
                 $uploadedPath = $data['photo_path'] = $upload['path'];
             }
-            if (!(new PetRepository())->update($id, (int) Session::user()['id'], $data))
+            if (!(new PetRepository())->update($id, Session::user()['id'], $data))
                 throw new DomainException('Pet não encontrado.');
 
             if ($uploadedPath && !empty($current['photo_path'])) {
@@ -137,7 +138,7 @@ final class ClientController
 
     public function petPhoto(Request $r): void
     {
-        $pet = $this->ownedPet((int) $r->param('id'));
+        $pet = $this->ownedPet(Uuid::route($r->param('id')));
         if (empty($pet['photo_path'])) { http_response_code(404); return; }
         if (PrivateImageResponse::isNotModified(SupabaseStorageService::PET_BUCKET, $pet['photo_path'])) return;
         try {
@@ -157,8 +158,8 @@ final class ClientController
     public function deletePet(Request $r): void
     {
         $repository = new PetRepository();
-        $pet = $repository->findForUser((int) $r->param('id'), (int) Session::user()['id']);
-        if ($pet && $repository->delete((int) $r->param('id'), (int) Session::user()['id'])) {
+        $pet = $repository->findForUser(Uuid::route($r->param('id')), Session::user()['id']);
+        if ($pet && $repository->delete(Uuid::route($r->param('id')), Session::user()['id'])) {
             if (!empty($pet['photo_path'])) {
                 try { (new SupabaseStorageService())->remove(SupabaseStorageService::PET_BUCKET, $pet['photo_path']); }
                 catch (Throwable) { error_log('Deleted pet photo cleanup pending: ' . $pet['photo_path']); }
@@ -182,7 +183,7 @@ final class ClientController
 
     public function appointments(Request $r): void
     {
-        $appointments = (new AppointmentRepository())->allForUser((int) Session::user()['id']);
+        $appointments = (new AppointmentRepository())->allForUser(Session::user()['id']);
         View::render(
             'pages/client/appointments',
             $this->base('Meus Agendamentos', 'appointments', compact('appointments'))
@@ -200,7 +201,7 @@ final class ClientController
         if ((string) $r->param('step') !== BookingService::stepSlug($step)) {
             Response::redirect('/cliente/agendamento/' . BookingService::stepSlug($step));
         }
-        $pets = (new PetRepository())->allForUser((int) Session::user()['id']);
+        $pets = (new PetRepository())->allForUser(Session::user()['id']);
         $services = (new ServiceRepository())->active();
         $staff = (new UserRepository())->allStaff();
         $serviceIds = $state['service_ids'] ?? [];
@@ -214,11 +215,11 @@ final class ClientController
         $date = is_string($date) ? $date : '';
         $time = is_string($time) ? $time : '';
         $slots = $step === 3
-            ? (new AppointmentRepository())->availableSlots($date, $serviceIds, null, isset($state['pet_id']) ? (int) $state['pet_id'] : null)
+            ? (new AppointmentRepository())->availableSlots($date, $serviceIds, null, $state['pet_id'] ?? null)
             : [];
         $staffAvailability = [];
         if ($step === 3 && $time !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-            $staffAvailability = (new AppointmentRepository())->staffAvailability($date . ' ' . $time, $serviceIds, (int) $state['pet_id']);
+            $staffAvailability = (new AppointmentRepository())->staffAvailability($date . ' ' . $time, $serviceIds, $state['pet_id']);
         }
 
         View::render(
@@ -245,8 +246,8 @@ final class ClientController
         if (!AppointmentRepository::parseSchedule($date . ' 08:00')) Response::json(['error' => 'Data inválida.'], 422);
         try {
             $appointments = new AppointmentRepository();
-            $slots = $appointments->availableSlots($date, $state['service_ids'], null, (int) $state['pet_id']);
-            $staff = $time === '' ? [] : $appointments->staffAvailability($date . ' ' . $time, $state['service_ids'], (int) $state['pet_id']);
+            $slots = $appointments->availableSlots($date, $state['service_ids'], null, $state['pet_id']);
+            $staff = $time === '' ? [] : $appointments->staffAvailability($date . ' ' . $time, $state['service_ids'], $state['pet_id']);
             Response::json(['slots' => $slots, 'staff' => $staff]);
         } catch (Throwable $e) {
             error_log('Booking availability failed: ' . get_debug_type($e) . ' code=' . $e->getCode());
@@ -256,7 +257,7 @@ final class ClientController
 
     public function staffPhoto(Request $r): void
     {
-        $staff = (new UserRepository())->findActiveStaff((int) $r->param('id'));
+        $staff = (new UserRepository())->findActiveStaff(Uuid::route($r->param('id')));
         if (!$staff || empty($staff['avatar_path'])) { http_response_code(404); return; }
         if (PrivateImageResponse::isNotModified(SupabaseStorageService::USER_BUCKET, $staff['avatar_path'])) return;
         try {
@@ -273,7 +274,7 @@ final class ClientController
         if ($step === null) Response::redirect('/cliente/agendamento/' . BookingService::stepSlug((new BookingService())->nextIncompleteStep()));
 
         try {
-            $next = (new BookingService())->storeStep($step, $r->all(), (int) Session::user()['id']);
+            $next = (new BookingService())->storeStep($step, $r->all(), Session::user()['id']);
 
             if ($next === 0) {
                 Session::flash('success', 'Agendamento solicitado com sucesso.');
@@ -298,15 +299,15 @@ final class ClientController
 
     public function cancelAppointment(Request $r): void
     {
-        $ok = (new AppointmentRepository())->cancelForUser((int) $r->param('id'), (int) Session::user()['id']);
+        $ok = (new AppointmentRepository())->cancelForUser(Uuid::route($r->param('id')), Session::user()['id']);
         Session::flash($ok ? 'success' : 'error', $ok ? 'Agendamento cancelado.' : 'Não foi possível cancelar este agendamento.');
         Response::redirect('/cliente/agendamentos');
     }
 
 
-    private function ownedPet(int $id): array
+    private function ownedPet(string $id): array
     {
-        $pet = (new PetRepository())->findForUser($id, (int) Session::user()['id']);
+        $pet = (new PetRepository())->findForUser($id, Session::user()['id']);
 
         if (!$pet) {
             http_response_code(404);

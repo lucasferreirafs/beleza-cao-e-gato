@@ -23,7 +23,7 @@ $nextStatus = $status === 'pending' ? 'in_progress' : ($status === 'in_progress'
     <?php endif; ?>
     <div class="staff-attendance-observation"><h3>Observações do agendamento</h3><p><?= $e(trim((string) ($appointment['notes'] ?? '')) ?: 'Nenhuma observação registrada.') ?></p></div>
     <?php if ($nextStatus !== null): ?>
-        <form method="post" action="/staff/agendamentos/<?= (int) $appointment['id'] ?>/status" data-attendance-status-form>
+        <form method="post" action="/staff/agendamentos/<?= $e($appointment['id']) ?>/status" data-attendance-status-form>
             <?= \App\Security\Csrf::field() ?>
             <input type="hidden" name="source" value="atendimento">
             <input type="hidden" name="status" value="<?= $e($nextStatus) ?>">

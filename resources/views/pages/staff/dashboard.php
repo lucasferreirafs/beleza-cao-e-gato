@@ -17,7 +17,7 @@ $formatMinutes = static fn(int $minutes): string => $minutes < 60
 <script src="/assets/js/staff-dashboard.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/staff-dashboard.js') ?>" defer></script>
 <script src="/assets/js/staff-appointments.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/staff-appointments.js') ?>" defer></script>
 
-<section class="staff-next" aria-labelledby="staff-next-title" <?= $nextAppointment ? 'data-appointment-id="' . (int) $nextAppointment['id'] . '"' : '' ?>>
+<section class="staff-next" aria-labelledby="staff-next-title" <?= $nextAppointment ? 'data-appointment-id="' . $e($nextAppointment['id']) . '"' : '' ?>>
     <div class="staff-next-icon" aria-hidden="true"><i class="fa-solid fa-paw"></i></div>
     <div class="staff-next-content">
         <span class="staff-eyebrow" id="staff-next-title">Próximo atendimento</span>
@@ -138,7 +138,7 @@ $formatMinutes = static fn(int $minutes): string => $minutes < 60
             <tbody>
                 <?php foreach ($appointments as $row): ?>
                     <?php $allergies = trim((string) ($row['pet_allergies'] ?? '')); $needs = trim((string) ($row['pet_special_needs'] ?? '')); ?>
-                    <tr data-staff-appointment-row data-id="<?= (int) $row['id'] ?>" data-status="pending">
+                    <tr data-staff-appointment-row data-id="<?= $e($row['id']) ?>" data-status="pending">
                         <td data-label="Horário"><?= date('H:i', strtotime($row['scheduled_at'])) ?></td>
                         <td data-label="Pet">
                             <div class="staff-agenda-pet">
@@ -169,7 +169,7 @@ $formatMinutes = static fn(int $minutes): string => $minutes < 60
                                 class="badge <?= \App\Support\StatusBadge::class($row['status']) ?>"><?= $e(\App\Support\AppointmentStatus::label($row['status'])) ?></span>
                         </td>
                         <td class="staff-row-actions" data-label="Ação">
-                            <form method="post" action="/staff/agendamentos/<?= (int) $row['id'] ?>/status" data-staff-status-form>
+                            <form method="post" action="/staff/agendamentos/<?= $e($row['id']) ?>/status" data-staff-status-form>
                                 <?= \App\Security\Csrf::field() ?>
                                 <input type="hidden" name="period" value="<?= $e($period) ?>">
                                 <input type="hidden" name="status" value="in_progress">
@@ -196,7 +196,7 @@ $formatMinutes = static fn(int $minutes): string => $minutes < 60
         <div class="staff-in-progress-list">
             <?php foreach ($inProgressAppointments as $row): ?>
                 <?php $allergies = trim((string) ($row['pet_allergies'] ?? '')); $needs = trim((string) ($row['pet_special_needs'] ?? '')); ?>
-                <article class="staff-in-progress-item" data-staff-appointment-row data-status="in_progress" data-id="<?= (int) $row['id'] ?>">
+                <article class="staff-in-progress-item" data-staff-appointment-row data-status="in_progress" data-id="<?= $e($row['id']) ?>">
                     <div class="staff-progress-overview">
                         <span class="staff-progress-time"><?= date('H:i', strtotime($row['scheduled_at'])) ?></span>
                         <button type="button" class="staff-pet-details-button" data-pet-details
@@ -216,7 +216,7 @@ $formatMinutes = static fn(int $minutes): string => $minutes < 60
                         <span><?= $e($row['service_name']) ?></span>
                         <span class="badge status-progress" data-status-badge>Em andamento</span>
                     </div>
-                    <form method="post" action="/staff/agendamentos/<?= (int) $row['id'] ?>/status" data-staff-status-form>
+                    <form method="post" action="/staff/agendamentos/<?= $e($row['id']) ?>/status" data-staff-status-form>
                         <?= \App\Security\Csrf::field() ?>
                         <input type="hidden" name="period" value="<?= $e($period) ?>">
                         <input type="hidden" name="status" value="completed">
