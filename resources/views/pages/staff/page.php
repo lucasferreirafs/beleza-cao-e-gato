@@ -1,5 +1,6 @@
 <?php $e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8'); ?>
 <?php if ($section === 'agenda') { require __DIR__ . '/agenda.php'; return; } ?>
+<?php if ($section === 'atendimentos') { require __DIR__ . '/appointments.php'; return; } ?>
 
 <header class="page-heading">
     <div>
@@ -46,17 +47,6 @@
                             <td>
                                 <span class="badge <?= \App\Support\StatusBadge::class($row['status'] ?? null) ?>"><?= $e(isset($row['status']) ? \App\Support\AppointmentStatus::label($row['status']) : '-') ?></span>
 
-                                <?php if (isset($row['id']) && in_array($section, ['agenda', 'atendimentos'], true)): ?>
-                                    <form method="post" action="/staff/agendamentos/<?= (int) $row['id'] ?>/status">
-                                        <?= \App\Security\Csrf::field() ?>
-                                        <select name="status" aria-label="Novo status">
-                                            <?php foreach (\App\Support\AppointmentStatus::optionsFor($row['status']) as $value => $label): ?>
-                                                <option value="<?= $e($value) ?>" <?= ($row['status'] ?? null) === $value ? 'selected' : '' ?>><?= $e($label) ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <button class="button ghost">Salvar</button>
-                                    </form>
-                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

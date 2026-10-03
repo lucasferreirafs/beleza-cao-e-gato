@@ -28,6 +28,9 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
     <?php if (($pageClass ?? '') === 'page-staff-page' && ($section ?? '') === 'agenda'): ?>
         <link rel="stylesheet" href="/assets/css/staff/agenda.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/agenda.css') ?>">
     <?php endif; ?>
+    <?php if (($section ?? '') === 'atendimentos' && str_contains($pageClass ?? '', 'page-staff-page')): ?>
+        <link rel="stylesheet" href="/assets/css/staff/appointments.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/appointments.css') ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/errors/errors.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/errors/errors.css') ?>">
     <link rel="stylesheet" href="/assets/css/request-loading.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/request-loading.css') ?>">
 </head>

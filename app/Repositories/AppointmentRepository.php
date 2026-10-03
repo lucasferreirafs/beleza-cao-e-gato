@@ -17,10 +17,10 @@ final class AppointmentRepository
     {
         $pdo = Database::connection();
         AppointmentLifecycleService::cancelExpiredPending($pdo);
-        $s = $pdo->prepare("SELECT a.*,p.name pet_name,p.weight pet_weight,p.coat_color pet_coat_color,
+        $s = $pdo->prepare("SELECT a.*,p.id pet_id,p.photo_path pet_photo_path,p.name pet_name,p.weight pet_weight,p.coat_color pet_coat_color,
             p.allergies pet_allergies,p.special_needs pet_special_needs,p.behavior pet_behavior,p.notes pet_notes,
             p.species pet_species,p.breed pet_breed,p.sex pet_sex,p.birth_date pet_birth_date,p.neutered pet_neutered,
-            c.name client_name,c.phone client_phone,c.email client_email,s.name service_name,
+            c.id owner_id,c.name client_name,c.phone client_phone,c.email client_email,s.name service_name,
             s.duration_minutes legacy_duration,u.name staff_name
             FROM appointments a JOIN pets p ON p.id=a.pet_id JOIN users c ON c.id=p.owner_id
             JOIN services s ON s.id=a.service_id LEFT JOIN users u ON u.id=a.staff_id
@@ -34,6 +34,22 @@ final class AppointmentRepository
     public function allForStaff(int $id, bool $today = false): array
     {
         return $this->rows('a.staff_id=:staff' . ($today ? ' AND a.scheduled_at::date=current_date' : ''), ['staff' => $id]);
+    }
+    public function findForStaff(int $id, int $staffId): ?array
+    {
+        return $this->rows('a.id=:id AND a.staff_id=:staff', ['id' => $id, 'staff' => $staffId])[0] ?? null;
+    }
+
+    public function lastGroomingForPet(int $petId, int $exceptId): ?string
+    {
+        $rows = $this->rows("a.pet_id=:pet AND a.id<>:except AND a.status='completed'",
+            ['pet' => $petId, 'except' => $exceptId], 'a.scheduled_at DESC');
+        foreach ($rows as $row) {
+            foreach ($row['services'] as $service) {
+                if (stripos((string) $service['name'], 'tosa') !== false) return (string) ($row['completed_at'] ?: $row['scheduled_at']);
+            }
+        }
+        return null;
     }
     public function allForAdmin(bool $recent = false): array { return $this->rows('true', [], $recent ? 'a.created_at DESC LIMIT 8' : 'a.scheduled_at DESC'); }
 

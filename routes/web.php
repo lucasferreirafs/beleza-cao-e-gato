@@ -63,6 +63,8 @@ $router->post('/cliente/agendamentos/{id}/cancelar', [ClientController::class, '
 $router->delete('/cliente/pets/{id}', [ClientController::class, 'deletePet'], [$auth, RoleMiddleware::class . ':client', $csrf]);
 
 // GET - FUNCIONARIO
+$router->get('/staff/atendimentos/{id}/foto', [StaffController::class, 'appointmentPetPhoto'], [$auth, RoleMiddleware::class . ':staff']);
+$router->get('/staff/atendimentos/{id}', [StaffController::class, 'appointmentDetail'], [$auth, RoleMiddleware::class . ':staff']);
 $router->get('/staff/{section}', [StaffController::class, 'page'], [$auth, RoleMiddleware::class . ':staff']);
 
 // POST - FUNCIONARIO
