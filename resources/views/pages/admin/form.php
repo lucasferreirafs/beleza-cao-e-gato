@@ -11,15 +11,19 @@ $action = '/admin/' . $section . (!empty($record['id']) ? '/' . rawurlencode((st
     </div>
 </header>
 
-<form class="panel pet-form" method="post" action="<?= $e($action) ?>">
+<form class="panel pet-form" method="post" action="<?= $e($action) ?>" <?= in_array($section, ['clientes', 'pets', 'funcionarios', 'servicos'], true) && !empty($record['id']) ? 'data-admin-password-required data-password-title="Confirmar edição" data-password-message="Digite sua senha de administrador para salvar as alterações deste cadastro."' : '' ?>>
     <?= \App\Security\Csrf::field() ?>
+    <?php if (in_array($section, ['clientes', 'pets', 'funcionarios', 'servicos'], true) && !empty($record['id'])): ?>
+        <input type="password" name="admin_password" autocomplete="current-password" hidden disabled data-admin-password-value>
+        <noscript><label>Senha de administrador<input type="password" name="admin_password" autocomplete="current-password" required></label></noscript>
+    <?php endif; ?>
 
     <?php if (in_array($section, ['clientes', 'funcionarios'], true)): ?>
         <div class="form-grid">
             <label>Nome completo<input name="name" value="<?= $value('name') ?>" maxlength="120" required></label>
             <label>E-mail<input type="email" name="email" value="<?= $value('email') ?>" maxlength="190" required></label>
             <label>Telefone<input name="phone" value="<?= $value('phone') ?>"></label>
-            <label>CPF<input name="cpf" value="<?= $value('cpf') ?>" maxlength="14"></label>
+            <?php if ($section !== 'clientes'): ?><label>CPF<input name="cpf" value="<?= $value('cpf') ?>" maxlength="14"></label><?php endif; ?>
             <label>Data de nascimento<input type="date" name="birth_date" value="<?= $value('birth_date') ?>"></label>
             <label>
                 <?= $record ? 'Nova senha (opcional)' : 'Senha provisória' ?>
@@ -61,6 +65,7 @@ $action = '/admin/' . $section . (!empty($record['id']) ? '/' . rawurlencode((st
             </label>
 
             <label>Raça<input name="breed" value="<?= $value('breed') ?>" required></label>
+            <label>Cor do pelo<input name="coat_color" value="<?= $value('coat_color') ?>" maxlength="60"></label>
 
             <label>
                 Sexo

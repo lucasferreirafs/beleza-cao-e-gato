@@ -16,6 +16,10 @@ final class View
 
         $pageClass = 'page-' . str_replace(['pages/', '/'], ['', '-'], $template);
         if ($template === 'pages/staff/appointment-detail') $pageClass .= ' page-staff-page';
+        if (in_array($template, ['pages/admin/client-profile', 'pages/admin/pet-profile', 'pages/admin/staff-profile'], true)) {
+            // Reuse the admin shell styles shared by the management-list pages.
+            $pageClass .= ' page-admin-list';
+        }
         if (in_array($template, ['pages/client/settings', 'pages/errors/upload'], true) && $layout === 'app') {
             $pageClass .= ' page-client-profile';
         }

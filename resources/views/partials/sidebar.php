@@ -9,7 +9,6 @@ $items = match ($role) {
         'pets'         => ['Pets',           '/admin/pets',          '<i class="fa-solid fa-paw"></i>'],
         'funcionarios' => ['Funcionários',   '/admin/funcionarios',  '<i class="fa-solid fa-users-line"></i>'],
         'servicos'     => ['Serviços',       '/admin/servicos',      '<i class="fa-solid fa-scissors"></i>'],
-        'relatorios'   => ['Relatórios',     '/admin/relatorios',    '<i class="fa-solid fa-chart-simple"></i>'],
     ],
     'staff' => [
         'dashboard'    => ['Dashboard',     '/staff',               '<i class="fa-solid fa-chart-pie"></i>'],

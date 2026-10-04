@@ -28,7 +28,7 @@ final class StaffPetRepository
         $pages = max(1, (int) ceil($total / $perPage));
         $page = max(1, min($page, $pages));
 
-        $statement = $pdo->prepare('SELECT p.id,p.name pet_name,p.breed,u.name owner_name FROM pets p JOIN users u ON u.id=p.owner_id WHERE ' . $where . ' ORDER BY lower(p.name),p.id LIMIT :limit OFFSET :offset');
+        $statement = $pdo->prepare('SELECT p.id,p.name pet_name,p.breed,p.coat_color,u.name owner_name FROM pets p JOIN users u ON u.id=p.owner_id WHERE ' . $where . ' ORDER BY lower(p.name),p.id LIMIT :limit OFFSET :offset');
         foreach ($params as $key => $value) $statement->bindValue(':' . $key, $value, PDO::PARAM_STR);
         $statement->bindValue(':limit', $perPage, PDO::PARAM_INT);
         $statement->bindValue(':offset', ($page - 1) * $perPage, PDO::PARAM_INT);

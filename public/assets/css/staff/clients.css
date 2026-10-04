@@ -48,6 +48,8 @@
 .staff-clients .sc-pet-card h3 { margin: 0; color: var(--ink); font-size: 16px; text-transform: none; overflow-wrap: anywhere; }
 .staff-clients .sc-pet-card p { font-size: 13px; margin: 4px 0 0; overflow-wrap: anywhere; }
 .staff-clients .sc-pet-card .button { grid-column: 1 / -1; }
+.staff-clients .sc-pet-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.staff-clients .sc-pet-actions .button { flex: 1 1 auto; }
 .staff-clients .sc-pet-image { width: 64px; height: 64px; border-radius: 14px; overflow: hidden; background: var(--gray-100); }
 .staff-clients .sc-pet-image img { width: 100%; height: 100%; object-fit: cover; }
 .staff-clients .sc-pet-profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -68,12 +70,21 @@
     .staff-clients .sc-mobile-label { display: block; font-size: 12px; margin-bottom: 4px; color: var(--gray-500); }
     .staff-clients .sc-table td:last-child { padding: 12px 0 0; }
     .staff-clients .sc-table .button { width: 100%; }
+    .staff-clients .sc-pet-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .staff-clients .sc-pet-actions .button { width: 100%; }
 }
 @media (max-width: 480px) {
     .staff-clients .sc-search .button { flex: 1 1 100%; }
     .staff-clients .sc-directory { padding: 14px; }
     .staff-clients .sc-profile-header { gap: 12px; padding: 16px; align-items: flex-start; }
     .staff-clients .sc-avatar { flex-basis: 56px; width: 56px; height: 56px; border-radius: 14px; font-size: 24px; }
+}
+.staff-clients .admin-pet-profile-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+.staff-clients .admin-pet-profile-actions form { margin: 0; }
+@media (max-width: 700px) {
+    .staff-clients .admin-pet-profile-actions { width: 100%; margin: 12px 0 0; }
+    .staff-clients .admin-pet-profile-actions > * { flex: 1 1 140px; }
+    .staff-clients .admin-pet-profile-actions .button { width: 100%; justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) {
     .staff-clients a, .staff-clients button { transition: none; }

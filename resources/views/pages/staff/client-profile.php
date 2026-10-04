@@ -1,17 +1,18 @@
 <?php
 $suffix = $returnQuery !== '' ? '?' . $returnQuery : '';
-$clientUrl = '/staff/clientes/' . $client['id'];
+$clientUrl = $clientProfileUrl ?? '/staff/clientes/' . $client['id'];
 $phone = trim((string) $client['phone']);
 $emailHref = filter_var($client['email'], FILTER_VALIDATE_EMAIL) ? 'mailto:' . rawurlencode($client['email']) : null;
 ?>
 <div class="staff-clients">
-    <a class="sc-back" href="/staff/clientes<?= $e($suffix) ?>"><i class="fa-solid fa-angle-left" aria-hidden="true"></i> Voltar para clientes</a>
+    <a class="sc-back" href="<?= !empty($adminClientProfile) ? '/admin/clientes' : '/staff/clientes' . $e($suffix) ?>"><i class="fa-solid fa-angle-left" aria-hidden="true"></i> Voltar para clientes</a>
     <header class="sc-profile-header panel">
         <span class="sc-avatar">
             <?php if ($client['avatar_path']): ?><img src="<?= $e($clientUrl . '/foto?v=' . rawurlencode($client['avatar_path'])) ?>" alt="" width="80" height="80" data-avatar-image><?php endif; ?>
             <span data-avatar-fallback <?= $client['avatar_path'] ? 'hidden' : '' ?>><?= $e(mb_substr($client['name'], 0, 1)) ?></span>
         </span>
         <div><p class="sc-eyebrow">Perfil do cliente</p><h1><?= $e($client['name']) ?></h1><?php if ($client['status'] !== 'active'): ?><span class="sc-account-state"><?= $client['status'] === 'blocked' ? 'Conta bloqueada' : 'Conta inativa' ?></span><?php endif; ?></div>
+        <?php if (!empty($adminClientProfile)): ?><div class="admin-client-profile-actions"><a class="button ghost" href="/admin/clientes/<?= $e(rawurlencode((string) $client['id'])) ?>/editar">Editar cliente</a><form method="post" action="/admin/clientes/<?= $e(rawurlencode((string) $client['id'])) ?>/excluir" data-admin-password-required data-password-title="Excluir cliente" data-password-message="Confirme sua senha. Contas com histórico de agendamentos não podem ser excluídas."><?= \App\Security\Csrf::field() ?><input type="password" name="admin_password" hidden disabled data-admin-password-value><noscript><label>Senha do administrador<input type="password" name="admin_password" autocomplete="current-password" required></label></noscript><button class="button danger" type="submit">Excluir cliente</button></form></div><?php endif; ?>
     </header>
     <div class="sc-profile-grid">
         <section class="panel sc-facts" aria-labelledby="client-contact"><h2 id="client-contact">Contato e dados básicos</h2>
@@ -20,6 +21,7 @@ $emailHref = filter_var($client['email'], FILTER_VALIDATE_EMAIL) ? 'mailto:' . r
                 <div><dt>Telefone</dt><dd><?php if ($phone !== ''): ?><a href="tel:<?= $e(preg_replace('/[^0-9+]/', '', $phone)) ?>"><?= $e($phone) ?></a><?php else: ?>Não informado<?php endif; ?></dd></div>
                 <div><dt>Data de nascimento</dt><dd><?= $e(\App\Support\PetHelper::formatDate($client['birth_date'])) ?></dd></div>
                 <div><dt>Cliente desde</dt><dd><?= $e(\App\Support\PetHelper::formatDate($client['created_at'])) ?></dd></div>
+                <?php if (!empty($adminClientProfile)): ?><div><dt>CPF</dt><dd><?= $e($client['cpf_masked'] ?? 'Não informado') ?></dd></div><?php endif; ?>
             </dl>
             <div class="sc-contact-actions">
                 <?php if ($phone !== ''): ?><a class="button secondary" href="tel:<?= $e(preg_replace('/[^0-9+]/', '', $phone)) ?>"><i class="fa-solid fa-phone" aria-hidden="true"></i> Ligar</a><?php endif; ?>

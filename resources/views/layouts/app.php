@@ -18,11 +18,17 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/main.css">
+    <?php if (($user['role'] ?? '') === 'admin'): ?>
+        <link rel="stylesheet" href="/assets/css/admin/password-confirmation.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/admin/password-confirmation.css') ?>">
+    <?php endif; ?>
     <?php if (($pageClass ?? '') === 'page-client-dashboard'): ?>
         <link rel="stylesheet" href="/assets/css/client/dashboard.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/client/dashboard.css') ?>">
     <?php endif; ?>
     <?php if (($pageClass ?? '') === 'page-staff-dashboard'): ?>
         <link rel="stylesheet" href="/assets/css/staff/dashboard.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/dashboard.css') ?>">
+    <?php endif; ?>
+    <?php if (str_contains($pageClass ?? '', 'page-admin-client-profile') || str_contains($pageClass ?? '', 'page-admin-pet-profile') || str_contains($pageClass ?? '', 'page-admin-staff-profile') || (($pageClass ?? '') === 'page-admin-list' && ($section ?? '') === 'pets')): ?>
+        <link rel="stylesheet" href="/assets/css/staff/clients.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/clients.css') ?>">
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/account.css">
     <?php if (($pageClass ?? '') === 'page-staff-page' && in_array(($section ?? ''), ['clientes', 'pets'], true)): ?>
@@ -101,6 +107,10 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
         <form method="post" action="/logout"><?= \App\Security\Csrf::field() ?><button type="submit"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sair da Conta</button></form>
     </dialog>
     <button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="Fechar menu de navegação" hidden></button>
+    <?php if (($user['role'] ?? '') === 'admin'): ?>
+        <?php require dirname(__DIR__) . '/partials/admin-password-confirmation.php'; ?>
+        <script src="/assets/js/admin-password-confirmation.js?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/js/admin-password-confirmation.js') ?>" defer></script>
+    <?php endif; ?>
     <?php require dirname(__DIR__) . '/partials/request-loading.php'; ?>
     <script src="/assets/js/app.js?v=<?= time() ?>" defer></script>
 </body>

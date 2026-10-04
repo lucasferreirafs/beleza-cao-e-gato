@@ -33,8 +33,7 @@ final class Navigation
             'pets' => $role === 'client' ? 'Meus pets' : 'Pets', 'agendamentos' => 'Agendamentos',
             'agendamento' => 'Agendamentos', 'perfil' => 'Meu Perfil', 'configuracoes' => 'Configurações',
             'servicos' => 'Serviços', 'clientes' => 'Clientes', 'funcionarios' => 'Funcionários',
-            'agenda' => 'Minha Agenda', 'atendimentos' => 'Atendimentos',
-            'relatorios' => 'Relatórios', default => $title,
+            'agenda' => 'Minha Agenda', 'atendimentos' => 'Atendimentos', default => $title,
         };
         $crumbs[] = ['label' => $label, 'url' => count($segments) > 2 ? $home . '/' . ($section === 'agendamento' ? 'agendamentos' : $section) : null];
         if ($section === 'agendamento') {
