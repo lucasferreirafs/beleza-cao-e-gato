@@ -83,7 +83,6 @@ Os pontos abaixo não são afirmados como falhas definitivas: precisam de respos
 | Q-02 | Quem pode bloquear horários, datas fechadas e feriados, e com quanta antecedência? | Define uma fonte operacional de indisponibilidade. |
 | Q-03 | Qual política de cancelamento/remarcação vale para cliente e equipe (prazo, multa, limites)? | A rota de cancelamento existe, mas a política deve ser confirmada com o negócio. |
 | Q-04 | Quais notificações são obrigatórias, por quais canais e em quais eventos? | E-mail/SMS/WhatsApp dependem de provedor, consentimento e regras de entrega. |
-| Q-05 | Quais métricas e exportações os relatórios administrativos devem fornecer? | Evita tratar uma página administrativa como especificação de analytics. |
 | Q-06 | Quais papéis podem editar cada campo e ver dados pessoais/clínicos? | Permite fechar uma matriz de acesso além da proteção geral por papel. |
 | Q-07 | Quais política de backup, retenção e recuperação de desastre são exigidas? | Define RPO/RTO, retenção de dados e responsabilidades operacionais. |
 | Q-08 | Quais navegadores/dispositivos e metas de acessibilidade devem ser oficialmente suportados? | Converte responsividade atual em critérios mensuráveis de compatibilidade. |
@@ -91,4 +90,4 @@ Os pontos abaixo não são afirmados como falhas definitivas: precisam de respos
 
 ## 8. Fora do escopo confirmado
 
-Não se considera confirmado, sem decisão explícita: cobrança online, emissão fiscal, integração com WhatsApp, aplicativo nativo, programa de fidelidade, múltiplas unidades, escalas avançadas, notificações garantidas por provedor, relatórios exportáveis e SLA de produção.
+Não se considera confirmado, sem decisão explícita: cobrança online, emissão fiscal, integração com WhatsApp, aplicativo nativo, programa de fidelidade, múltiplas unidades, escalas avançadas, notificações garantidas por provedor e SLA de produção.
