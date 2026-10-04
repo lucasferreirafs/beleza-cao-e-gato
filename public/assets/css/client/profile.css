@@ -805,10 +805,6 @@ body.page-client-profile {
     padding-left: 2px;
 }
 
-.page-client-profile .field-error::before {
-    content: "⚠ ";
-}
-
 .page-client-profile td form {
     display: inline-flex;
     align-items: center;
