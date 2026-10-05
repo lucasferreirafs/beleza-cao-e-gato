@@ -101,6 +101,36 @@ try {
     $counts = (new DashboardRepository())->staff($staff)['counts'];
     check($counts['pending'] === 0, 'Métrica contou em andamento como pendente.');
 
+    // HTTP reads share maintenance; writes and new requests must never skip it.
+    AppointmentLifecycleService::beginRequest();
+    try {
+        $firstRead = $insert('pending', '-31 minutes');
+        $repo->allForUser($pet['owner_id']);
+        check($row($firstRead)['status'] === 'cancelled', 'Primeira leitura nao executou manutencao.');
+        $afterRead = $insert('pending', '-31 minutes');
+        $repo->allForUser($pet['owner_id']);
+        check($row($afterRead)['status'] === 'pending', 'Leitura repetida executou manutencao novamente.');
+        check(!$repo->changeStatus($afterRead, 'in_progress', $staff), 'Cache permitiu inicio vencido.');
+        check($row($afterRead)['status'] === 'cancelled', 'Acao nao revalidou vencimento.');
+        $rolledBack = $insert('pending', '-31 minutes');
+        $pdo->beginTransaction();
+        AppointmentLifecycleService::maintainBeforeRead($pdo);
+        check($row($rolledBack)['status'] === 'cancelled', 'Transacao pulou manutencao devido ao cache.');
+        $pdo->rollBack();
+        check($row($rolledBack)['status'] === 'pending', 'Rollback nao restaurou fixture.');
+        $pdo->beginTransaction();
+        AppointmentLifecycleService::maintainBeforeRead($pdo);
+        $pdo->commit();
+        check($row($rolledBack)['status'] === 'cancelled', 'Transacao seguinte reutilizou trabalho revertido.');
+        $nextRequest = $insert('pending', '-31 minutes');
+        AppointmentLifecycleService::beginRequest();
+        $repo->allForUser($pet['owner_id']);
+        check($row($nextRequest)['status'] === 'cancelled', 'Nova requisicao reutilizou cache antigo.');
+    } finally {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        AppointmentLifecycleService::endRequest();
+    }
+
     // Both competing workers wait on the same lock; expired start must never win.
     $race = $insert('pending', '-31 minutes');
     $pdo->beginTransaction();

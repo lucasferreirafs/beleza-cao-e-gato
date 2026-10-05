@@ -15,7 +15,11 @@ final class ProfileController
 {
     public function show(Request $request): void
     {
-        $profile = (new UserRepository())->findById(Session::user()['id']);
+        // AuthMiddleware refreshes the full user on every authenticated request.
+        // The development bypass skips that refresh, so keep its database lookup.
+        $profile = Env::get('APP_ENV') === 'development' && Env::bool('AUTH_BYPASS')
+            ? (new UserRepository())->findById(Session::user()['id'])
+            : Session::user();
         View::render('pages/client/profile', [
             'title' => 'Meu Perfil', 'active' => 'profile', 'profile' => $profile,
             'user' => Session::user(), 'profileUrl' => Navigation::home(Session::user()['role']) . '/perfil',

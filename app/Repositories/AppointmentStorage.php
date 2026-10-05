@@ -11,18 +11,26 @@ use App\Support\Uuid;
 final class AppointmentStorage
 {
     public const PREFIX = '@beleza-booking:v1:';
-    private ?array $capabilities = null;
+    /** Shared only within this PHP request, isolated by PDO connection. */
+    private static ?\WeakMap $capabilitiesByConnection = null;
     public function __construct(private PDO $pdo) {}
+
+    /** CLI/tests that change schema on the same connection must invalidate it explicitly. */
+    public static function clearCapabilities(PDO $pdo): void
+    {
+        if (self::$capabilitiesByConnection !== null) unset(self::$capabilitiesByConnection[$pdo]);
+    }
 
     public function capabilities(): array
     {
-        if ($this->capabilities !== null) return $this->capabilities;
+        self::$capabilitiesByConnection ??= new \WeakMap();
+        if (isset(self::$capabilitiesByConnection[$this->pdo])) return self::$capabilitiesByConnection[$this->pdo];
         $rows = $this->pdo->query("SELECT attrelid::regclass::text relation,attname FROM pg_attribute
             WHERE attrelid IN (to_regclass('appointments'),to_regclass('appointment_services'))
             AND attnum>0 AND NOT attisdropped")->fetchAll();
         $columns = [];
         foreach ($rows as $row) $columns[basename(str_replace('.', '/', $row['relation']))][] = $row['attname'];
-        return $this->capabilities = [
+        return self::$capabilitiesByConnection[$this->pdo] = [
             'duration' => in_array('duration_minutes', $columns['appointments'] ?? [], true),
             'items' => !array_diff(['appointment_id','service_id','position','service_name','price','duration_minutes'], $columns['appointment_services'] ?? []),
         ];

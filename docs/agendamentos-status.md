@@ -20,7 +20,9 @@ O funcionário somente altera os atendimentos atribuídos a ele. O tutor somente
 
 `App\Services\AppointmentLifecycleService::cancelExpiredPending()` cancela agendamentos ainda pendentes quando a hora atual ultrapassa estritamente o horário marcado mais 30 minutos. No limite exato de 30 minutos, o agendamento ainda não está vencido.
 
-As consultas de agendamentos e disponibilidade executam essa manutenção antes de devolver os dados. O início de um serviço também verifica novamente o prazo após adquirir os bloqueios. Um início tardio é recusado e seu cancelamento fica persistido.
+As consultas de agendamentos e disponibilidade executam essa manutenção antes de devolver os dados. Nas leituras comuns, ela é executada uma vez por conexão em cada requisição HTTP: `public/index.php` delimita esse escopo, e somente uma manutenção concluída com commit é reutilizada. Leituras seguintes ainda consultam os dados, mas não repetem o sweep; um vencimento ocorrido depois da primeira manutenção será tratado na próxima requisição ou ação crítica.
+
+Dentro de uma transação, a manutenção nunca é pulada nem registrada nesse cache, pois a operação pode sofrer rollback. O início de um serviço também verifica novamente o prazo após adquirir os bloqueios. Um início tardio é recusado e seu cancelamento fica persistido. Chamadas diretas a `cancelExpiredPending()` e comandos CLI continuam executando a manutenção a cada chamada; não há cache persistente entre requisições.
 
 A decisão utiliza o relógio do PostgreSQL após aguardar os bloqueios. A manutenção, a reserva e a mudança manual de status compartilham o bloqueio transacional já utilizado pelo motor de agendamentos. O cancelamento nunca atinge `in_progress` ou `completed` e não altera `completed_at`.
 

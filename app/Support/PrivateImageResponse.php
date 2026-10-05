@@ -9,9 +9,14 @@ final class PrivateImageResponse
     /**
      * Send a private cache validator and return true when the browser's copy
      * is current. Call only after authenticating and authorizing the resource.
+     * Commits session updates and releases its lock; callers must not write to
+     * the session afterwards (including download failure paths).
      */
     public static function isNotModified(string $bucket, string $path): bool
     {
+        if (session_status() === PHP_SESSION_ACTIVE && !session_write_close()) {
+            throw new \RuntimeException('Não foi possível concluir a sessão.');
+        }
         $etag = self::etag($bucket, $path);
         self::cacheHeaders($etag);
 

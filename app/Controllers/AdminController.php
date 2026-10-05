@@ -10,6 +10,7 @@ use App\Core\{
 };
 use App\Repositories\ManagementRepository;
 use App\Repositories\StaffClientRepository;
+use App\Repositories\AppointmentRepository;
 use App\Services\StaffPetService;
 use App\Services\AdminPasswordConfirmationService;
 use App\Services\SupabaseStorageService;
@@ -73,6 +74,28 @@ final class AdminController
             View::render('pages/admin/list', $data + [
                 'title' => 'Serviços', 'active' => $section, 'section' => $section,
                 'search' => $search, 'statusFilter' => $status, 'rows' => [], 'user' => Session::user(),
+            ]);
+            return;
+        }
+        if ($section === 'agendamentos') {
+            $searchInput = $r->input('q', '');
+            $search = is_string($searchInput) ? mb_substr(trim($searchInput), 0, 100) : '';
+            $dateInput = $r->input('date', '');
+            $date = is_string($dateInput) && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $dateInput)
+                && checkdate((int) substr($dateInput, 5, 2), (int) substr($dateInput, 8, 2), (int) substr($dateInput, 0, 4))
+                ? $dateInput : '';
+            $statusInput = $r->input('status', '');
+            $status = is_string($statusInput) && in_array($statusInput, array_keys(\App\Support\AppointmentStatus::editable()), true)
+                ? $statusInput : '';
+            $pageInput = filter_var($r->input('page'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000000]]);
+            $data = (new AppointmentRepository())->adminPage($search, $date, $status, $pageInput ?: 1);
+            $returnQuery = http_build_query(array_filter([
+                'q' => $search, 'date' => $date, 'status' => $status,
+            ], static fn(string $value): bool => $value !== ''));
+            View::render('pages/admin/list', $data + [
+                'title' => 'Agendamentos', 'active' => $section, 'section' => $section,
+                'search' => $search, 'dateFilter' => $date, 'statusFilter' => $status,
+                'returnQuery' => $returnQuery, 'user' => Session::user(),
             ]);
             return;
         }

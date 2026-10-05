@@ -95,6 +95,7 @@ O fluxo de interface é normalmente uma submissão tradicional GET/POST com resp
 - O backend usa `SupabaseStorageService` e cURL com `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. A chave privilegiada nunca vai para HTML, JavaScript ou logs.
 - O nome do objeto é aleatório (bytes criptograficamente seguros em hexadecimal) e preserva a extensão validada; o nome original enviado não é usado como nome do arquivo.
 - Caminhos são guardados no banco. Fotos privadas são servidas por rotas autenticadas que verificam autorização; não transforme essa arquitetura em URL pública sem decisão explícita de segurança.
+- Após a autorização, `PrivateImageResponse::isNotModified()` persiste e fecha a sessão antes da revalidação/transferência. Isso libera outras requisições do mesmo usuário durante o download. Os controllers de foto não devem escrever na sessão depois desse ponto, inclusive em erros. O cache continua `private, no-cache, must-revalidate`; uma transferência já autorizada pode terminar após logout concorrente, mas não reabre/restaura a sessão. Novas requisições continuam passando pela autenticação. Teste isolado: `php tests/image-session-lock.php` (sem banco ou Storage remoto).
 - A configuração documentada está no `.env.example`; valores reais pertencem somente ao `.env`/ambiente do servidor e não devem ser copiados para documentação ou resposta.
 
 ## Orientações para agentes que forem trabalhar no repositório

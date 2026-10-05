@@ -4,10 +4,12 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Core\Database;
+use App\Core\Env;
 use App\Services\BookingService;
 use App\Services\AppointmentLifecycleService;
 use App\Support\AppointmentStatus;
 use DateTimeImmutable;
+use DateTimeZone;
 use DomainException;
 use PDO;
 use App\Support\Uuid;
@@ -17,7 +19,7 @@ final class AppointmentRepository
     private function rows(string $condition = 'true', array $params = [], string $order = 'a.scheduled_at DESC'): array
     {
         $pdo = Database::connection();
-        AppointmentLifecycleService::cancelExpiredPending($pdo);
+        AppointmentLifecycleService::maintainBeforeRead($pdo);
         $s = $pdo->prepare("SELECT a.*,p.id pet_id,p.photo_path pet_photo_path,p.name pet_name,p.weight pet_weight,p.coat_color pet_coat_color,
             p.allergies pet_allergies,p.special_needs pet_special_needs,p.behavior pet_behavior,p.notes pet_notes,
             p.species pet_species,p.breed pet_breed,p.sex pet_sex,p.birth_date pet_birth_date,p.neutered pet_neutered,
@@ -53,6 +55,66 @@ final class AppointmentRepository
         return null;
     }
     public function allForAdmin(bool $recent = false): array { return $this->rows('true', [], $recent ? 'a.created_at DESC LIMIT 8' : 'a.scheduled_at DESC'); }
+
+    /** @return array{rows:list<array<string,mixed>>,total:int,page:int,pages:int,perPage:int} */
+    public function adminPage(string $search, string $date, string $status, int $page, int $perPage = 10): array
+    {
+        $perPage = max(1, min($perPage, 100));
+        $page = max(1, $page);
+        $pdo = Database::connection();
+        AppointmentLifecycleService::maintainBeforeRead($pdo);
+        $conditions = ['true'];
+        $params = [];
+
+        if ($search !== '') {
+            $pattern = '%' . strtr($search, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
+            $serviceItemsExist = (new AppointmentStorage($pdo))->capabilities()['items'];
+            $serviceSearch = $serviceItemsExist
+                ? "OR EXISTS (SELECT 1 FROM appointment_services item
+                    WHERE item.appointment_id=a.id AND item.service_name ILIKE :service ESCAPE '!')"
+                : '';
+            $conditions[] = "(p.name ILIKE :pet ESCAPE '!' OR c.name ILIKE :client ESCAPE '!'
+                OR s.name ILIKE :legacy_service ESCAPE '!' {$serviceSearch})";
+            $params += ['pet' => $pattern, 'client' => $pattern,
+                'legacy_service' => $pattern];
+            if ($serviceItemsExist) $params['service'] = $pattern;
+        }
+
+        if ($date !== '') {
+            $timezone = new DateTimeZone((string) Env::get('APP_TIMEZONE', 'America/Sao_Paulo'));
+            $start = new DateTimeImmutable($date . ' 00:00:00', $timezone);
+            $end = $start->modify('+1 day');
+            $conditions[] = 'a.scheduled_at >= :date_start AND a.scheduled_at < :date_end';
+            $params['date_start'] = $start->format('c');
+            $params['date_end'] = $end->format('c');
+        }
+
+        if ($status !== '') {
+            $conditions[] = 'a.status=:status';
+            $params['status'] = $status;
+        }
+
+        $where = implode(' AND ', $conditions);
+        $count = $pdo->prepare("SELECT count(*)
+            FROM appointments a
+            JOIN pets p ON p.id=a.pet_id
+            JOIN users c ON c.id=p.owner_id
+            JOIN services s ON s.id=a.service_id
+            WHERE {$where}");
+        $count->execute($params);
+        $total = (int) $count->fetchColumn();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($page, $pages));
+        $offset = ($page - 1) * $perPage;
+
+        return [
+            'rows' => $this->rows($where, $params, "a.scheduled_at DESC,a.id DESC LIMIT {$perPage} OFFSET {$offset}"),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'perPage' => $perPage,
+        ];
+    }
 
     public function staffAgenda(string $staffId, DateTimeImmutable $start, DateTimeImmutable $end): array
     {

@@ -38,40 +38,35 @@ $formatDuration = static function (int $minutes): string {
 
 <?php elseif ($section === 'agendamentos'): ?>
     <section class="panel admin-appointments-panel" data-admin-appointments>
-        <div class="admin-appointment-filters" role="search" aria-label="Filtros de agendamentos">
+        <form method="get" action="/admin/agendamentos" class="admin-appointment-filters" role="search" aria-label="Filtros de agendamentos">
             <label class="admin-appointment-search">
                 <span>Buscar agendamentos</span>
-                <input type="search" placeholder="Buscar por pet, tutor ou serviço..." data-admin-appointment-search>
+                <input type="search" name="q" value="<?= $e($search ?? '') ?>" maxlength="100" placeholder="Buscar por pet, tutor ou serviço...">
             </label>
             <label>
                 <span>Data</span>
-                <input type="date" aria-label="Filtrar por data do agendamento" data-admin-appointment-date>
+                <input type="date" name="date" value="<?= $e($dateFilter ?? '') ?>" aria-label="Filtrar por data do agendamento">
             </label>
             <label>
                 <span>Status</span>
-                <select aria-label="Filtrar por status" data-admin-appointment-status>
+                <select name="status" aria-label="Filtrar por status">
                     <option value="">Todos os status</option>
-                    <option value="pending">Pendente</option>
-                    <option value="in_progress">Em atendimento</option>
-                    <option value="completed">Concluído</option>
-                    <option value="cancelled">Cancelado</option>
+                    <?php foreach (\App\Support\AppointmentStatus::editable() as $value => $label): ?>
+                        <option value="<?= $e($value) ?>" <?= ($statusFilter ?? '') === $value ? 'selected' : '' ?>><?= $e($label) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </label>
-        </div>
+            <button class="button primary" type="submit">Filtrar</button>
+        </form>
 
         <div class="admin-appointment-list" data-admin-appointment-list>
             <?php foreach ($rows as $row): ?>
                 <?php
                 $scheduledAt = (new DateTimeImmutable((string) $row['scheduled_at']))->setTimezone($appointmentTimezone);
                 $detailsId = 'appointment-details-' . preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $row['id']);
-                $searchText = implode(' ', [
-                    $row['pet_name'], $row['client_name'],
-                    implode(' ', array_column($row['services'], 'name')),
-                ]);
                 ?>
                 <article class="admin-appointment-card" data-admin-appointment-card
-                    data-status="<?= $e($row['status']) ?>" data-date="<?= $e($scheduledAt->format('Y-m-d')) ?>"
-                    data-search="<?= $e($searchText) ?>">
+                    data-status="<?= $e($row['status']) ?>" data-date="<?= $e($scheduledAt->format('Y-m-d')) ?>">
                     <div class="admin-appointment-summary">
                         <div class="appointment-summary-field appointment-date-field">
                             <span>Data e horário</span>
@@ -141,10 +136,23 @@ $formatDuration = static function (int $minutes): string {
         </div>
 
         <p class="admin-appointments-empty" data-admin-appointments-empty <?= $rows ? 'hidden' : '' ?>>
-            <?= $rows ? 'Nenhum agendamento encontrado para os filtros selecionados.' : 'Nenhum agendamento cadastrado.' ?>
+            <?= ($search ?? '') !== '' || ($dateFilter ?? '') !== '' || ($statusFilter ?? '') !== ''
+                ? 'Nenhum agendamento encontrado para os filtros selecionados.'
+                : 'Nenhum agendamento cadastrado.' ?>
         </p>
-        <footer class="admin-appointments-count" data-admin-appointments-count role="status" aria-live="polite">
-            <?= count($rows) ?> agendamentos
+        <footer class="admin-client-pagination" role="status" aria-live="polite">
+            <?php if (($page ?? 1) > 1): ?>
+                <a class="button ghost" href="/admin/agendamentos?<?= $e(http_build_query(array_filter(['q' => $search ?? '', 'date' => $dateFilter ?? '', 'status' => $statusFilter ?? '', 'page' => $page - 1], static fn($value): bool => $value !== '' && $value !== 1))) ?>">Anterior</a>
+            <?php endif; ?>
+            <span>
+                <?php if (($total ?? 0) > 0): ?>
+                    Exibindo <?= (int) (($page - 1) * $perPage + 1) ?>–<?= (int) (($page - 1) * $perPage + count($rows)) ?> de <?= (int) $total ?> agendamentos
+                <?php else: ?>Nenhum agendamento<?php endif; ?>
+                · Página <?= (int) ($page ?? 1) ?> de <?= (int) ($pages ?? 1) ?>
+            </span>
+            <?php if (($page ?? 1) < ($pages ?? 1)): ?>
+                <a class="button ghost" href="/admin/agendamentos?<?= $e(http_build_query(array_filter(['q' => $search ?? '', 'date' => $dateFilter ?? '', 'status' => $statusFilter ?? '', 'page' => $page + 1], static fn($value): bool => $value !== '' && $value !== 1))) ?>">Próxima</a>
+            <?php endif; ?>
         </footer>
     </section>
 
@@ -387,5 +395,5 @@ $formatDuration = static function (int $minutes): string {
 <?php endif; ?>
 
 <?php if ($section === 'agendamentos'): ?>
-    <script src="/assets/js/admin-appointments.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/admin-appointments.js') ?>" defer></script>
+    <script src="/assets/js/admin-appointments.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/admin-appointments.js') ?>" defer></script>
 <?php endif; ?>

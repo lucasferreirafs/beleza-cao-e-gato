@@ -36,4 +36,9 @@ set_exception_handler(function (Throwable $e): void {
 $router = new Router();
 (new \App\Services\RememberMeService())->restore();
 require $root . '/routes/web.php';
-$router->dispatch(new Request());
+\App\Services\AppointmentLifecycleService::beginRequest();
+try {
+    $router->dispatch(new Request());
+} finally {
+    \App\Services\AppointmentLifecycleService::endRequest();
+}

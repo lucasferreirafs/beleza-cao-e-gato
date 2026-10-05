@@ -145,6 +145,7 @@ try {
         check((bool) $pdo->query('SELECT public.brazil_timestamp() IS NOT NULL')->fetchColumn(), 'Função de timestamp indisponível.');
         if (in_array($mode, ['legacy','duration-only'], true)) $pdo->exec('DROP TABLE appointment_services');
         if (in_array($mode, ['legacy','items-only'], true)) $pdo->exec('ALTER TABLE appointments DROP COLUMN duration_minutes');
+        AppointmentStorage::clearCapabilities($pdo);
         $schema = (new AppointmentStorage($pdo))->capabilities();
         check($schema['items'] === in_array($mode, ['items-only','modern'], true), 'Detecção de tabela incorreta.');
         check($schema['duration'] === in_array($mode, ['duration-only','modern'], true), 'Detecção de coluna incorreta.');

@@ -11,6 +11,32 @@ use Throwable;
 final class AppointmentLifecycleService
 {
     public const PENDING_TOLERANCE_MINUTES = 30;
+    private static ?\WeakMap $readMaintenance = null;
+
+    /** Explicit HTTP scope; CLI maintenance keeps running on every call. */
+    public static function beginRequest(): void
+    {
+        self::$readMaintenance = new \WeakMap();
+    }
+
+    public static function endRequest(): void
+    {
+        self::$readMaintenance = null;
+    }
+
+    public static function maintainBeforeRead(PDO $pdo): void
+    {
+        // Booking writes must revalidate under their lock, even after a prior read.
+        // Never cache work in a caller-owned transaction: it may roll back.
+        if ($pdo->inTransaction() || self::$readMaintenance === null) {
+            self::cancelExpiredPending($pdo);
+            return;
+        }
+        if (isset(self::$readMaintenance[$pdo])) return;
+        self::cancelExpiredPending($pdo);
+        // Only a successful, committed maintenance marks this connection as done.
+        self::$readMaintenance[$pdo] = true;
+    }
 
     public static function isExpiredPending(array $appointment, DateTimeImmutable $now): bool
     {
