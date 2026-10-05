@@ -73,4 +73,4 @@ $formatDuration = static fn(int $minutes): string => intdiv($minutes, 60) > 0
 <dialog class="agenda-notice" data-agenda-notice aria-labelledby="agenda-notice-title">
     <h2 id="agenda-notice-title" data-agenda-notice-title>Atendimento atualizado</h2><p>Atualizando sua agenda…</p>
 </dialog>
-<script src="/assets/js/staff-agenda.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/staff-agenda.js') ?>" defer></script>
+<script src="/assets/js/staff-agenda.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/staff-agenda.js') ?>" defer></script>

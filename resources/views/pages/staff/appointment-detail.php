@@ -19,4 +19,4 @@ $backUrl = '/staff/atendimentos' . ($backQuery !== '' ? '?' . $backQuery : '');
 <dialog class="staff-attendance-notice" data-attendance-notice aria-labelledby="staff-attendance-notice-title">
     <h2 id="staff-attendance-notice-title" data-attendance-notice-title>Atendimento atualizado</h2><p>Atualizando os detalhes…</p>
 </dialog>
-<script src="/assets/js/staff-attendance-detail.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/staff-attendance-detail.js') ?>" defer></script>
+<script src="/assets/js/staff-attendance-detail.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/staff-attendance-detail.js') ?>" defer></script>

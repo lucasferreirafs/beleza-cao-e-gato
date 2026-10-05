@@ -245,4 +245,4 @@ $formatDuration = static function (int $minutes): string {
     <?php endif; ?>
 </section>
 
-<script src="/assets/js/admin-dashboard.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/admin-dashboard.js') ?>" defer></script>
+<script src="/assets/js/admin-dashboard.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/admin-dashboard.js') ?>" defer></script>

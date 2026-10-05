@@ -14,8 +14,8 @@ $formatMinutes = static fn(int $minutes): string => $minutes < 60
     </div>
 </header>
 
-<script src="/assets/js/staff-dashboard.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/staff-dashboard.js') ?>" defer></script>
-<script src="/assets/js/staff-appointments.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/staff-appointments.js') ?>" defer></script>
+<script src="/assets/js/staff-dashboard.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/staff-dashboard.js') ?>" defer></script>
+<script src="/assets/js/staff-appointments.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/staff-appointments.js') ?>" defer></script>
 
 <section class="staff-next" aria-labelledby="staff-next-title" <?= $nextAppointment ? 'data-appointment-id="' . $e($nextAppointment['id']) . '"' : '' ?>>
     <div class="staff-next-icon" aria-hidden="true"><i class="fa-solid fa-paw"></i></div>

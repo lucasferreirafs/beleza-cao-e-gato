@@ -1,0 +1,18 @@
+# Somente arquivos estaticos existentes, nunca respostas PHP ou erros.
+# Assets sem hash precisam revalidar para refletir alteracoes no mesmo caminho.
+<FilesMatch "\.(?:css|js|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|mp4)$">
+    Header set Cache-Control "public, no-cache" "expr=-f %{REQUEST_FILENAME} && %{REQUEST_STATUS} =~ m#^(200|206|304)$#"
+</FilesMatch>
+
+# Compressao apenas de recursos estaticos textuais deste diretorio (sem HTML dinamico).
+<IfModule mod_deflate.c>
+    AddOutputFilter DEFLATE css js svg
+</IfModule>
+
+# CSS e JS com versao SHA-256 podem ser reutilizados por um ano sem revalidacao.
+<FilesMatch "\.css$">
+    Header set Cache-Control "public, max-age=31536000, immutable" "expr=-f %{REQUEST_FILENAME} && %{REQUEST_STATUS} =~ m#^(200|206|304)$# && %{QUERY_STRING} =~ m#^v=[a-f0-9]{64}$#"
+</FilesMatch>
+<FilesMatch "\.js$">
+    Header set Cache-Control "public, max-age=31536000, immutable" "expr=-f %{REQUEST_FILENAME} && %{REQUEST_STATUS} =~ m#^(200|206|304)$# && %{QUERY_STRING} =~ m#^v=[a-f0-9]{64}$#"
+</FilesMatch>

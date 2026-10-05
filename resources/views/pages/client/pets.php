@@ -19,7 +19,7 @@
                 <button type="submit" class="pet-delete-icon" aria-label="Excluir <?= htmlspecialchars($pet['name'], ENT_QUOTES, 'UTF-8') ?>" title="Excluir pet"><i class="fa-solid fa-trash" aria-hidden="true"></i></button>
             </form>
             <header>
-                <img src="<?= htmlspecialchars(\App\Support\PetHelper::photo($pet), ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($pet['name'], ENT_QUOTES, 'UTF-8') ?>">
+                <img src="<?= htmlspecialchars(\App\Support\PetHelper::photo($pet), ENT_QUOTES, 'UTF-8') ?>" alt="<?= htmlspecialchars($pet['name'], ENT_QUOTES, 'UTF-8') ?>" loading="lazy" decoding="async">
                 <span>
                     <strong>
                         <?= htmlspecialchars($pet['name']) ?>

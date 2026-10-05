@@ -45,4 +45,4 @@ $query = http_build_query(array_filter(['q' => $search, 'date' => $date], static
         </div>
     </section>
 </div>
-<script src="/assets/js/staff-appointment-list.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/staff-appointment-list.js') ?>" defer></script>
+<script src="/assets/js/staff-appointment-list.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/staff-appointment-list.js') ?>" defer></script>

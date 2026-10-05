@@ -202,4 +202,4 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
         <?php endif; ?>
     </aside>
 </div>
-<script src="/assets/js/client-dashboard.js?v=<?= (int) filemtime(dirname(__DIR__, 4) . '/public/assets/js/client-dashboard.js') ?>" defer></script>
+<script src="/assets/js/client-dashboard.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/client-dashboard.js') ?>" defer></script>
