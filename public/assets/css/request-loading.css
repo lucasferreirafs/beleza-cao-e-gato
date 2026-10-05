@@ -8,6 +8,7 @@ dialog.request-loading {
     max-height: none;
     margin: auto;
     padding: 0;
+    outline: none;
     overflow: visible;
     border: 0;
     background: transparent;
