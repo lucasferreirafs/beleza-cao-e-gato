@@ -4,6 +4,48 @@ $user = \App\Core\Session::user() ?? ($user ?? []);
 $homeUrl = \App\Support\Navigation::home($user['role'] ?? 'client');
 $breadcrumbs = \App\Support\Navigation::breadcrumbs((new \App\Core\Request())->path(), $user['role'] ?? 'client', $title ?? 'Início');
 $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($user['avatar_path']) : null;
+$pageStylesheets = [];
+$role = $user['role'] ?? 'client';
+$currentPageClass = $pageClass ?? '';
+
+if ($role === 'admin') {
+    if (str_contains($currentPageClass, 'page-admin-dashboard')) {
+        $pageStylesheets[] = 'admin/dashboard.css';
+    } elseif (str_contains($currentPageClass, 'page-admin-form')) {
+        $pageStylesheets[] = 'admin/form.css';
+    } elseif (str_contains($currentPageClass, 'page-admin-list')) {
+        $pageStylesheets[] = 'admin/list.css';
+    }
+} elseif ($role === 'staff') {
+    if (str_contains($currentPageClass, 'page-staff-dashboard')) {
+        $pageStylesheets[] = 'staff/dashboard.css';
+    } elseif (str_contains($currentPageClass, 'page-staff-page')) {
+        $pageStylesheets[] = 'staff/page.css';
+    }
+} else {
+    $clientStylesheets = [
+        'page-client-dashboard' => 'client/dashboard.css',
+        'page-client-appointments' => 'client/appointments.css',
+        'page-client-booking' => 'client/booking.css',
+        'page-client-pet-form' => 'client/pet-form.css',
+        'page-client-pet-profile' => 'client/pet-profile.css',
+        'page-client-pets' => 'client/pets.css',
+        'page-client-profile' => 'client/profile.css',
+        'page-client-services' => 'client/services.css',
+    ];
+
+    foreach ($clientStylesheets as $class => $stylesheet) {
+        if (str_contains($currentPageClass, $class)) {
+            $pageStylesheets[] = $stylesheet;
+            break;
+        }
+    }
+}
+
+// The full stylesheet is a safety net for any new app view not yet mapped above.
+if ($pageStylesheets === []) {
+    $pageStylesheets[] = 'main.css';
+}
 ?>
 <!doctype html>
 <html lang="pt-BR">
@@ -17,31 +59,30 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/main.css">
+    <?php foreach ($pageStylesheets as $stylesheet):
+        $stylesheetPath = dirname(__DIR__, 3) . '/public/assets/css/' . $stylesheet;
+        $stylesheetVersion = is_file($stylesheetPath) ? hash_file('sha256', $stylesheetPath) : '';
+    ?>
+        <link rel="stylesheet" href="/assets/css/<?= $e($stylesheet) ?>?v=<?= $stylesheetVersion ?>">
+    <?php endforeach; ?>
     <?php if (($user['role'] ?? '') === 'admin'): ?>
-        <link rel="stylesheet" href="/assets/css/admin/password-confirmation.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/admin/password-confirmation.css') ?>">
-    <?php endif; ?>
-    <?php if (($pageClass ?? '') === 'page-client-dashboard'): ?>
-        <link rel="stylesheet" href="/assets/css/client/dashboard.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/client/dashboard.css') ?>">
-    <?php endif; ?>
-    <?php if (($pageClass ?? '') === 'page-staff-dashboard'): ?>
-        <link rel="stylesheet" href="/assets/css/staff/dashboard.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/dashboard.css') ?>">
+        <link rel="stylesheet" href="/assets/css/admin/password-confirmation.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/admin/password-confirmation.css') ?>">
     <?php endif; ?>
     <?php if (str_contains($pageClass ?? '', 'page-admin-client-profile') || str_contains($pageClass ?? '', 'page-admin-pet-profile') || str_contains($pageClass ?? '', 'page-admin-staff-profile') || (($pageClass ?? '') === 'page-admin-list' && ($section ?? '') === 'pets')): ?>
-        <link rel="stylesheet" href="/assets/css/staff/clients.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/clients.css') ?>">
+        <link rel="stylesheet" href="/assets/css/staff/clients.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/staff/clients.css') ?>">
     <?php endif; ?>
-    <link rel="stylesheet" href="/assets/css/account.css">
+    <link rel="stylesheet" href="/assets/css/account.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/account.css') ?>">
     <?php if (($pageClass ?? '') === 'page-staff-page' && in_array(($section ?? ''), ['clientes', 'pets'], true)): ?>
-        <link rel="stylesheet" href="/assets/css/staff/clients.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/clients.css') ?>">
+        <link rel="stylesheet" href="/assets/css/staff/clients.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/staff/clients.css') ?>">
     <?php endif; ?>
     <?php if (($pageClass ?? '') === 'page-staff-page' && ($section ?? '') === 'agenda'): ?>
-        <link rel="stylesheet" href="/assets/css/staff/agenda.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/agenda.css') ?>">
+        <link rel="stylesheet" href="/assets/css/staff/agenda.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/staff/agenda.css') ?>">
     <?php endif; ?>
     <?php if (($section ?? '') === 'atendimentos' && str_contains($pageClass ?? '', 'page-staff-page')): ?>
-        <link rel="stylesheet" href="/assets/css/staff/appointments.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/staff/appointments.css') ?>">
+        <link rel="stylesheet" href="/assets/css/staff/appointments.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/staff/appointments.css') ?>">
     <?php endif; ?>
-    <link rel="stylesheet" href="/assets/css/errors/errors.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/errors/errors.css') ?>">
-    <link rel="stylesheet" href="/assets/css/request-loading.css?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/css/request-loading.css') ?>">
+    <link rel="stylesheet" href="/assets/css/errors/errors.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/errors/errors.css') ?>">
+    <link rel="stylesheet" href="/assets/css/request-loading.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/request-loading.css') ?>">
 </head>
 
 <body class="app-body <?= $pageClass ?? '' ?>">
@@ -109,10 +150,16 @@ $avatarUrl = !empty($user['avatar_path']) ? '/conta/foto?v=' . rawurlencode($use
     <button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="Fechar menu de navegação" hidden></button>
     <?php if (($user['role'] ?? '') === 'admin'): ?>
         <?php require dirname(__DIR__) . '/partials/admin-password-confirmation.php'; ?>
-        <script src="/assets/js/admin-password-confirmation.js?v=<?= (int) filemtime(dirname(__DIR__, 3) . '/public/assets/js/admin-password-confirmation.js') ?>" defer></script>
+        <script src="/assets/js/admin-password-confirmation.js?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/js/admin-password-confirmation.js') ?>" defer></script>
     <?php endif; ?>
     <?php require dirname(__DIR__) . '/partials/request-loading.php'; ?>
-    <script src="/assets/js/app.js?v=<?= time() ?>" defer></script>
+    <script src="/assets/js/app.js?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/js/app.js') ?>" defer></script>
+    <?php if (str_contains($currentPageClass, 'page-client-booking')): ?>
+        <script src="/assets/js/client-booking.js?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/js/client-booking.js') ?>" defer></script>
+    <?php endif; ?>
+    <?php if (str_contains($currentPageClass, 'page-client-appointments') || ($role === 'admin' && str_contains($currentPageClass, 'page-admin-list'))): ?>
+        <script src="/assets/js/table-filters.js?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/js/table-filters.js') ?>" defer></script>
+    <?php endif; ?>
 </body>
 
 </html>

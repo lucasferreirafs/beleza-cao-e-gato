@@ -30,7 +30,8 @@ $formatDuration = static function (int $minutes): string {
     <?php if (!empty($error)): ?><div class="alert error" role="alert"><?= $e($error) ?></div><?php endif; ?>
 
     <form method="post" action="/cliente/agendamento/<?= $stepSlugs[$step - 1] ?>"
-        data-booking-form data-availability-url="/cliente/agendamento/disponibilidade">
+        data-booking-form data-availability-url="/cliente/agendamento/disponibilidade"
+        <?php if ($step === 3): ?>data-availability-rendered="true" data-rendered-date="<?= $e($date) ?>" data-rendered-time="<?= $e($time) ?>"<?php endif; ?>>
         <?= \App\Security\Csrf::field() ?>
 
         <?php if ($step === 1): ?>
@@ -60,7 +61,7 @@ $formatDuration = static function (int $minutes): string {
                 <div class="selection-grid">
                     <?php foreach ($pets as $pet): $checked = ($state['pet_id'] ?? null) === $pet['id']; ?>
                         <label class="selection-card <?= $checked ? 'selected' : '' ?>">
-                            <img src="<?= $e(\App\Support\PetHelper::photo($pet)) ?>" alt="<?= $e($pet['name']) ?>">
+                            <img src="<?= $e(\App\Support\PetHelper::photo($pet)) ?>" alt="<?= $e($pet['name']) ?>" loading="lazy" decoding="async">
                             <input type="radio" name="pet_id" value="<?= $e($pet['id']) ?>" <?= $checked ? 'checked' : '' ?> required>
                             <strong><?= $e($pet['name']) ?></strong><small><?= $e($pet['breed']) ?></small>
                         </label>
@@ -95,10 +96,10 @@ $formatDuration = static function (int $minutes): string {
                     <?php if ($time !== '' && !$selectedTimeAvailable): ?>Este horário não está mais disponível. Escolha outro.<?php endif; ?>
                 </p>
                 <div class="staff-list" role="radiogroup" aria-label="Profissionais disponíveis para este horário" data-slot-staff-list>
-                    <label class="service-card staff-card staff-card--preference <?= empty($state['staff_id']) ? 'selected' : '' ?>">
+                    <label class="service-card staff-card staff-card--preference <?= empty($state['staff_id']) && $selectedTimeAvailable ? 'selected' : '' ?>">
                         <span class="staff-avatar default"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
                         <span class="service-info"><strong>Sem preferência (recomendado)</strong><span>Atribuiremos o melhor profissional qualificado disponível para o seu pet no horário agendado.</span></span>
-                        <input type="radio" name="staff_id" value="" <?= empty($state['staff_id']) ? 'checked' : '' ?>>
+                        <input type="radio" name="staff_id" value="" <?= empty($state['staff_id']) && $selectedTimeAvailable ? 'checked' : '' ?> <?= $selectedTimeAvailable ? '' : 'disabled' ?>>
                         <span class="radio-indicator" aria-hidden="true"></span>
                     </label>
                     <?php foreach ($staff as $member):
@@ -108,7 +109,7 @@ $formatDuration = static function (int $minutes): string {
                     ?>
                         <label class="service-card staff-card staff-card--person <?= $isSelected && $isAvailable ? 'selected' : '' ?> <?= $isAvailable ? '' : 'unavailable' ?>" data-staff-option data-staff-id="<?= $e($memberId) ?>">
                             <span class="staff-avatar">
-                                <?php if (!empty($member['avatar_path'])): ?><img src="/cliente/profissionais/<?= $e($memberId) ?>/foto?v=<?= $e(rawurlencode((string) $member['avatar_path'])) ?>" alt="">
+                                <?php if (!empty($member['avatar_path'])): ?><img src="/cliente/profissionais/<?= $e($memberId) ?>/foto?v=<?= $e(rawurlencode((string) $member['avatar_path'])) ?>" alt="" loading="lazy" decoding="async">
                                 <?php else: ?><i class="fa-solid fa-user" aria-hidden="true"></i><?php endif; ?>
                             </span>
                             <span class="staff-name"><?= $e($member['name']) ?></span>
