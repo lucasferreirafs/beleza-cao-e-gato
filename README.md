@@ -105,7 +105,7 @@ Esses comandos aplicam as migrações 001, 002 e 003; a migração 003 também i
 
 ## Configuração de ambiente
 
-O arquivo `.env.example` lista as variáveis principais. `MAIL_FROM` é opcional e pode ser adicionado ao `.env` para habilitar o envio de e-mails. `.env` contém segredos e não deve ser versionado.
+O arquivo `.env.example` lista as variáveis principais. O envio de confirmação de e-mail e recuperação de senha usa a API HTTPS transacional da Brevo. As chaves reais ficam somente no `.env` local ou nas variáveis de ambiente do servidor; nunca as versione.
 
 | Variável | Finalidade |
 | --- | --- |
@@ -124,9 +124,13 @@ O arquivo `.env.example` lista as variáveis principais. `MAIL_FROM` é opcional
 | `SUPABASE_URL` | URL HTTPS do projeto Supabase, sem `/storage/v1`. |
 | `SUPABASE_ANON_KEY` | Reservada para integrações que usem RLS; não é usada nos uploads atuais. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave privilegiada usada pelo PHP para operações Storage. Nunca exponha ao browser. |
-| `MAIL_FROM` | Remetente usado por `mail()` para verificação e recuperação de senha. |
+| `BREVO_API_KEY` | Chave privada da API Brevo, usada pelo backend em HTTPS. |
+| `BREVO_TIMEOUT_SECONDS` | Limite de espera para a API de envio; o valor configurado é limitado pelo serviço. |
+| `MAIL_FROM` | E-mail remetente previamente validado na Brevo. |
+| `MAIL_FROM_NAME` | Nome exibido como remetente, por padrão `Beleza Cão&Gato`. |
+| `MAIL_REPLY_TO` | E-mail opcional para receber respostas. |
 
-O serviço de e-mail usa a função nativa `mail()`. O ambiente precisa ter um MTA ou transporte de e-mail configurado; `MAIL_FROM` sozinho não configura a entrega.
+O serviço chama `https://api.brevo.com/v3/smtp/email` usando a extensão cURL. A chave `BREVO_API_KEY` nunca é enviada ao navegador nem registrada nos logs. O remetente precisa ser validado na conta Brevo. A conexão usa HTTPS na porta 443, compatível com o Render Free; credenciais SMTP não são necessárias.
 
 ## Banco de dados
 
@@ -245,7 +249,7 @@ Antes de publicar:
 1. Defina `APP_ENV=production`, `APP_DEBUG=false`, `AUTH_BYPASS=false` e publique somente por HTTPS.
 2. Use credenciais PostgreSQL com SSL e permissões mínimas necessárias.
 3. Configure `SUPABASE_URL` e uma `SUPABASE_SERVICE_ROLE_KEY` no ambiente do servidor; confirme que os dois buckets existem.
-4. Configure um MTA/transporte de e-mail para `mail()` e preencha `MAIL_FROM`.
+4. Configure `BREVO_API_KEY`, `MAIL_FROM` e, se necessário, `MAIL_REPLY_TO` nas variáveis de ambiente; confirme que o remetente está validado na Brevo.
 5. Não armazene `.env` no Git; mantenha segredos somente no ambiente do servidor.
 6. Faça backup do PostgreSQL antes de migrações e nunca rode o reset `bin/migrate.php` sobre dados que precisam ser preservados.
 7. Revise os cabeçalhos e a Content Security Policy em `docker/apache.conf` se mudar os hosts externos usados pela interface.
