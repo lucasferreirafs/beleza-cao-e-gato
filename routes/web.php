@@ -33,6 +33,8 @@ foreach (['cliente' => 'client', 'staff' => 'staff', 'admin' => 'admin'] as $pre
     $router->get('/' . $prefix . '/configuracoes', [ProfileController::class, 'settings'], $profileMiddleware);
 }
 $router->get('/conta/foto', [ProfileController::class, 'photo'], [$auth]);
+$router->get('/conta/alterar-senha', [ProfileController::class, 'changePasswordForm'], [$auth]);
+$router->post('/conta/alterar-senha', [ProfileController::class, 'changePassword'], [$auth, $csrf]);
 $router->post('/conta/revogar-acessos', [ProfileController::class, 'revokeRemembered'], [$auth, $csrf]);
 
 // GET - DASHBOARD
