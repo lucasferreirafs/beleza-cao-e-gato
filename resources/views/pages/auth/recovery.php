@@ -19,23 +19,10 @@
         <h2 class="text-center">Esqueceu sua senha?</h2>
         <p class="text-center">Insira o e-mail cadastrado e enviaremos um link com instruções para redefinição.</p>
 
-        <?php if (!empty($success)): ?>
-            <div class="alert success" role="status">
-                <?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?>
-            </div>
-        <?php endif; ?>
-
         <?php if (!empty($error)): ?>
             <div class="alert error" role="alert">
                 <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?>
             </div>
-        <?php endif; ?>
-
-        <?php if (!empty($devUrl)): ?>
-            <p class="dev-hint">
-                Ambiente de desenvolvimento:
-                <a href="<?= htmlspecialchars($devUrl, ENT_QUOTES, 'UTF-8') ?>">abrir link de redefinição</a>.
-            </p>
         <?php endif; ?>
 
         <label>

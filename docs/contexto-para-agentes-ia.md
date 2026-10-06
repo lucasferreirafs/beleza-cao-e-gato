@@ -70,6 +70,9 @@ O fluxo de interface é normalmente uma submissão tradicional GET/POST com resp
 - O cadastro aceita os termos; o login não solicita um novo aceite.
 - Formulários mutáveis usam CSRF. As rotas também devem verificar papel, vínculo/posse do recurso e transições permitidas no servidor.
 - Senhas usam `password_hash()`/`password_verify()`. Saídas em HTML devem ser escapadas; SQL deve usar parâmetros preparados.
+- A recuperação de senha sempre apresenta uma confirmação genérica para evitar revelar se um e-mail tem conta; o endereço informado fica na sessão e é escapado ao exibir.
+- Os links de redefinição identificam o token com um seletor UUID e um segredo aleatório; somente o hash do segredo fica em `account_tokens`. O token expira em 30 minutos, o reenvio protegido por CSRF invalida o anterior e o `GET` não o consome (para tolerar scanners de e-mail). A senha só muda no `POST` válido, na mesma transação que consome o token; então `auth_version` e tokens “Lembrar de mim” são revogados.
+- `APP_URL` monta o link: `http://localhost:8080` no desenvolvimento local e `https://beleza-cao-e-gato.onrender.com` na produção. Em produção, somente HTTPS é aceito. A página com token define `Cache-Control: no-store` e `Referrer-Policy: no-referrer`.
 - `AUTH_BYPASS` só deve ser usado em `APP_ENV=development`; nunca habilite em ambiente público ou de produção.
 
 ### Agendamentos e status

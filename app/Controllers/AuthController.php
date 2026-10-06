@@ -133,11 +133,24 @@ final class AuthController
             [
                 'title' => 'Recuperar senha',
                 'error' => Session::flash('error'),
-                'success' => Session::flash('success'),
-                'devUrl' => Session::flash('dev_url')
             ],
             'auth'
         );
+    }
+
+    public function recoveryConfirmation(Request $r): void
+    {
+        $email = Session::get('password_recovery_email');
+        if (!is_string($email) || $email === '') Response::redirect('/recuperar-senha');
+
+        header('Cache-Control: no-store, private');
+        View::render('pages/auth/recovery-confirmation', [
+            'title' => 'Verifique seu e-mail',
+            'email' => $email,
+            'error' => Session::flash('error'),
+            'notice' => Session::flash('recovery_notice'),
+            'devUrl' => Session::flash('dev_url'),
+        ], 'auth');
     }
 
     public function sendRecovery(Request $r): void
@@ -146,15 +159,49 @@ final class AuthController
             if ((new RateLimiter())->consume('recovery|' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'), 6, 900) > 0)
                 throw new InvalidArgumentException('Muitas solicitações. Tente novamente mais tarde.');
 
-            $url = (new AccountService())->requestPasswordReset((string) $r->input('email'));
-            if ($url && Env::get('APP_ENV') === 'development' && Env::bool('APP_DEBUG'))
-                Session::flash('dev_url', $url);
+            $email = $r->input('email', '');
+            if (!is_string($email)) throw new InvalidArgumentException('Informe um endereço de e-mail válido.');
+            $result = (new AccountService())->requestPasswordReset($email);
+            $email = \App\Validation\Validator::email($email);
+            Session::put('password_recovery_email', $email);
+            Session::flash('dev_url', '');
+            Session::flash('recovery_notice', '');
+            if (!$result['sent'] && $result['debugUrl'] !== null
+                && Env::get('APP_ENV') === 'development' && Env::bool('APP_DEBUG')) {
+                Session::flash('dev_url', $result['debugUrl']);
+            }
 
-            Session::flash('success', 'Se o e-mail estiver cadastrado, você receberá as instruções em instantes.');
         } catch (InvalidArgumentException $e) {
             Session::flash('error', $e->getMessage());
+            Response::redirect('/recuperar-senha');
         }
-        Response::redirect('/recuperar-senha');
+        Response::redirect('/recuperar-senha/confirmacao');
+    }
+
+    public function resendRecovery(Request $r): void
+    {
+        $email = Session::get('password_recovery_email');
+        if (!is_string($email) || $email === '') Response::redirect('/recuperar-senha');
+
+        try {
+            $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+            $key = 'recovery-resend|' . $ip . '|' . hash('sha256', $email);
+            if ((new RateLimiter())->consume($key, 3, 900) > 0) {
+                throw new InvalidArgumentException('Muitas solicitações. Tente novamente mais tarde.');
+            }
+
+            $result = (new AccountService())->requestPasswordReset($email);
+            Session::flash('dev_url', '');
+            if (!$result['sent'] && $result['debugUrl'] !== null
+                && Env::get('APP_ENV') === 'development' && Env::bool('APP_DEBUG')) {
+                Session::flash('dev_url', $result['debugUrl']);
+            }
+            Session::flash('recovery_notice', 'Se houver uma conta associada a este endereço, enviaremos um novo link. O link anterior não poderá mais ser utilizado.');
+        } catch (InvalidArgumentException $exception) {
+            Session::flash('error', $exception->getMessage());
+        }
+
+        Response::redirect('/recuperar-senha/confirmacao');
     }
 
     public function verification(Request $r): void
@@ -216,13 +263,22 @@ final class AuthController
 
     public function resetForm(Request $r): void
     {
+        header('Cache-Control: no-store, private');
+        header('Referrer-Policy: no-referrer');
+        $selector = $r->input('selector', '');
+        $token = $r->input('token', '');
+        $selector = is_string($selector) ? $selector : '';
+        $token = is_string($token) ? $token : '';
+        $validToken = (new AccountService())->isPasswordResetValid($selector, $token);
+
         View::render(
             'pages/auth/reset',
             [
                 'title' => 'Redefinir senha',
-                'email' => (string) $r->input('email'),
-                'token' => (string) $r->input('token'),
-                'error' => Session::flash('error')
+                'selector' => $selector,
+                'token' => $token,
+                'validToken' => $validToken,
+                'error' => Session::flash('error') ?? ($validToken ? null : 'Este link é inválido, expirou ou já foi utilizado.'),
             ],
             'auth'
         );
@@ -231,17 +287,22 @@ final class AuthController
     public function resetPassword(Request $r): void
     {
         try {
-            if ((new RateLimiter())->consume('reset|' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . '|' . strtolower((string) $r->input('email')), 10, 900) > 0)
+            if ((new RateLimiter())->consume('reset|' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'), 10, 900) > 0)
                 throw new InvalidArgumentException('Muitas tentativas. Tente novamente mais tarde.');
 
             if (!(new AccountService())->resetPassword($r->all()))
                 throw new InvalidArgumentException('Link inválido ou expirado.');
 
+            Session::forget('password_recovery_email');
             Session::flash('success', 'Senha alterada com sucesso.');
             Response::redirect('/login');
         } catch (InvalidArgumentException $e) {
             Session::flash('error', $e->getMessage());
-            Response::redirect('/redefinir-senha?email=' . rawurlencode((string) $r->input('email')) . '&token=' . rawurlencode((string) $r->input('token')));
+            $selector = $r->input('selector', '');
+            $token = $r->input('token', '');
+            $selector = is_string($selector) ? $selector : '';
+            $token = is_string($token) ? $token : '';
+            Response::redirect('/redefinir-senha?selector=' . rawurlencode($selector) . '&token=' . rawurlencode($token));
         }
     }
     public function passwordStrength(Request $r): void

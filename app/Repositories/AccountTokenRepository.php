@@ -6,60 +6,87 @@ use App\Core\Database;
 
 final class AccountTokenRepository
 {
-    public function issue(string $userId, string $purpose, string $plainToken, int $ttlSeconds): void
+    public function issue(string $userId, string $purpose, string $plainToken, int $ttlSeconds): string
     {
         $pdo = Database::connection();
-        $pdo->prepare('
-            UPDATE account_tokens 
-            SET consumed_at=now() 
-            WHERE user_id=:user AND purpose=:purpose AND consumed_at IS NULL
-        ')->execute(
-                [
-                    'user' => $userId,
-                    'purpose' => $purpose
-                ]
-            );
+        $ownsTransaction = !$pdo->inTransaction();
+        if ($ownsTransaction) $pdo->beginTransaction();
 
-        $s = $pdo->prepare("
-            INSERT INTO account_tokens(user_id,purpose,token_hash,expires_at) 
-            VALUES (:user,:purpose,:hash,now() + (:ttl || ' seconds')::interval)
-        ");
+        try {
+            $pdo->prepare('SELECT id FROM users WHERE id=:user FOR UPDATE')->execute(['user' => $userId]);
+            $pdo->prepare('
+                UPDATE account_tokens
+                SET consumed_at=now()
+                WHERE user_id=:user AND purpose=:purpose AND consumed_at IS NULL
+            ')->execute(['user' => $userId, 'purpose' => $purpose]);
 
-        $s->execute(
-            [
+            $statement = $pdo->prepare("
+                INSERT INTO account_tokens(user_id,purpose,token_hash,expires_at)
+                VALUES (:user,:purpose,:hash,now() + (:ttl || ' seconds')::interval)
+                RETURNING id
+            ");
+            $statement->execute([
                 'user' => $userId,
                 'purpose' => $purpose,
                 'hash' => password_hash($plainToken, PASSWORD_DEFAULT),
-                'ttl' => $ttlSeconds
-            ]
-        );
+                'ttl' => $ttlSeconds,
+            ]);
+            $selector = $statement->fetchColumn();
+            if (!is_string($selector) || $selector === '') {
+                throw new \RuntimeException('Não foi possível emitir o token da conta.');
+            }
+
+            if ($ownsTransaction) $pdo->commit();
+            return $selector;
+        } catch (\Throwable $exception) {
+            if ($ownsTransaction && $pdo->inTransaction()) $pdo->rollBack();
+            throw $exception;
+        }
     }
 
     public function consume(string $userId, string $purpose, string $plainToken): bool
     {
         $pdo = Database::connection();
-        $s = $pdo->prepare('
-            SELECT id,token_hash 
-            FROM account_tokens 
-            WHERE user_id=:user AND purpose=:purpose AND consumed_at IS NULL AND expires_at>now() 
-            ORDER BY created_at DESC 
+        $statement = $pdo->prepare('
+            SELECT id,token_hash
+            FROM account_tokens
+            WHERE user_id=:user AND purpose=:purpose AND consumed_at IS NULL AND expires_at>now()
+            ORDER BY created_at DESC
             LIMIT 5
         ');
-        $s->execute(['user' => $userId, 'purpose' => $purpose]);
+        $statement->execute(['user' => $userId, 'purpose' => $purpose]);
 
-        foreach ($s->fetchAll() as $row) {
-            if (!password_verify($plainToken, $row['token_hash']))
-                continue;
+        foreach ($statement->fetchAll() as $row) {
+            if (!password_verify($plainToken, $row['token_hash'])) continue;
 
-            $u = $pdo->prepare('
-                UPDATE account_tokens 
+            $update = $pdo->prepare('
+                UPDATE account_tokens
                 SET consumed_at=now()
                 WHERE id=:id AND consumed_at IS NULL
             ');
-
-            $u->execute(['id' => $row['id']]);
-            return $u->rowCount() === 1;
+            $update->execute(['id' => $row['id']]);
+            return $update->rowCount() === 1;
         }
         return false;
+    }
+
+    public function passwordResetOwner(string $selector, string $plainToken, bool $consume = false): ?string
+    {
+        $pdo = Database::connection();
+        $statement = $pdo->prepare("SELECT user_id, token_hash FROM account_tokens
+            WHERE id=:id AND purpose='reset_password' AND consumed_at IS NULL AND expires_at>now()"
+            . ($consume ? ' FOR UPDATE' : ''));
+        $statement->execute(['id' => $selector]);
+        $row = $statement->fetch();
+
+        if (!is_array($row) || !is_string($row['token_hash'] ?? null)
+            || !password_verify($plainToken, $row['token_hash'])) return null;
+
+        if (!$consume) return is_string($row['user_id'] ?? null) ? $row['user_id'] : null;
+
+        $update = $pdo->prepare("UPDATE account_tokens SET consumed_at=now()
+            WHERE id=:id AND purpose='reset_password' AND consumed_at IS NULL AND expires_at>now()");
+        $update->execute(['id' => $selector]);
+        return $update->rowCount() === 1 && is_string($row['user_id'] ?? null) ? $row['user_id'] : null;
     }
 }

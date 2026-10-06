@@ -578,6 +578,37 @@ body.page-auth-recovery {
     text-align: center;
 }
 
+.page-auth-recovery .recovery-confirmation {
+    text-align: center;
+}
+
+.page-auth-recovery .recovery-confirmation-email {
+    margin: -14px 0 0;
+    padding: 12px 14px;
+    border: 1px solid var(--teal-100);
+    border-radius: 10px;
+    background: var(--teal-50);
+    color: var(--teal-700);
+    overflow-wrap: anywhere;
+}
+
+.page-auth-recovery .recovery-confirmation-help,
+.page-auth-recovery .recovery-confirmation-notice {
+    margin: -12px 0 0;
+    font-size: 12px;
+}
+
+.page-auth-recovery .recovery-confirmation-notice {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--teal-50);
+    color: var(--teal-700);
+}
+
+.page-auth-recovery .recovery-confirmation-actions {
+    width: 100%;
+}
+
 .page-auth-recovery .otp {
     display: flex;
     gap: 8px;

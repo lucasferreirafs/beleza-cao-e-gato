@@ -11,6 +11,7 @@ $router->get('/termos', [LegalController::class, 'terms']);
 $router->get('/login', [AuthController::class, 'loginForm']);
 $router->get('/cadastro', [AuthController::class, 'registerForm']);
 $router->get('/recuperar-senha', [AuthController::class, 'recovery']);
+$router->get('/recuperar-senha/confirmacao', [AuthController::class, 'recoveryConfirmation']);
 $router->get('/verificar-email', [AuthController::class, 'verification']);
 $router->get('/redefinir-senha', [AuthController::class, 'resetForm']);
 
@@ -20,6 +21,7 @@ $router->post('/login', [AuthController::class, 'login'], [$csrf]);
 $router->post('/logout', [AuthController::class, 'logout'], [$auth, $csrf]);
 $router->post('/cadastro', [AuthController::class, 'register'], [$csrf]);
 $router->post('/recuperar-senha', [AuthController::class, 'sendRecovery'], [$csrf]);
+$router->post('/recuperar-senha/reenviar', [AuthController::class, 'resendRecovery'], [$csrf]);
 $router->post('/verificar-email', [AuthController::class, 'verify'], [$csrf]);
 $router->post('/verificar-email/reenviar', [AuthController::class, 'resendVerification'], [$csrf]);
 $router->post('/redefinir-senha', [AuthController::class, 'resetPassword'], [$csrf]);
