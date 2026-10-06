@@ -118,7 +118,6 @@ final class AuthController
                 Session::flash('dev_code', $result['code']);
             }
 
-            Session::flash('success', 'Conta criada. Informe o código enviado ao seu e-mail.');
             Response::redirect('/verificar-email');
         } catch (InvalidArgumentException $e) {
             Session::flash('error', $e->getMessage());

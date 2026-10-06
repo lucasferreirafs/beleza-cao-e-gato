@@ -10,7 +10,7 @@
         </div>
 
         <h2>Verifique seu e-mail</h2>
-        <p>Enviamos um código de verificação de 6 dígitos. Insira-o abaixo para ativar sua conta.</p>
+        <p>Informe abaixo o código de verificação de 6 dígitos enviado ao seu e-mail. Se ainda não o recebeu, solicite um novo código.</p>
 
         <?php if (!empty($success)): ?>
             <div class="alert success" role="status">
