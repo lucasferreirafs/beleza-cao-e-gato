@@ -23,6 +23,18 @@ final class View
         if (in_array($template, ['pages/client/settings', 'pages/errors/upload'], true) && $layout === 'app') {
             $pageClass .= ' page-client-profile';
         }
+        if ($template === 'pages/account/change-password' && $layout === 'app') {
+            $role = Session::user()['role'] ?? ($data['user']['role'] ?? 'client');
+            $pageClass .= match ($role) {
+                'admin' => ' page-admin-dashboard',
+                'staff' => ' page-staff-page',
+                default => ' page-client-profile',
+            };
+        }
+        if ($template === 'pages/auth/recovery-confirmation' && $layout === 'auth') {
+            // Reuse the recovery page's auth shell and focused stylesheet.
+            $pageClass .= ' page-auth-recovery';
+        }
 
         extract($data, EXTR_SKIP);
         ob_start();

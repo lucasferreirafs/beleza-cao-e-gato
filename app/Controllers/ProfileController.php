@@ -5,7 +5,7 @@ namespace App\Controllers;
 
 use App\Core\{Database, Env, Request, Response, Session, View};
 use App\Repositories\{RememberTokenRepository, UserRepository};
-use App\Services\{ProfileService, RememberMeService, SupabaseStorageService};
+use App\Services\{PasswordService, ProfileService, RememberMeService, SupabaseStorageService};
 use App\Support\Navigation;
 use App\Support\PrivateImageResponse;
 use InvalidArgumentException;
@@ -40,7 +40,9 @@ final class ProfileController
                 if (!$result['sent'] && Env::get('APP_ENV') === 'development' && Env::bool('APP_DEBUG')) {
                     Session::flash('dev_code', $result['code']);
                 }
-                Session::flash('success', 'Perfil salvo. Confirme o novo e-mail antes de entrar novamente.');
+                Session::flash('success', $result['sent']
+                    ? 'Perfil salvo. Confirme o novo e-mail antes de entrar novamente.'
+                    : 'Perfil salvo, mas não foi possível enviar o código agora. Solicite um reenvio antes de entrar novamente.');
                 Response::redirect('/verificar-email');
             }
             Session::refreshUser($result['user']);
@@ -49,6 +51,28 @@ final class ProfileController
             Session::flash('error', $e->getMessage());
         }
         Response::redirect(Navigation::home(Session::user()['role']) . '/perfil');
+    }
+
+    public function changePasswordForm(Request $request): void
+    {
+        View::render('pages/account/change-password', [
+            'title' => 'Alterar senha', 'active' => 'profile', 'user' => Session::user(),
+        ]);
+    }
+
+    public function changePassword(Request $request): void
+    {
+        try {
+            $user = (new PasswordService())->change(Session::user()['id'], $request->all());
+            (new RememberMeService())->clearCookie();
+            Session::forget('remember_until');
+            Session::refreshUser($user);
+            Session::flash('success', 'Senha alterada. As outras sessões foram encerradas.');
+            Response::redirect(Navigation::home($user['role']) . '/perfil');
+        } catch (InvalidArgumentException | RuntimeException $error) {
+            Session::flash('error', $error->getMessage());
+            Response::redirect('/conta/alterar-senha');
+        }
     }
 
     public function settings(Request $request): void

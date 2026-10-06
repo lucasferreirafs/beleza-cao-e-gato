@@ -139,6 +139,27 @@ body.overlay-open {
     color: #b83f11;
 }
 
+.app-body .account-password-link {
+    box-sizing: border-box;
+    min-height: 42px;
+    padding: 10px 16px;
+    border: 1px solid #df4b16;
+    border-radius: 8px;
+    background: #fff;
+    color: #c73f10;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.app-body .account-password-link:hover {
+    background: #fff4ef;
+}
+
 .app-body .sidebar {
     z-index: 30;
     display: flex;

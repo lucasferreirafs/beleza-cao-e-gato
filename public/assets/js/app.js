@@ -431,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Password strength indicator
     const strengthPanel = document.querySelector("[data-password-strength]");
     const strengthLabel = document.querySelector("[data-strength-label]");
-    const passwordInput = document.querySelector('input[name="password"][autocomplete="new-password"]');
+    const passwordInput = document.querySelector('input[name="password"][autocomplete="new-password"], input[name="new_password"][autocomplete="new-password"]');
 
     if (strengthPanel && strengthLabel && passwordInput) {
         const bars = strengthPanel.querySelectorAll(".register-strength-track i");
@@ -470,6 +470,30 @@ document.addEventListener("DOMContentLoaded", () => {
                     .catch(() => { });
             }, 250);
         });
+    }
+
+    const passwordChangeForm = document.querySelector('[data-password-change-form]');
+    if (passwordChangeForm) {
+        const newPassword = passwordChangeForm.querySelector('input[name="new_password"]');
+        const confirmation = passwordChangeForm.querySelector('input[name="password_confirmation"]');
+        if (newPassword && confirmation) {
+            const validateConfirmation = () => {
+                confirmation.setCustomValidity(
+                    confirmation.value && confirmation.value !== newPassword.value
+                        ? 'A nova senha e a confirmação não coincidem.'
+                        : ''
+                );
+            };
+            newPassword.addEventListener('input', validateConfirmation);
+            confirmation.addEventListener('input', validateConfirmation);
+            passwordChangeForm.addEventListener('submit', (event) => {
+                validateConfirmation();
+                if (!confirmation.checkValidity()) {
+                    event.preventDefault();
+                    confirmation.reportValidity();
+                }
+            });
+        }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

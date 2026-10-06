@@ -65,6 +65,9 @@ if ($pageStylesheets === []) {
     ?>
         <link rel="stylesheet" href="/assets/css/<?= $e($stylesheet) ?>?v=<?= $stylesheetVersion ?>">
     <?php endforeach; ?>
+    <?php if (str_contains($currentPageClass, 'page-account-change-password')): ?>
+        <link rel="stylesheet" href="/assets/css/account/change-password.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/account/change-password.css') ?>">
+    <?php endif; ?>
     <?php if (($user['role'] ?? '') === 'admin'): ?>
         <link rel="stylesheet" href="/assets/css/admin/password-confirmation.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/admin/password-confirmation.css') ?>">
     <?php endif; ?>

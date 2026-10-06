@@ -4,6 +4,7 @@
         <h1>Meu Perfil</h1>
         <p>Gerencie seus dados pessoais e sua foto de perfil.</p>
     </div>
+    <a class="button account-password-link" href="/conta/alterar-senha"><i class="fa-solid fa-key" aria-hidden="true"></i> Alterar senha</a>
 </header>
 <form class="panel pet-form account-form" method="post" enctype="multipart/form-data" action="<?= $e($profileUrl) ?>" data-profile-form>
     <?= \App\Security\Csrf::field() ?>

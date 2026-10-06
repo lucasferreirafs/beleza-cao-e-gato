@@ -78,6 +78,14 @@ final class UserRepository
         (new RememberTokenRepository())->revokeAll($id);
     }
 
+    public function passwordHashById(string $id, bool $lock = false): ?string
+    {
+        $s = Database::connection()->prepare('SELECT password_hash FROM users WHERE id=:id' . ($lock ? ' FOR UPDATE' : ''));
+        $s->execute(['id' => $id]);
+        $hash = $s->fetchColumn();
+        return is_string($hash) ? $hash : null;
+    }
+
     public function updateProfile(string $id, array $data): void
     {
         $s = Database::connection()->prepare('UPDATE users SET name=:name,phone=:phone,birth_date=:birth_date,
