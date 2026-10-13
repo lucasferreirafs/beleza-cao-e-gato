@@ -62,6 +62,7 @@ final class AdminController
             View::render('pages/admin/list', $data + [
                 'title' => 'Funcionários', 'active' => $section, 'section' => $section,
                 'search' => $search, 'rows' => [], 'user' => Session::user(),
+                'demotionModalMessage' => Session::flash('staff_demotion_modal'),
             ]);
             return;
         }
@@ -243,6 +244,35 @@ final class AdminController
         } catch (InvalidArgumentException $e) {
             Session::flash('error', $e->getMessage());
         }
+        Response::redirect('/admin/funcionarios');
+    }
+
+    public function demoteStaff(Request $r): void
+    {
+        $id = Uuid::parse($r->param('id'));
+        if ($id === null) {
+            Session::flash('error', 'Funcionário não encontrado.');
+            Response::redirect('/admin/funcionarios');
+        }
+
+        try {
+            (new AdminPasswordConfirmationService())->assertValid(
+                (string) (Session::user()['id'] ?? ''),
+                $r->input('admin_password')
+            );
+            $result = (new ManagementRepository())->demoteAdminStaff($id);
+            if ($result === 'active_appointments') {
+                Session::flash('staff_demotion_modal', 'Não é possível rebaixar este funcionário porque há atendimentos pendentes ou em andamento vinculados a ele. Cancele os pendentes e conclua os atendimentos em andamento antes.');
+            } else {
+                [$flashType, $message] = $result === 'demoted'
+                    ? ['success', 'Funcionário rebaixado para cliente. As sessões dele serão encerradas na próxima requisição.']
+                    : ['error', 'Não foi possível rebaixar este funcionário. Verifique se a conta ainda possui esse papel.'];
+                Session::flash($flashType, $message);
+            }
+        } catch (InvalidArgumentException $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
         Response::redirect('/admin/funcionarios');
     }
 

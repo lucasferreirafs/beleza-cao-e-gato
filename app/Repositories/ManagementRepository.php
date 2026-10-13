@@ -333,6 +333,45 @@ final class ManagementRepository
         return $statement->rowCount() === 1;
     }
 
+    /**
+     * Demote a staff account only after its open appointments have been resolved.
+     * The staff-row lock serializes this operation with appointment creation.
+     */
+    public function demoteAdminStaff(string $id): string
+    {
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $staff = $pdo->prepare("SELECT id FROM users WHERE id=:id AND role='staff' FOR UPDATE");
+            $staff->execute(['id' => $id]);
+            if (!$staff->fetchColumn()) {
+                $pdo->commit();
+                return 'not_staff';
+            }
+
+            $openAppointments = $pdo->prepare("SELECT EXISTS (
+                SELECT 1 FROM appointments
+                WHERE staff_id=:id AND status IN ('pending', 'in_progress')
+            )");
+            $openAppointments->execute(['id' => $id]);
+            if ((bool) $openAppointments->fetchColumn()) {
+                $pdo->commit();
+                return 'active_appointments';
+            }
+
+            $update = $pdo->prepare("UPDATE users
+                SET role='client',auth_version=auth_version+1,updated_at=clock_timestamp()
+                WHERE id=:id AND role='staff'");
+            $update->execute(['id' => $id]);
+            $demoted = $update->rowCount() === 1;
+            $pdo->commit();
+            return $demoted ? 'demoted' : 'not_staff';
+        } catch (\Throwable $error) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
+        }
+    }
+
     /** CPF is masked in SQL so the full value never enters the view data. */
     public function adminClientProfile(string $id): ?array
     {

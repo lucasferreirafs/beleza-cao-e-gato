@@ -219,6 +219,11 @@ $formatDuration = static function (int $minutes): string {
                                 <button class="button ghost" type="submit">Promover a administrador</button>
                             </form>
                         <?php endif; ?>
+                        <form method="post" action="/admin/funcionarios/<?= $e(rawurlencode((string) $employee['id'])) ?>/rebaixar-cliente" data-admin-password-required data-password-title="Rebaixar funcionário para cliente" data-password-message="Confirme sua senha. A ação será bloqueada se houver atendimentos pendentes ou em andamento para este funcionário.">
+                            <?= \App\Security\Csrf::field() ?><input type="password" name="admin_password" hidden disabled data-admin-password-value>
+                            <noscript><label>Senha do administrador<input type="password" name="admin_password" autocomplete="current-password" required></label></noscript>
+                            <button class="button danger" type="submit"><i class="fa-solid fa-user-minus" aria-hidden="true"></i> Rebaixar para cliente</button>
+                        </form>
                     </div>
                 </article>
             <?php endforeach; ?>
@@ -227,6 +232,18 @@ $formatDuration = static function (int $minutes): string {
         <?php $pagination = ['path' => '/admin/funcionarios', 'query' => ['q' => $search ?? ''], 'current' => $page ?? 1, 'pages' => $pages ?? 1, 'total' => $total ?? 0, 'per_page' => $perPage ?? 10, 'item_label' => 'funcionários', 'item_label_singular' => 'funcionário', 'aria_label' => 'Paginação de funcionários']; ?>
         <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
+    <?php if (is_string($demotionModalMessage ?? null) && $demotionModalMessage !== ''): ?>
+        <dialog class="admin-password-dialog" data-staff-demotion-dialog aria-labelledby="staff-demotion-title" aria-describedby="staff-demotion-message" role="alertdialog">
+            <form method="dialog" class="admin-password-dialog__surface">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <h2 id="staff-demotion-title">Não foi possível rebaixar o funcionário</h2>
+                <p id="staff-demotion-message"><?= $e($demotionModalMessage) ?></p>
+                <div class="admin-password-dialog__actions">
+                    <button class="button primary" type="submit" autofocus>Entendi</button>
+                </div>
+            </form>
+        </dialog>
+    <?php endif; ?>
 
 <?php elseif ($section === 'servicos'): ?>
     <section class="panel admin-services-panel">

@@ -48,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.addEventListener('submit', event => {
         if (event.defaultPrevented || !(event.target instanceof HTMLFormElement)) return;
+        // Formulários method="dialog" apenas fecham um diálogo nativo; não iniciam navegação.
+        if (event.target.method === 'dialog') return;
         if (!beginFormNavigation()) event.preventDefault();
     });
     document.addEventListener('click', event => {

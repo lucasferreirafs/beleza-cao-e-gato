@@ -96,6 +96,7 @@ $router->get('/admin/{section}', [AdminController::class, 'page'], [$auth, RoleM
 // POST - ADMIN
 $router->post('/admin/clientes/{id}/promover', [AdminController::class, 'promoteClient'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/funcionarios/{id}/promover-admin', [AdminController::class, 'promoteStaff'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
+$router->post('/admin/funcionarios/{id}/rebaixar-cliente', [AdminController::class, 'demoteStaff'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/clientes/{id}/excluir', [AdminController::class, 'deleteClient'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/pets/{id}/excluir', [AdminController::class, 'deletePet'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/servicos', [AdminController::class, 'save'], [$auth, RoleMiddleware::class . ':admin', $csrf]);

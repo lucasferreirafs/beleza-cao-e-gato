@@ -1,4 +1,10 @@
 (() => {
+    const demotionDialog = document.querySelector('[data-staff-demotion-dialog]');
+    if (demotionDialog) {
+        demotionDialog.showModal();
+        demotionDialog.querySelector('button[autofocus]')?.focus();
+    }
+
     document.addEventListener('click', (event) => {
         const card = event.target.closest('[data-admin-pet-card]');
         if (!card || event.target.closest('[data-admin-pet-actions] a, [data-admin-pet-actions] button')) return;
