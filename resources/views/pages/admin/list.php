@@ -23,7 +23,7 @@ $formatDuration = static function (int $minutes): string {
         <p>Consulte cadastros, vínculos e estados persistidos no banco.</p>
     </div>
 
-    <?php if (in_array($section, ['clientes', 'pets', 'funcionarios', 'servicos'], true)): ?>
+    <?php if ($section === 'servicos'): ?>
         <a class="button primary" href="/admin/<?= $e($section) ?>/novo">
             ＋ Novo <?= $e($singular) ?>
         </a>

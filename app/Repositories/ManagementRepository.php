@@ -37,6 +37,10 @@ final class ManagementRepository
 
     public function save(string $section, ?string $id, array $input): string
     {
+        if ($id === null && in_array($section, ['clientes', 'pets', 'funcionarios'], true)) {
+            throw new InvalidArgumentException('A criação administrativa deste cadastro não está disponível.');
+        }
+
         $pdo = Database::connection();
         if (in_array($section, ['clientes', 'funcionarios'], true)) {
             $role = $section === 'clientes' ? 'client' : 'staff';
@@ -56,29 +60,18 @@ final class ManagementRepository
                 throw new InvalidArgumentException('Já existe uma conta com este CPF.');
 
             $password = (string) ($input['password'] ?? '');
-            if (!$id || $password !== '')
+            if ($password !== '')
                 $password = Validator::password($password);
 
-            if ($id) {
-                $sql = 'UPDATE users SET name=:name,email=:email,phone=:phone,birth_date=:birth_date,updated_at=now()' . ($data['cpf'] !== null ? ',cpf=:cpf' : '') . ($password !== '' ? ',password_hash=:password_hash' : '') . ' WHERE id=:id AND role=:role';
-                $params = array_diff_key($data, ['cpf' => true]) + ['id' => $id, 'role' => $role];
-                if ($data['cpf'] !== null) $params['cpf'] = $data['cpf'];
+            $sql = 'UPDATE users SET name=:name,email=:email,phone=:phone,birth_date=:birth_date,updated_at=now()' . ($data['cpf'] !== null ? ',cpf=:cpf' : '') . ($password !== '' ? ',password_hash=:password_hash' : '') . ' WHERE id=:id AND role=:role';
+            $params = array_diff_key($data, ['cpf' => true]) + ['id' => $id, 'role' => $role];
+            if ($data['cpf'] !== null) $params['cpf'] = $data['cpf'];
 
-                if ($password !== '')
-                    $params['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+            if ($password !== '')
+                $params['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
 
-                $pdo->prepare($sql)->execute($params);
-                return $id;
-            }
-
-            $s = $pdo->prepare("
-                INSERT INTO users(name,email,password_hash,role,status,phone,cpf,birth_date,email_verified_at) 
-                VALUES (:name,:email,:password_hash,:role,'active',:phone,:cpf,:birth_date,now()) 
-                RETURNING id
-            ");
-
-            $s->execute($data + ['password_hash' => password_hash($password, PASSWORD_DEFAULT), 'role' => $role]);
-            return (string) $s->fetchColumn();
+            $pdo->prepare($sql)->execute($params);
+            return $id;
         }
 
         if ($section === 'servicos') {
@@ -134,19 +127,16 @@ final class ManagementRepository
                 'birth_date' => Validator::date($input['birth_date'] ?? '')
             ] + $input;
 
-            if ($id) {
-                $current = $this->findEditable('pets', $id);
-                if (!$current)
-                    throw new InvalidArgumentException('Pet não encontrado.');
+            $current = $this->findEditable('pets', $id);
+            if (!$current)
+                throw new InvalidArgumentException('Pet não encontrado.');
 
-                (new PetRepository())->update($id, $current['owner_id'], $data);
+            (new PetRepository())->update($id, $current['owner_id'], $data);
 
-                if ($current['owner_id'] !== $owner)
-                    $pdo->prepare('UPDATE pets SET owner_id=:owner WHERE id=:id')->execute(['owner' => $owner, 'id' => $id]);
+            if ($current['owner_id'] !== $owner)
+                $pdo->prepare('UPDATE pets SET owner_id=:owner WHERE id=:id')->execute(['owner' => $owner, 'id' => $id]);
 
-                return $id;
-            }
-            return (new PetRepository())->create($owner, $data);
+            return $id;
         }
         throw new InvalidArgumentException('Tipo de cadastro inválido.');
     }

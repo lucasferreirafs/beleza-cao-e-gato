@@ -300,10 +300,12 @@ final class AdminController
     public function form(Request $r): void
     {
         $section = (string) $r->param('section');
-        if (!in_array($section, ['clientes', 'pets', 'funcionarios', 'servicos'], true))
-            Response::redirect('/admin/' . rawurlencode($section));
-
         $id = $r->param('id') !== null ? Uuid::route($r->param('id')) : null;
+        if (!in_array($section, ['clientes', 'pets', 'funcionarios', 'servicos'], true)
+            || ($id === null && $section !== 'servicos')) {
+            Response::redirect('/admin/' . rawurlencode($section));
+        }
+
         $repository = new ManagementRepository();
         $record = $id ? $repository->findEditable($section, $id) : null;
 
@@ -328,7 +330,16 @@ final class AdminController
     public function save(Request $r): void
     {
         $section = (string) $r->param('section');
-        $id = $r->param('id') !== null ? Uuid::route($r->param('id')) : null;
+        $idInput = $r->param('id');
+        $id = $idInput !== null ? Uuid::parse($idInput) : null;
+
+        if (!in_array($section, ['clientes', 'pets', 'funcionarios', 'servicos'], true)
+            || ($idInput !== null && $id === null)
+            || ($id === null && $section !== 'servicos')) {
+            http_response_code(404);
+            View::render('pages/errors/404', ['title' => 'Página não encontrada'], 'auth');
+            return;
+        }
 
         try {
             $input = $r->all();

@@ -89,7 +89,7 @@ $router->get('/admin/clientes/{id}', [AdminController::class, 'clientProfile'], 
 $router->get('/admin/funcionarios/{id}', [AdminController::class, 'staffProfile'], [$auth, RoleMiddleware::class . ':admin']);
 $router->get('/admin/pets/{id}/foto', [AdminController::class, 'petPhoto'], [$auth, RoleMiddleware::class . ':admin']);
 $router->get('/admin/pets/{id}', [AdminController::class, 'petProfile'], [$auth, RoleMiddleware::class . ':admin']);
-$router->get('/admin/{section}/novo', [AdminController::class, 'form'], [$auth, RoleMiddleware::class . ':admin']);
+$router->get('/admin/servicos/novo', [AdminController::class, 'form'], [$auth, RoleMiddleware::class . ':admin']);
 $router->get('/admin/{section}/{id}/editar', [AdminController::class, 'form'], [$auth, RoleMiddleware::class . ':admin']);
 $router->get('/admin/{section}', [AdminController::class, 'page'], [$auth, RoleMiddleware::class . ':admin']);
 
@@ -98,6 +98,6 @@ $router->post('/admin/clientes/{id}/promover', [AdminController::class, 'promote
 $router->post('/admin/funcionarios/{id}/promover-admin', [AdminController::class, 'promoteStaff'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/clientes/{id}/excluir', [AdminController::class, 'deleteClient'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/pets/{id}/excluir', [AdminController::class, 'deletePet'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
-$router->post('/admin/{section}', [AdminController::class, 'save'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
+$router->post('/admin/servicos', [AdminController::class, 'save'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/{section}/{id}', [AdminController::class, 'save'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
 $router->post('/admin/{section}/{id}/status', [AdminController::class, 'status'], [$auth, RoleMiddleware::class . ':admin', $csrf]);
