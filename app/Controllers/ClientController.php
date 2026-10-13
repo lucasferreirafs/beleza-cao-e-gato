@@ -33,10 +33,11 @@ final class ClientController
 
     public function pets(Request $r): void
     {
-        $pets = (new PetRepository())->allForUser(Session::user()['id']);
+        $pageInput = filter_var($r->input('page'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000000]]);
+        $data = (new PetRepository())->pageForUser(Session::user()['id'], $pageInput ?: 1);
         View::render(
             'pages/client/pets',
-            $this->base('Meus Pets', 'pets', compact('pets'))
+            $this->base('Meus Pets', 'pets', $data)
         );
     }
 
@@ -85,10 +86,11 @@ final class ClientController
     public function petProfile(Request $r): void
     {
         $pet = $this->ownedPet(Uuid::route($r->param('id')));
-        $appointments = (new AppointmentRepository())->allForPet($pet['id'], Session::user()['id']);
+        $pageInput = filter_var($r->input('page'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000000]]);
+        $data = (new AppointmentRepository())->pageForPet($pet['id'], Session::user()['id'], $pageInput ?: 1);
         View::render(
             'pages/client/pet-profile',
-            $this->base($pet['name'], 'pets', compact('pet', 'appointments'))
+            $this->base($pet['name'], 'pets', ['pet' => $pet, 'appointments' => $data['rows']] + $data)
         );
     }
 
@@ -174,10 +176,11 @@ final class ClientController
 
     public function services(Request $r): void
     {
-        $services = (new ServiceRepository())->active();
+        $pageInput = filter_var($r->input('page'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000000]]);
+        $data = (new ServiceRepository())->activePage($pageInput ?: 1);
         View::render(
             'pages/client/services',
-            $this->base('Serviços Disponíveis', 'services', compact('services'))
+            $this->base('Serviços Disponíveis', 'services', $data)
         );
     }
 

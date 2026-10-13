@@ -532,40 +532,6 @@ body.page-client-appointments {
     min-width: 140px;
 }
 
-.page-client-appointments .pagination {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--gray-500);
-    padding-top: 24px;
-}
-
-.page-client-appointments .pagination .btn-pagination {
-    background: #fff;
-    border: 1px solid var(--gray-300);
-    width: 40px;
-    height: 40px;
-    border-radius: 7px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all .3s ease-in-out;
-}
-
-.page-client-appointments .pagination .btn-pagination:hover {
-    background-color: var(--orange-50);
-}
-
-.page-client-appointments .pagination .btn-pagination.prev:hover,
-.page-client-appointments .pagination .btn-pagination.next:hover {
-    background-color: var(--gray-500);
-    color: #fff;
-}
-
-.page-client-appointments .pagination .btn-pagination.active {
-    background-color: var(--orange-500);
-    color: #fff;
-}
-
 .page-client-appointments .selection-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -787,21 +753,6 @@ body.page-client-appointments {
         padding: 4px;
     }
 
-    .page-client-appointments .pagination {
-        align-items: center;
-        gap: 16px;
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .page-client-appointments .pagination-nav {
-        display: flex;
-        width: 100%;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
 }
 
 .page-client-appointments input::placeholder {

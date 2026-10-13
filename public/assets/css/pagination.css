@@ -1,0 +1,103 @@
+.pagination-component {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    margin-top: 1.25rem;
+}
+
+.pagination-component * { box-sizing: border-box; }
+
+.pagination-component__summary {
+    margin: 0;
+    color: var(--gray-500, #647477);
+    font-size: .875rem;
+    line-height: 1.4;
+}
+
+.pagination-component__nav,
+.pagination-component__controls {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.pagination-component__controls { gap: .375rem; }
+
+.pagination-component__step,
+.pagination-component__number,
+.pagination-component__page-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: .5rem .7rem;
+    border: 1px solid var(--gray-300, #d5dddc);
+    border-radius: .625rem;
+    background: #fff;
+    color: var(--teal-700, #174b58);
+    font: inherit;
+    font-size: .875rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.pagination-component__step { gap: .5rem; }
+
+.pagination-component__number[aria-current="page"] {
+    border-color: var(--orange-500, #e8612d);
+    background: var(--orange-500, #e8612d);
+    color: #fff;
+}
+
+.pagination-component__step:not(.is-disabled):hover,
+.pagination-component__number:not([aria-current="page"]):hover {
+    border-color: var(--orange-500, #e8612d);
+    background: var(--orange-50, #fff1eb);
+}
+
+.pagination-component__step.is-disabled {
+    color: var(--gray-400, #9aa7a6);
+    cursor: not-allowed;
+    background: var(--gray-50, #f5f7f6);
+}
+
+.pagination-component__step:focus-visible,
+.pagination-component__number:focus-visible {
+    outline: 3px solid rgba(232, 97, 45, .38);
+    outline-offset: 2px;
+}
+
+.pagination-component__ellipsis {
+    min-width: 1.5rem;
+    color: var(--gray-500, #647477);
+    text-align: center;
+}
+
+.pagination-component__page-indicator { display: none; }
+
+@media (max-width: 640px) {
+    .pagination-component {
+        flex-direction: column;
+        justify-content: center;
+        gap: .65rem;
+        text-align: center;
+    }
+
+    .pagination-component__summary { font-size: .8rem; }
+    .pagination-component__controls { gap: .5rem; }
+    .pagination-component__number,
+    .pagination-component__ellipsis { display: none; }
+    .pagination-component__page-indicator { display: inline-flex; min-width: 4.25rem; }
+    .pagination-component__step { width: 2.75rem; padding: .5rem; }
+    .pagination-component__step span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .pagination-component__step,
+    .pagination-component__number { transition: border-color .15s ease, background-color .15s ease, color .15s ease; }
+}

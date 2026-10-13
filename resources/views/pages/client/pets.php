@@ -60,3 +60,5 @@
         </article>
     <?php endforeach; ?>
 </div>
+<?php $pagination = ['path' => '/cliente/pets', 'current' => $page, 'pages' => $pages, 'total' => $total, 'per_page' => $perPage, 'item_label' => 'pets', 'item_label_singular' => 'pet', 'aria_label' => 'Paginação dos meus pets']; ?>
+<?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>

@@ -149,14 +149,10 @@ $firstName = explode(' ', trim((string) ($user['name'] ?? 'Cliente')))[0];
                 </table>
             </div>
 
-            <nav class="appointment-history-pagination" aria-label="Paginação do histórico recente" data-history-pagination hidden>
-                <div class="appointment-history-pagination-controls">
-                    <button type="button" data-history-previous aria-label="Página anterior" aria-controls="appointment-history-table">‹</button>
-                    <span data-history-pages></span>
-                    <button type="button" data-history-next aria-label="Próxima página" aria-controls="appointment-history-table">›</button>
-                </div>
-                <small data-history-page-status role="status" aria-live="polite" aria-atomic="true"></small>
-            </nav>
+            <div class="pagination-component" data-history-pagination hidden>
+                <p class="pagination-component__summary" data-history-page-status role="status" aria-live="polite" aria-atomic="true"></p>
+                <nav class="pagination-component__nav" data-history-pages aria-label="Paginação do histórico recente" aria-controls="appointment-history-table"></nav>
+            </div>
 
             <?php if (!$history): ?>
                 <div class="empty-state">

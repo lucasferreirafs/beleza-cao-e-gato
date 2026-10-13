@@ -2,7 +2,8 @@
 $e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $backSearch = is_string($_GET['q'] ?? null) ? mb_substr(trim($_GET['q']), 0, 100) : '';
 $backDate = is_string($_GET['date'] ?? null) && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $_GET['date']) ? $_GET['date'] : '';
-$backQuery = http_build_query(array_filter(['q' => $backSearch, 'date' => $backDate], static fn(string $v): bool => $v !== ''));
+$backPage = filter_var($_GET['page'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000000]]);
+$backQuery = http_build_query(array_filter(['q' => $backSearch, 'date' => $backDate, 'page' => $backPage && $backPage > 1 ? $backPage : ''], static fn(mixed $v): bool => $v !== '' && $v !== null));
 $backUrl = '/staff/atendimentos' . ($backQuery !== '' ? '?' . $backQuery : '');
 ?>
 <div class="staff-attendance" data-attendance-detail>

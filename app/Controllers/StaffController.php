@@ -130,13 +130,12 @@ final class StaffController
             $date = $r->input('date', '');
             $date = is_string($date) && preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)
                 && checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4)) ? $date : '';
-            $rows = (new ManagementRepository())->staffRows($section, Session::user()['id']);
-            $rows = array_values(array_filter($rows, static function (array $row) use ($search, $date): bool {
-                if ($date !== '' && (new \DateTimeImmutable($row['scheduled_at']))->format('Y-m-d') !== $date) return false;
-                return $search === '' || mb_stripos(implode(' ', [$row['pet_name'], $row['client_name'], $row['service_name']]), $search) !== false;
-            }));
+            $pageInput = filter_var($r->input('page'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 1000000]]);
+            $data = (new AppointmentRepository())->staffPage(Session::user()['id'], $search, $date, $pageInput ?: 1);
+            $returnQuery = http_build_query(array_filter(['q' => $search, 'date' => $date], static fn(string $value): bool => $value !== ''));
             View::render('pages/staff/page', ['title' => 'Atendimentos', 'active' => $section,
-                'section' => $section, 'rows' => $rows, 'search' => $search, 'date' => $date, 'user' => Session::user()]);
+                'section' => $section, 'search' => $search, 'date' => $date,
+                'returnQuery' => $returnQuery, 'user' => Session::user()] + $data);
             return;
         }
         $rows = (new ManagementRepository())->staffRows($section, Session::user()['id']);

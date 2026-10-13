@@ -64,7 +64,7 @@
     </div>
     
     <div class="table-wrap">
-        <table data-filter-table>
+        <table id="appointment-table" data-filter-table>
             <thead>
                 <tr>
                     <th>Pet</th>
@@ -127,13 +127,8 @@
         </div>
     <?php endif; ?>
 
-    <footer class="pagination hidden">
-        <span class="pagination-count" data-pagination-info>
-            Mostrando 0 agendamentos
-        </span>
-
-        <span class="pagination-nav" data-pagination-controls>
-            <!-- Renderizado via JS -->
-        </span>
-    </footer>
+    <section class="pagination-component" data-appointments-pagination hidden>
+        <p class="pagination-component__summary" data-pagination-info role="status" aria-live="polite" aria-atomic="true"></p>
+        <nav class="pagination-component__nav" data-pagination-controls aria-label="Paginação de agendamentos"></nav>
+    </section>
 </section>

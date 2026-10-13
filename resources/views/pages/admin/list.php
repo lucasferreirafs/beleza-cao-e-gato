@@ -140,20 +140,8 @@ $formatDuration = static function (int $minutes): string {
                 ? 'Nenhum agendamento encontrado para os filtros selecionados.'
                 : 'Nenhum agendamento cadastrado.' ?>
         </p>
-        <footer class="admin-client-pagination" role="status" aria-live="polite">
-            <?php if (($page ?? 1) > 1): ?>
-                <a class="button ghost" href="/admin/agendamentos?<?= $e(http_build_query(array_filter(['q' => $search ?? '', 'date' => $dateFilter ?? '', 'status' => $statusFilter ?? '', 'page' => $page - 1], static fn($value): bool => $value !== '' && $value !== 1))) ?>">Anterior</a>
-            <?php endif; ?>
-            <span>
-                <?php if (($total ?? 0) > 0): ?>
-                    Exibindo <?= (int) (($page - 1) * $perPage + 1) ?>–<?= (int) (($page - 1) * $perPage + count($rows)) ?> de <?= (int) $total ?> agendamentos
-                <?php else: ?>Nenhum agendamento<?php endif; ?>
-                · Página <?= (int) ($page ?? 1) ?> de <?= (int) ($pages ?? 1) ?>
-            </span>
-            <?php if (($page ?? 1) < ($pages ?? 1)): ?>
-                <a class="button ghost" href="/admin/agendamentos?<?= $e(http_build_query(array_filter(['q' => $search ?? '', 'date' => $dateFilter ?? '', 'status' => $statusFilter ?? '', 'page' => $page + 1], static fn($value): bool => $value !== '' && $value !== 1))) ?>">Próxima</a>
-            <?php endif; ?>
-        </footer>
+        <?php $pagination = ['path' => '/admin/agendamentos', 'query' => ['q' => $search ?? '', 'date' => $dateFilter ?? '', 'status' => $statusFilter ?? ''], 'current' => $page ?? 1, 'pages' => $pages ?? 1, 'total' => $total ?? 0, 'per_page' => $perPage ?? 10, 'item_label' => 'agendamentos', 'item_label_singular' => 'agendamento', 'aria_label' => 'Paginação de agendamentos']; ?>
+        <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
 
 <?php elseif ($section === 'clientes'): ?>
@@ -197,13 +185,8 @@ $formatDuration = static function (int $minutes): string {
             <?php endforeach; ?>
         </div><?php endif; ?>
 
-        <?php if (($pages ?? 1) > 1): ?>
-            <nav class="admin-client-pagination" aria-label="Paginação de clientes">
-                <?php if ($page > 1): ?><a class="button ghost" href="/admin/clientes?<?= $e(http_build_query(array_filter(['q' => $search, 'page' => $page - 1], static fn($v) => $v !== ''))) ?>">Anterior</a><?php endif; ?>
-                <span>Página <?= (int) $page ?> de <?= (int) $pages ?> · <?= (int) $total ?> clientes</span>
-                <?php if ($page < $pages): ?><a class="button ghost" href="/admin/clientes?<?= $e(http_build_query(array_filter(['q' => $search, 'page' => $page + 1], static fn($v) => $v !== ''))) ?>">Próxima</a><?php endif; ?>
-            </nav>
-        <?php else: ?><footer class="admin-client-pagination"><span><?= (int) $total ?> <?= (int) $total === 1 ? 'cliente' : 'clientes' ?></span></footer><?php endif; ?>
+        <?php $pagination = ['path' => '/admin/clientes', 'query' => ['q' => $search ?? ''], 'current' => $page ?? 1, 'pages' => $pages ?? 1, 'total' => $total ?? 0, 'per_page' => $perPage ?? 10, 'item_label' => 'clientes', 'item_label_singular' => 'cliente', 'aria_label' => 'Paginação de clientes']; ?>
+        <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
 
 <?php elseif ($section === 'funcionarios'): ?>
@@ -241,13 +224,8 @@ $formatDuration = static function (int $minutes): string {
             <?php endforeach; ?>
         </div><?php endif; ?>
 
-        <?php if (($pages ?? 1) > 1): ?>
-            <nav class="admin-client-pagination" aria-label="Paginação de funcionários">
-                <?php if ($page > 1): ?><a class="button ghost" href="/admin/funcionarios?<?= $e(http_build_query(array_filter(['q' => $search, 'page' => $page - 1], static fn($v) => $v !== ''))) ?>">Anterior</a><?php endif; ?>
-                <span>Página <?= (int) $page ?> de <?= (int) $pages ?> · <?= (int) $total ?> funcionários</span>
-                <?php if ($page < $pages): ?><a class="button ghost" href="/admin/funcionarios?<?= $e(http_build_query(array_filter(['q' => $search, 'page' => $page + 1], static fn($v) => $v !== ''))) ?>">Próxima</a><?php endif; ?>
-            </nav>
-        <?php else: ?><footer class="admin-client-pagination"><span><?= (int) $total ?> <?= (int) $total === 1 ? 'funcionário' : 'funcionários' ?></span></footer><?php endif; ?>
+        <?php $pagination = ['path' => '/admin/funcionarios', 'query' => ['q' => $search ?? ''], 'current' => $page ?? 1, 'pages' => $pages ?? 1, 'total' => $total ?? 0, 'per_page' => $perPage ?? 10, 'item_label' => 'funcionários', 'item_label_singular' => 'funcionário', 'aria_label' => 'Paginação de funcionários']; ?>
+        <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
 
 <?php elseif ($section === 'servicos'): ?>
@@ -298,13 +276,8 @@ $formatDuration = static function (int $minutes): string {
             <?php endforeach; ?>
         </div><?php endif; ?>
 
-        <?php if (($pages ?? 1) > 1): ?>
-            <nav class="admin-client-pagination" aria-label="Paginação de serviços">
-                <?php if ($page > 1): ?><a class="button ghost" href="/admin/servicos?<?= $e(http_build_query(array_filter(['q' => $search, 'status' => $statusFilter, 'page' => $page - 1], static fn($v) => $v !== ''))) ?>">Anterior</a><?php endif; ?>
-                <span>Página <?= (int) $page ?> de <?= (int) $pages ?> · <?= (int) $total ?> serviços</span>
-                <?php if ($page < $pages): ?><a class="button ghost" href="/admin/servicos?<?= $e(http_build_query(array_filter(['q' => $search, 'status' => $statusFilter, 'page' => $page + 1], static fn($v) => $v !== ''))) ?>">Próxima</a><?php endif; ?>
-            </nav>
-        <?php else: ?><footer class="admin-client-pagination"><span><?= (int) $total ?> <?= (int) $total === 1 ? 'serviço' : 'serviços' ?></span></footer><?php endif; ?>
+        <?php $pagination = ['path' => '/admin/servicos', 'query' => ['q' => $search ?? '', 'status' => $statusFilter ?? ''], 'current' => $page ?? 1, 'pages' => $pages ?? 1, 'total' => $total ?? 0, 'per_page' => $perPage ?? 6, 'item_label' => 'serviços', 'item_label_singular' => 'serviço', 'aria_label' => 'Paginação de serviços']; ?>
+        <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
 
 <?php elseif ($section === 'pets'): ?>

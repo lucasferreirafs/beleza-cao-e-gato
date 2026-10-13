@@ -14,6 +14,26 @@ final class PetRepository
         return $s->fetchAll();
     }
 
+    /** @return array{pets:list<array<string,mixed>>,total:int,page:int,pages:int,perPage:int} */
+    public function pageForUser(string $userId, int $page, int $perPage = 10): array
+    {
+        $perPage = max(1, min($perPage, 100));
+        $pdo = Database::connection();
+        $count = $pdo->prepare('SELECT count(*) FROM pets WHERE owner_id=:owner');
+        $count->execute(['owner' => $userId]);
+        $total = (int) $count->fetchColumn();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($page, $pages));
+
+        $statement = $pdo->prepare('SELECT * FROM pets WHERE owner_id=:owner ORDER BY lower(name),id LIMIT :limit OFFSET :offset');
+        $statement->bindValue(':owner', $userId, \PDO::PARAM_STR);
+        $statement->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $statement->bindValue(':offset', ($page - 1) * $perPage, \PDO::PARAM_INT);
+        $statement->execute();
+
+        return ['pets' => $statement->fetchAll(), 'total' => $total, 'page' => $page, 'pages' => $pages, 'perPage' => $perPage];
+    }
+
     public function create(string $ownerId, array $data): string
     {
         $sql = '

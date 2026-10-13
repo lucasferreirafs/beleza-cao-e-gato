@@ -1,6 +1,5 @@
 <?php
 $suffix = $returnQuery !== '' ? '?' . $returnQuery : '';
-$pageUrl = static fn(int $number): string => '/staff/clientes?' . http_build_query(['q' => $search, 'page' => $number]);
 ?>
 <div class="staff-clients">
     <header class="page-heading"><div><h1>Clientes</h1><p>Contatos e cuidados dos pets, sempre à mão.</p></div></header>
@@ -29,11 +28,8 @@ $pageUrl = static fn(int $number): string => '/staff/clientes?' . http_build_que
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            <nav class="sc-pagination" aria-label="Paginação de clientes">
-                <?php if ($page > 1): ?><a class="button secondary" href="<?= $e($pageUrl($page - 1)) ?>" rel="prev">Anterior</a><?php endif; ?>
-                <span>Página <strong><?= $page ?></strong> de <?= $pages ?></span>
-                <?php if ($page < $pages): ?><a class="button secondary" href="<?= $e($pageUrl($page + 1)) ?>" rel="next">Próxima</a><?php endif; ?>
-            </nav>
         <?php endif; ?>
+        <?php $pagination = ['path' => '/staff/clientes', 'query' => ['q' => $search], 'current' => $page, 'pages' => $pages, 'total' => $total, 'per_page' => $perPage, 'item_label' => 'clientes', 'item_label_singular' => 'cliente', 'aria_label' => 'Paginação de clientes']; ?>
+        <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
 </div>

@@ -1,7 +1,6 @@
 <?php
 $suffix = $returnQuery !== '' ? '?' . $returnQuery : '';
 $directoryUrl = !empty($adminPetDirectory) ? '/admin/pets' : '/staff/pets';
-$pageUrl = static fn(int $number): string => $directoryUrl . '?' . http_build_query(['q' => $search, 'page' => $number]);
 ?>
 <div class="staff-clients">
     <?php if (empty($embedAdminPetDirectory)): ?><header class="page-heading"><div><h1>Pets</h1><p>Consulte os pets cadastrados e seus tutores.</p></div></header><?php endif; ?>
@@ -53,11 +52,8 @@ $pageUrl = static fn(int $number): string => $directoryUrl . '?' . http_build_qu
                 </tbody>
             </table>
             <?php endif; ?>
-            <nav class="sc-pagination" aria-label="Paginação de pets">
-                <?php if ($page > 1): ?><a class="button secondary" href="<?= $e($pageUrl($page - 1)) ?>" rel="prev">Anterior</a><?php endif; ?>
-                <span>Página <strong><?= $page ?></strong> de <?= $pages ?></span>
-                <?php if ($page < $pages): ?><a class="button secondary" href="<?= $e($pageUrl($page + 1)) ?>" rel="next">Próxima</a><?php endif; ?>
-            </nav>
         <?php endif; ?>
+        <?php $pagination = ['path' => $directoryUrl, 'query' => ['q' => $search], 'current' => $page, 'pages' => $pages, 'total' => $total, 'per_page' => $perPage ?? 10, 'item_label' => 'pets', 'item_label_singular' => 'pet', 'aria_label' => 'Paginação de pets']; ?>
+        <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
 </div>

@@ -1,5 +1,5 @@
 <?php
-$query = http_build_query(array_filter(['q' => $search, 'date' => $date], static fn(string $value): bool => $value !== ''));
+$query = http_build_query(array_filter(['q' => $search, 'date' => $date, 'page' => $page > 1 ? $page : ''], static fn(mixed $value): bool => $value !== '' && $value !== null));
 ?>
 <div class="staff-appointments-list">
     <header class="page-heading">
@@ -43,6 +43,8 @@ $query = http_build_query(array_filter(['q' => $search, 'date' => $date], static
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
+        <?php $pagination = ['path' => '/staff/atendimentos', 'query' => ['q' => $search, 'date' => $date], 'current' => $page, 'pages' => $pages, 'total' => $total, 'per_page' => $perPage, 'item_label' => 'atendimentos', 'item_label_singular' => 'atendimento', 'aria_label' => 'Paginação de atendimentos']; ?>
+        <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
     </section>
 </div>
 <script src="/assets/js/staff-appointment-list.js?v=<?= hash_file('sha256', dirname(__DIR__, 4) . '/public/assets/js/staff-appointment-list.js') ?>" defer></script>

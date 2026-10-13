@@ -163,6 +163,8 @@ $careNotes = !empty($pet['notes'])
                     </tbody>
                 </table>
             </div>
+            <?php $pagination = ['path' => '/cliente/pets/' . rawurlencode((string) $pet['id']), 'current' => $page, 'pages' => $pages, 'total' => $total, 'per_page' => $perPage, 'item_label' => 'atendimentos', 'item_label_singular' => 'atendimento', 'aria_label' => 'Paginação do histórico de atendimentos']; ?>
+            <?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
         <?php else: ?>
             <div class="pet-history-empty">
                 <div class="pet-history-empty-icon" aria-hidden="true">

@@ -86,6 +86,8 @@ if ($pageStylesheets === []) {
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/errors/errors.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/errors/errors.css') ?>">
     <link rel="stylesheet" href="/assets/css/request-loading.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/request-loading.css') ?>">
+    <link rel="stylesheet" href="/assets/css/pagination.css?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/css/pagination.css') ?>">
+    <script src="/assets/js/pagination-ui.js?v=<?= hash_file('sha256', dirname(__DIR__, 3) . '/public/assets/js/pagination-ui.js') ?>" defer></script>
 </head>
 
 <body class="app-body <?= $pageClass ?? '' ?>">

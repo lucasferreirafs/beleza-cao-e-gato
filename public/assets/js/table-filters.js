@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paginationControls = document.querySelector('[data-pagination-controls]');
     const paginationInfo = document.querySelector('[data-pagination-info]');
     const tableWrap = document.querySelector('.table-wrap');
-    const paginationFooter = document.querySelector('.pagination');
+    const paginationFooter = document.querySelector('[data-appointments-pagination]');
     const dataRowSelector = '[data-filter-table] tbody tr:not(#no-results-row)';
 
     let currentTab = document.querySelector('[data-tab-btn].active')?.dataset.tabBtn || 'all';
@@ -86,47 +86,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (paginationInfo) {
             paginationInfo.textContent = totalFiltered === 0
                 ? 'Nenhum agendamento encontrado.'
-                : `Mostrando ${startIndex + 1} a ${endDisplay} de ${totalFiltered} agendamentos`;
+                : `Mostrando ${startIndex + 1}–${endDisplay} de ${totalFiltered} ${totalFiltered === 1 ? 'agendamento' : 'agendamentos'} · Página ${currentPage} de ${Math.max(1, Math.ceil(totalFiltered / itemsPerPage))}`;
         }
-        if (paginationFooter) paginationFooter.style.display = totalFiltered > 0 ? 'flex' : 'none';
+        if (paginationFooter) paginationFooter.hidden = totalFiltered === 0;
     }
 
     function renderPagination() {
-        const totalPages = Math.ceil(lastFilteredRows.length / itemsPerPage);
-        paginationControls.innerHTML = '';
-        if (totalPages <= 1) return;
-
-        const prevBtn = document.createElement('button');
-        prevBtn.className = `btn-pagination prev ${currentPage === 1 ? 'disabled' : ''}`;
-        prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i>';
-        prevBtn.type = 'button';
-        prevBtn.onclick = () => navigate(currentPage - 1);
-        prevBtn.disabled = currentPage === 1;
-        paginationControls.appendChild(prevBtn);
-
-        let startPage = Math.max(1, currentPage - 1);
-        let endPage = startPage + 2;
-        if (endPage > totalPages) {
-            endPage = totalPages;
-            startPage = Math.max(1, endPage - 2);
-        }
-
-        for (let page = startPage; page <= endPage; page++) {
-            const pageBtn = document.createElement('button');
-            pageBtn.className = `btn-pagination ${page === currentPage ? 'active' : ''}`;
-            pageBtn.textContent = page;
-            pageBtn.type = 'button';
-            pageBtn.onclick = () => navigate(page);
-            paginationControls.appendChild(pageBtn);
-        }
-
-        const nextBtn = document.createElement('button');
-        nextBtn.className = `btn-pagination next ${currentPage === totalPages ? 'disabled' : ''}`;
-        nextBtn.innerHTML = '<i class="fa-solid fa-angle-right"></i>';
-        nextBtn.type = 'button';
-        nextBtn.onclick = () => navigate(currentPage + 1);
-        nextBtn.disabled = currentPage === totalPages;
-        paginationControls.appendChild(nextBtn);
+        const totalPages = Math.max(1, Math.ceil(lastFilteredRows.length / itemsPerPage));
+        currentPage = Math.max(1, Math.min(currentPage, totalPages));
+        window.AppPagination?.render(paginationControls, {
+            currentPage,
+            totalPages,
+            controlsLabel: 'Paginação dos agendamentos',
+            controlsId: 'appointment-table',
+            onChange: navigate,
+        });
     }
 
     tabs.forEach(tab => {

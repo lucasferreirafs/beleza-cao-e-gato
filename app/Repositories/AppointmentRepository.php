@@ -34,6 +34,27 @@ final class AppointmentRepository
 
     public function allForUser(string $id): array { return $this->rows('p.owner_id=:owner', ['owner' => $id]); }
     public function allForPet(string $id, string $ownerId): array { return $this->rows('a.pet_id=:pet AND p.owner_id=:owner', ['pet' => $id, 'owner' => $ownerId]); }
+
+    /** @return array{rows:list<array<string,mixed>>,total:int,page:int,pages:int,perPage:int} */
+    public function pageForPet(string $id, string $ownerId, int $page, int $perPage = 10): array
+    {
+        $perPage = max(1, min($perPage, 100));
+        $pdo = Database::connection();
+        $count = $pdo->prepare('SELECT count(*) FROM appointments a JOIN pets p ON p.id=a.pet_id WHERE a.pet_id=:pet AND p.owner_id=:owner');
+        $count->execute(['pet' => $id, 'owner' => $ownerId]);
+        $total = (int) $count->fetchColumn();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($page, $pages));
+
+        return [
+            'rows' => $this->rows('a.pet_id=:pet AND p.owner_id=:owner', ['pet' => $id, 'owner' => $ownerId],
+                "a.scheduled_at DESC,a.id DESC LIMIT {$perPage} OFFSET " . (($page - 1) * $perPage)),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'perPage' => $perPage,
+        ];
+    }
     public function allForStaff(string $id, bool $today = false): array
     {
         return $this->rows('a.staff_id=:staff' . ($today ? ' AND a.scheduled_at::date=current_date' : ''), ['staff' => $id]);
@@ -55,6 +76,58 @@ final class AppointmentRepository
         return null;
     }
     public function allForAdmin(bool $recent = false): array { return $this->rows('true', [], $recent ? 'a.created_at DESC LIMIT 8' : 'a.scheduled_at DESC'); }
+
+    /** @return array{rows:list<array<string,mixed>>,total:int,page:int,pages:int,perPage:int} */
+    public function staffPage(string $staffId, string $search, string $date, int $page, int $perPage = 10): array
+    {
+        $perPage = max(1, min($perPage, 100));
+        $pdo = Database::connection();
+        $conditions = ['a.staff_id=:staff'];
+        $params = ['staff' => $staffId];
+
+        if ($search !== '') {
+            $pattern = '%' . strtr($search, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
+            $serviceItemsExist = (new AppointmentStorage($pdo))->capabilities()['items'];
+            $serviceItemSearch = $serviceItemsExist
+                ? "OR EXISTS (SELECT 1 FROM appointment_services item
+                    WHERE item.appointment_id=a.id AND item.service_name ILIKE :service_item ESCAPE '!')"
+                : '';
+            $conditions[] = "(p.name ILIKE :pet ESCAPE '!' OR c.name ILIKE :client ESCAPE '!'
+                OR s.name ILIKE :service ESCAPE '!' {$serviceItemSearch})";
+            $params += ['pet' => $pattern, 'client' => $pattern, 'service' => $pattern];
+            if ($serviceItemsExist) $params['service_item'] = $pattern;
+        }
+
+        if ($date !== '') {
+            $timezone = new DateTimeZone((string) Env::get('APP_TIMEZONE', 'America/Sao_Paulo'));
+            $start = new DateTimeImmutable($date . ' 00:00:00', $timezone);
+            $end = $start->modify('+1 day');
+            $conditions[] = 'a.scheduled_at>=:date_start AND a.scheduled_at<:date_end';
+            $params['date_start'] = $start->format('c');
+            $params['date_end'] = $end->format('c');
+        }
+
+        $where = implode(' AND ', $conditions);
+        $count = $pdo->prepare("SELECT count(*)
+            FROM appointments a
+            JOIN pets p ON p.id=a.pet_id
+            JOIN users c ON c.id=p.owner_id
+            JOIN services s ON s.id=a.service_id
+            WHERE {$where}");
+        $count->execute($params);
+        $total = (int) $count->fetchColumn();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($page, $pages));
+        $offset = ($page - 1) * $perPage;
+
+        return [
+            'rows' => $this->rows($where, $params, "a.scheduled_at DESC,a.id DESC LIMIT {$perPage} OFFSET {$offset}"),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'perPage' => $perPage,
+        ];
+    }
 
     /** @return array{rows:list<array<string,mixed>>,total:int,page:int,pages:int,perPage:int} */
     public function adminPage(string $search, string $date, string $status, int $page, int $perPage = 10): array

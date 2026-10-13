@@ -55,3 +55,5 @@ $getServiceIcon = static function (string $name): string {
         </article>
     <?php endforeach; ?>
 </div>
+<?php $pagination = ['path' => '/cliente/servicos', 'current' => $page, 'pages' => $pages, 'total' => $total, 'per_page' => $perPage, 'item_label' => 'serviços', 'item_label_singular' => 'serviço', 'aria_label' => 'Paginação dos serviços disponíveis']; ?>
+<?php require dirname(__DIR__, 2) . '/partials/pagination.php'; ?>
