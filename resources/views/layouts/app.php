@@ -103,9 +103,9 @@ if ($pageStylesheets === []) {
                 </ol></nav>
 
                 <div class="top-user">
-                    <button class="notification-btn" aria-label="Notificações">
-                        <i class="fa-solid fa-bell"></i>
-                        <span class="notification-dot"></span>
+                    <button type="button" class="notification-btn" data-notification-toggle aria-label="Notificações" aria-haspopup="true" aria-expanded="false" aria-controls="notification-popover">
+                        <i class="fa-solid fa-bell" aria-hidden="true"></i>
+                        <span class="notification-dot" aria-hidden="true"></span>
                     </button>
 
                     <div class="header-separator"></div>
@@ -125,6 +125,15 @@ if ($pageStylesheets === []) {
                     </button>
                 </div>
             </header>
+
+            <section class="notification-popover" id="notification-popover" data-notification-popover aria-labelledby="notification-title" hidden>
+                <div class="notification-popover__heading">
+                    <span class="notification-popover__icon" aria-hidden="true"><i class="fa-solid fa-bell"></i></span>
+                    <h2 id="notification-title">Notificações</h2>
+                </div>
+                <p>Ainda estamos preparando esse espaço. Em breve, você poderá acompanhar novidades e avisos importantes por aqui. <span aria-hidden="true">🐾</span></p>
+                <p class="notification-popover__note">Disponível em uma próxima atualização.</p>
+            </section>
 
             <main class="main">
                 <?php if ($m = \App\Core\Session::flash('success')): ?>

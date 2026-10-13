@@ -57,6 +57,64 @@ body.overlay-open {
     object-fit: cover;
 }
 
+.notification-popover {
+    position: fixed;
+    z-index: 50;
+    box-sizing: border-box;
+    width: min(340px, calc(100vw - 24px));
+    max-height: min(320px, calc(100dvh - 24px));
+    overflow-y: auto;
+    padding: 18px;
+    border: 1px solid #e2e8e5;
+    border-radius: 14px;
+    color: #18221f;
+    background: #fff;
+    box-shadow: 0 16px 45px #18221f30;
+}
+
+.notification-popover[hidden] {
+    display: none !important;
+}
+
+.notification-popover__heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.notification-popover__icon {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    border-radius: 50%;
+    color: #c94415;
+    background: #fff0e9;
+}
+
+.notification-popover h2 {
+    margin: 0;
+    color: #193f4a;
+    font-size: 16px;
+}
+
+.notification-popover p {
+    margin: 0;
+    color: #53656c;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.notification-popover .notification-popover__note {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #edf0ef;
+    color: #71817e;
+    font-size: 12px;
+}
+
 .app-body .user-text strong {
     max-width: 190px;
     overflow: hidden;
@@ -464,9 +522,12 @@ body.overlay-open {
     }
 
     .app-body .user-info .user-text,
-    .app-body .notification-btn,
     .app-body .header-separator {
         display: none;
+    }
+
+    .app-body .notification-btn {
+        display: inline-flex;
     }
 
     .app-body .account-form .profile-head {

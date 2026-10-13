@@ -128,6 +128,46 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     window.addEventListener('resize', positionProfileMenu);
 
+    const notificationToggle = document.querySelector('[data-notification-toggle]');
+    const notificationPopover = document.querySelector('[data-notification-popover]');
+    const positionNotificationPopover = () => {
+        if (!notificationToggle || !notificationPopover || notificationPopover.hidden) return;
+        const rect = notificationToggle.getBoundingClientRect();
+        const width = notificationPopover.offsetWidth;
+        const height = notificationPopover.offsetHeight;
+        const left = Math.max(12, Math.min(rect.right - width, innerWidth - width - 12));
+        const below = rect.bottom + 8;
+        const top = below + height <= innerHeight - 12 ? below : Math.max(12, rect.top - height - 8);
+        notificationPopover.style.left = `${left}px`;
+        notificationPopover.style.top = `${top}px`;
+    };
+    const closeNotificationPopover = (restoreFocus = false) => {
+        if (!notificationToggle || !notificationPopover || notificationPopover.hidden) return;
+        notificationPopover.hidden = true;
+        notificationToggle.setAttribute('aria-expanded', 'false');
+        if (restoreFocus) notificationToggle.focus();
+    };
+    notificationToggle?.addEventListener('click', () => {
+        if (!notificationPopover) return;
+        const opening = notificationPopover.hidden;
+        notificationPopover.hidden = !opening;
+        notificationToggle.setAttribute('aria-expanded', String(opening));
+        if (opening) positionNotificationPopover();
+    });
+    document.addEventListener('click', event => {
+        if (notificationPopover?.hidden) return;
+        if (event.target instanceof Node && (notificationPopover.contains(event.target) || notificationToggle?.contains(event.target))) return;
+        closeNotificationPopover();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && notificationPopover && !notificationPopover.hidden) {
+            event.preventDefault();
+            closeNotificationPopover(true);
+        }
+    });
+    window.addEventListener('resize', positionNotificationPopover);
+    window.addEventListener('scroll', positionNotificationPopover, true);
+
     document.querySelectorAll('[data-avatar-image]').forEach(image => {
         const fallback = () => { image.hidden = true; const initial = image.parentElement.querySelector('[data-avatar-fallback]'); if (initial) initial.hidden = false; };
         image.addEventListener('error', fallback);
