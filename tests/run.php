@@ -9,6 +9,38 @@ Env::load(dirname(__DIR__) . '/.env');
 $failed = [];
 if (!preg_match('/--orange-500:\s*#e8612d/i', (string) file_get_contents(dirname(__DIR__) . '/public/assets/css/auth/login.css')))
     $failed[] = 'token';
+$appJavascript = (string) file_get_contents(dirname(__DIR__) . '/public/assets/js/app.js');
+if (!str_contains($appJavascript, "event.target.method === 'dialog'"))
+    $failed[] = 'request-loading-ignores-dialog-submit';
+ob_start();
+$pagination = [
+    'path' => '/admin/agendamentos',
+    'query' => ['q' => 'Luna & Mel', 'status' => 'cancelled'],
+    'current' => 3,
+    'pages' => 6,
+    'total' => 54,
+    'per_page' => 10,
+    'item_label' => 'agendamentos',
+    'aria_label' => 'Paginação de agendamentos',
+];
+require dirname(__DIR__) . '/resources/views/partials/pagination.php';
+$paginationHtml = (string) ob_get_clean();
+if (!str_contains($paginationHtml, 'Mostrando 21–30 de 54 agendamentos')
+    || !str_contains($paginationHtml, 'aria-current="page" aria-label="Página 3"')
+    || !str_contains($paginationHtml, 'q=Luna+%26+Mel&amp;status=cancelled')
+    || !str_contains($paginationHtml, 'status=cancelled')
+    || !str_contains($paginationHtml, 'rel="prev"')
+    || !str_contains($paginationHtml, 'rel="next"')) {
+    $failed[] = 'shared-pagination-rendering';
+}
+ob_start();
+$pagination = ['path' => '/admin/clientes', 'current' => 1, 'pages' => 1, 'total' => 0, 'per_page' => 10];
+require dirname(__DIR__) . '/resources/views/partials/pagination.php';
+$emptyPaginationHtml = (string) ob_get_clean();
+if (!str_contains($emptyPaginationHtml, 'Nenhum registro encontrado')
+    || str_contains($emptyPaginationHtml, '<nav')) {
+    $failed[] = 'shared-pagination-empty-state';
+}
 try {
     if (Validator::email('  TEST@example.com ') !== 'test@example.com') $failed[] = 'email-normalization';
     if (Validator::cpf('529.982.247-25') !== '52998224725') $failed[] = 'cpf';
@@ -33,6 +65,22 @@ try {
             if (!class_exists($middleware)) $failed[] = 'route-middleware:' . $route['path'];
         }
         if (in_array($route['method'], ['POST','PUT','PATCH','DELETE'], true) && !in_array(CsrfMiddleware::class, $route['middleware'], true)) $failed[] = 'route-csrf:' . $route['path'];
+    }
+    $adminRoutes = array_filter($property->getValue($router), static fn(array $route): bool => str_starts_with($route['path'], '/admin'));
+    $adminRouteKeys = array_map(static fn(array $route): string => $route['method'] . ' ' . $route['path'], $adminRoutes);
+    if (in_array('GET /admin/{section}/novo', $adminRouteKeys, true)
+        || in_array('POST /admin/{section}', $adminRouteKeys, true)
+        || !in_array('GET /admin/servicos/novo', $adminRouteKeys, true)
+        || !in_array('POST /admin/servicos', $adminRouteKeys, true)) {
+        $failed[] = 'admin-create-routes';
+    }
+    foreach (['clientes', 'pets', 'funcionarios'] as $section) {
+        try {
+            (new App\Repositories\ManagementRepository())->save($section, null, []);
+            $failed[] = 'admin-create-disabled:' . $section;
+        } catch (InvalidArgumentException) {
+            // The admin repository rejects creation before attempting a database connection.
+        }
     }
 } catch (Throwable $e) {
     $failed[] = 'routes: ' . $e->getMessage();
@@ -114,8 +162,26 @@ try {
         || !str_contains($adminStaffHtml, 'Ver perfil')
         || !str_contains($adminStaffHtml, 'Editar')
         || !str_contains($adminStaffHtml, 'Promover a administrador')
+        || !str_contains($adminStaffHtml, 'Rebaixar para cliente')
+        || !str_contains($adminStaffHtml, '/admin/funcionarios/00000000-0000-4000-8000-000000000004/rebaixar-cliente')
+        || !str_contains($adminStaffHtml, 'data-password-title="Rebaixar funcionário para cliente"')
         || !str_contains($adminStaffHtml, 'name="_token"')) {
         $failed[] = 'admin-staff-directory';
+    }
+
+    ob_start();
+    App\Core\View::render('pages/admin/list', [
+        'title' => 'Funcionários', 'active' => 'funcionarios', 'section' => 'funcionarios',
+        'user' => $_SESSION['user'], 'search' => '', 'rows' => [], 'employees' => [],
+        'total' => 0, 'page' => 1, 'pages' => 1,
+        'demotionModalMessage' => 'Há atendimentos pendentes ou em andamento.',
+    ]);
+    $adminStaffDemotionModalHtml = (string) ob_get_clean();
+    if (!str_contains($adminStaffDemotionModalHtml, '<dialog class="admin-password-dialog" data-staff-demotion-dialog')
+        || !str_contains($adminStaffDemotionModalHtml, 'role="alertdialog"')
+        || !str_contains($adminStaffDemotionModalHtml, 'Há atendimentos pendentes ou em andamento.')
+        || !str_contains($adminStaffDemotionModalHtml, 'Entendi')) {
+        $failed[] = 'admin-staff-demotion-block-modal';
     }
 
     $_SERVER['REQUEST_URI'] = '/admin/funcionarios/00000000-0000-4000-8000-000000000004';
@@ -168,7 +234,8 @@ try {
         ]], 'rows' => [],
     ]);
     $adminServicesHtml = (string) ob_get_clean();
-    if (!str_contains($adminServicesHtml, 'Buscar por nome ou descrição...')
+    if (!str_contains($adminServicesHtml, 'href="/admin/servicos/novo"')
+        || !str_contains($adminServicesHtml, 'Buscar por nome ou descrição...')
         || !str_contains($adminServicesHtml, 'value="active"')
         || !str_contains($adminServicesHtml, 'value="inactive"')
         || !str_contains($adminServicesHtml, 'Banho de QA')
@@ -182,8 +249,26 @@ try {
         || !str_contains($adminServicesHtml, '/admin/servicos/00000000-0000-4000-8000-000000000005/status')
         || !str_contains($adminServicesHtml, 'data-admin-password-required')
         || !str_contains($adminServicesHtml, 'name="_token"')
-        || !str_contains($adminServicesHtml, 'Página 1 de 2')) {
+        || !str_contains($adminServicesHtml, '1 / 2')) {
         $failed[] = 'admin-services-directory';
+    }
+
+    $removedCreateCases = [
+        ['clientes', 'Clientes', ['clients' => []]],
+        ['pets', 'Pets', ['pets' => [], 'adminPetDirectory' => true, 'embedAdminPetDirectory' => true, 'returnQuery' => '']],
+        ['funcionarios', 'Funcionários', ['employees' => []]],
+    ];
+    foreach ($removedCreateCases as [$section, $title, $sectionData]) {
+        ob_start();
+        App\Core\View::render('pages/admin/list', $sectionData + [
+            'title' => $title, 'active' => $section, 'section' => $section,
+            'user' => $_SESSION['user'], 'rows' => [], 'search' => '', 'total' => 0,
+            'page' => 1, 'pages' => 1, 'perPage' => 10, 'returnQuery' => '',
+        ]);
+        $adminListHtml = (string) ob_get_clean();
+        if (str_contains($adminListHtml, '/novo') || str_contains($adminListHtml, '＋ Novo')) {
+            $failed[] = 'admin-create-button:' . $section;
+        }
     }
 
     ob_start();
@@ -238,6 +323,7 @@ try {
 
     $staffProfileRoute = false;
     $promoteStaffRoute = false;
+    $demoteStaffRoute = false;
     $adminServiceStatusRoute = false;
     foreach ($property->getValue($router) as $route) {
         if ($route['path'] === '/admin/funcionarios/{id}' && $route['method'] === 'GET'
@@ -247,12 +333,16 @@ try {
             && in_array(App\Middleware\AuthMiddleware::class, $route['middleware'], true)
             && in_array(App\Middleware\RoleMiddleware::class . ':admin', $route['middleware'], true)
             && in_array(CsrfMiddleware::class, $route['middleware'], true)) $promoteStaffRoute = true;
+        if ($route['path'] === '/admin/funcionarios/{id}/rebaixar-cliente' && $route['method'] === 'POST'
+            && in_array(App\Middleware\AuthMiddleware::class, $route['middleware'], true)
+            && in_array(App\Middleware\RoleMiddleware::class . ':admin', $route['middleware'], true)
+            && in_array(CsrfMiddleware::class, $route['middleware'], true)) $demoteStaffRoute = true;
         if ($route['path'] === '/admin/{section}/{id}/status' && $route['method'] === 'POST'
             && in_array(App\Middleware\AuthMiddleware::class, $route['middleware'], true)
             && in_array(App\Middleware\RoleMiddleware::class . ':admin', $route['middleware'], true)
             && in_array(CsrfMiddleware::class, $route['middleware'], true)) $adminServiceStatusRoute = true;
     }
-    if (!$staffProfileRoute || !$promoteStaffRoute) $failed[] = 'admin-staff-routes';
+    if (!$staffProfileRoute || !$promoteStaffRoute || !$demoteStaffRoute) $failed[] = 'admin-staff-routes';
     if (!$adminServiceStatusRoute) $failed[] = 'admin-service-status-route';
     $servicePageSize = (new ReflectionMethod(App\Repositories\ManagementRepository::class, 'adminServices'))
         ->getParameters()[3]->getDefaultValue();

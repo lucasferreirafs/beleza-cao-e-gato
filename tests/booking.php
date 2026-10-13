@@ -300,14 +300,14 @@ try {
             check((int)$s->fetchColumn()===2,'Migração perdeu serviços da reserva compatível.');
             check($repo->allForUser($owner)[0]['duration_minutes']===90,'Migração alterou a duração.');
         }
-        // UUIDs must survive the admin CRUD and the client URLs without numeric casts.
+        // UUIDs must survive admin service CRUD and the normal pet registration flow.
         $newService = $management->save('servicos', null, [
             'name' => 'Serviço UUID', 'description' => 'Serviço de teste para UUID',
             'duration_minutes' => '30', 'price' => '12.50',
         ]);
         check(\App\Support\Uuid::parse($newService) === $newService
             && $management->findEditable('servicos', $newService)['name'] === 'Serviço UUID', 'CRUD de serviço não preservou UUID.');
-        $newPet = $management->save('pets', null, [
+        $newPet = (new App\Repositories\PetRepository())->create($owner, [
             'owner_id' => $owner, 'name' => 'Pet UUID', 'species' => 'Gato', 'breed' => 'SRD',
             'sex' => 'Fêmea', 'birth_date' => '2023-01-01',
         ]);

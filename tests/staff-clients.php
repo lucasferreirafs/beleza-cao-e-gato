@@ -3,7 +3,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use App\Core\{Database, Env};
-use App\Repositories\StaffClientRepository;
+use App\Repositories\{AppointmentRepository, ManagementRepository, StaffClientRepository};
 use App\Services\StaffClientService;
 
 Env::load(dirname(__DIR__) . '/.env');
@@ -112,6 +112,47 @@ try {
         checkClient($request('/staff/clientes')['code'] === 403, 'Papel indevido acessou diretório.');
         checkClient($request($base . '/foto', null, ['If-None-Match: *'])['code'] === 403, 'Papel indevido acessou foto.');
     }
-    $pdo->prepare("UPDATE users SET role='staff' WHERE id=:id")->execute(['id' => $staff]);
-    echo "OK: {$checks} verificações do diretório, privacidade, autorização, filtros e perfis.\n";
+    $serviceId = (string) $pdo->query('SELECT id FROM services WHERE active=true ORDER BY id LIMIT 1')->fetchColumn();
+    $pendingInsert = $pdo->prepare("INSERT INTO appointments(pet_id,service_id,staff_id,scheduled_at,status,price,duration_minutes)
+        VALUES (:pet,:service,:staff,clock_timestamp() + interval '1 day','pending',45,45) RETURNING id");
+    $pendingInsert->execute(['pet' => $petId, 'service' => $serviceId, 'staff' => $staff]);
+    $pendingAppointment = (string) $pendingInsert->fetchColumn();
+    $appointmentRepository = new AppointmentRepository();
+    $staffAppointments = $appointmentRepository->staffPage($staff, 'Luna', '', 1);
+    checkClient($staffAppointments['total'] === 1 && $staffAppointments['rows'][0]['id'] === $pendingAppointment, 'Busca e paginação do histórico de atendimentos falharam.');
+    $emptyStaffAppointments = $appointmentRepository->staffPage($staff, 'inexistente', '', 999);
+    checkClient($emptyStaffAppointments['page'] === 1 && $emptyStaffAppointments['total'] === 0, 'Página excedente ou lista vazia do histórico não foram normalizadas.');
+    $dateQuery = $pdo->prepare("SELECT (scheduled_at AT TIME ZONE 'America/Sao_Paulo')::date::text FROM appointments WHERE id=:id");
+    $dateQuery->execute(['id' => $pendingAppointment]);
+    $scheduledDate = (string) $dateQuery->fetchColumn();
+    checkClient($appointmentRepository->staffPage($staff, '', $scheduledDate, 1)['total'] === 1, 'Filtro de data do histórico de atendimentos falhou.');
+    $staffAppointmentPage = $request('/staff/atendimentos?q=Luna&page=999');
+    checkClient($staffAppointmentPage['code'] === 200
+        && str_contains($staffAppointmentPage['body'], 'Mostrando 1 de 1 atendimento')
+        && str_contains($staffAppointmentPage['body'], 'Página 1'), 'Rota e paginação visual do histórico de atendimentos falharam.');
+    $management = new ManagementRepository();
+    checkClient($management->demoteAdminStaff($staff) === 'active_appointments', 'Rebaixamento ignorou atendimento pendente.');
+    $pdo->prepare("UPDATE appointments SET status='in_progress' WHERE id=:id")->execute(['id' => $pendingAppointment]);
+    checkClient($management->demoteAdminStaff($staff) === 'active_appointments', 'Rebaixamento ignorou atendimento em andamento.');
+    $pdo->prepare("UPDATE appointments SET status='cancelled' WHERE id=:id")->execute(['id' => $pendingAppointment]);
+
+    $historyInsert = $pdo->prepare("INSERT INTO appointments(pet_id,service_id,staff_id,scheduled_at,status,price,duration_minutes)
+        VALUES (:pet,:service,:staff,clock_timestamp() - interval '2 days','completed',45,45) RETURNING id");
+    $historyInsert->execute(['pet' => $petId, 'service' => $serviceId, 'staff' => $staff]);
+    $historicalAppointment = (string) $historyInsert->fetchColumn();
+    $beforeDemotion = $pdo->prepare('SELECT auth_version FROM users WHERE id=:id');
+    $beforeDemotion->execute(['id' => $staff]);
+    $authVersion = (int) $beforeDemotion->fetchColumn();
+    $pdo->prepare("UPDATE users SET status='blocked' WHERE id=:id")->execute(['id' => $staff]);
+
+    checkClient($management->demoteAdminStaff($staff) === 'demoted', 'Rebaixamento de funcionário sem atendimentos abertos falhou.');
+    $demoted = $pdo->prepare('SELECT role,status,auth_version FROM users WHERE id=:id');
+    $demoted->execute(['id' => $staff]);
+    $account = $demoted->fetch();
+    checkClient($account['role'] === 'client' && $account['status'] === 'blocked', 'Papel alterado ou status da conta não preservado.');
+    checkClient((int) $account['auth_version'] === $authVersion + 1, 'Sessões não foram invalidadas após rebaixamento.');
+    $history = $pdo->prepare('SELECT 1 FROM appointments WHERE id=:id AND staff_id=:staff AND status=\'completed\'');
+    $history->execute(['id' => $historicalAppointment, 'staff' => $staff]);
+    checkClient((bool) $history->fetchColumn(), 'Histórico do funcionário foi removido ou desvinculado.');
+    echo "OK: {$checks} verificações de diretório, privacidade, autorização, filtros, perfis e rebaixamento seguro.\n";
 } catch (Throwable $error) { fwrite(STDERR, $error->getMessage() . "\n"); exit(1); }
